@@ -1,0 +1,21 @@
+Actors / Components:
+
+Job Seeker
+Frontend
+Backend
+DB
+
+Sequence Flow:
+
+Job Seeker → Frontend
+Click "Apply"
+Frontend → Backend
+POST /apply
+Backend → DB
+Save Application (Applied)
+DB → Backend
+Saved
+Backend → Frontend
+Success Response
+Frontend → Job Seeker
+Show Status = Applied

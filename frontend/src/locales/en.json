@@ -1,0 +1,139 @@
+{
+  "app": {
+    "productName": "Smart Job Portal"
+  },
+  "nav": {
+    "findJobs": "Find Jobs",
+    "companies": "Companies",
+    "salaryGuide": "Salary Guide"
+  },
+  "sidebar": {
+    "dashboard": "Dashboard",
+    "applications": "Applications",
+    "recommendedJobs": "Recommended Jobs",
+    "profile": "Profile",
+    "settings": "Settings",
+    "manageJobs": "Manage Jobs",
+    "createJob": "Create Job",
+    "applicants": "Applicants",
+    "companyProfile": "Company Profile",
+    "skills": "Skills",
+    "messages": "Messages",
+    "notifications": "Notifications",
+    "users": "Users",
+    "jobs": "Jobs",
+    "activityLog": "Activity Log"
+  },
+  "buttons": {
+    "apply": "Apply",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "login": "Log In",
+    "logout": "Log Out",
+    "postJob": "Post a Job",
+    "reset": "Reset",
+    "save": "Save",
+    "searchJobs": "Search Jobs",
+    "submit": "Submit",
+    "upload": "Upload"
+  },
+  "forms": {
+    "email": "Email",
+    "password": "Password",
+    "confirmPassword": "Confirm Password",
+    "name": "Name",
+    "role": "Role",
+    "jobSearch": "Job title, keywords, or company",
+    "locationSearch": "City, state, or remote"
+  },
+  "validation": {
+    "required": "This field is required.",
+    "email": "Enter a valid email address.",
+    "passwordMin": "Password must be at least 8 characters.",
+    "passwordComplexity": "Password must include at least one uppercase letter and one number.",
+    "passwordMatch": "Passwords must match.",
+    "invalidRole": "Choose a valid role.",
+    "invalidStatus": "Choose a valid status."
+  },
+  "statuses": {
+    "application": {
+      "applied": "Applied",
+      "underReview": "Under review",
+      "shortlisted": "Shortlisted",
+      "rejected": "Rejected"
+    },
+    "job": {
+      "active": "Active",
+      "inactive": "Inactive"
+    },
+    "user": {
+      "active": "Active",
+      "banned": "Banned"
+    },
+    "loading": "Loading",
+    "success": "Success",
+    "error": "Error"
+  },
+  "jobTypes": {
+    "fullTime": "Full time",
+    "partTime": "Part time",
+    "contract": "Contract",
+    "internship": "Internship",
+    "remote": "Remote"
+  },
+  "roles": {
+    "jobSeeker": "Job seeker",
+    "company": "Company",
+    "admin": "Admin"
+  },
+  "pages": {
+    "home": {
+      "title": "Find Your Dream Job Smarter & Faster.",
+      "eyebrow": "AI-Powered Job Matching",
+      "description": "Join the next-generation job platform. Smart Job Portal uses advanced AI to match your unique skills with top companies worldwide.",
+      "stats": {
+        "activeJobs": "Active Jobs",
+        "topCompanies": "Top Companies",
+        "averageHireTime": "Average Hire Time"
+      }
+    },
+    "login": {
+      "title": "Log In"
+    },
+    "register": {
+      "title": "Create account"
+    },
+    "jobs": {
+      "title": "Jobs"
+    },
+    "companies": {
+      "title": "Companies"
+    },
+    "salaryGuide": {
+      "title": "Salary Guide"
+    },
+    "postJob": {
+      "title": "Post a Job"
+    },
+    "applications": {
+      "title": "Applications"
+    },
+    "errors": {
+      "forbidden": "Access denied"
+    }
+  },
+  "emptyStates": {
+    "jobs": "No jobs found.",
+    "applications": "No applications yet.",
+    "applicants": "No applicants yet.",
+    "notifications": "No notifications yet."
+  },
+  "errors": {
+    "generic": "Something went wrong. Please try again.",
+    "network": "Unable to reach the server.",
+    "unauthorized": "Please log in to continue.",
+    "forbidden": "You do not have permission to access this page.",
+    "notFound": "The requested item could not be found."
+  }
+}

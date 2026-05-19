@@ -1,0 +1,309 @@
+
+---
+
+# Chapter 2: Background and Related Work
+
+This chapter presents the background of the proposed **Smart Job Portal** and discusses the technologies required to build the system. It also reviews existing recruitment approaches and highlights how the proposed platform improves the hiring process using **Artificial Intelligence (AI)** and **Natural Language Processing (NLP)**.
+
+The goal is to understand current limitations in traditional job portals and demonstrate how the **Smart Job Portal** provides a more intelligent and efficient solution.
+
+---
+
+## 2.1 System Background
+
+Recruitment processes today are still largely manual and time-consuming. Companies often receive hundreds or thousands of CVs for a single job opening, making it difficult for HR departments to filter candidates effectively. This leads to wasted time reviewing unqualified applicants and delays in finding suitable employees.
+
+On the other hand, job seekers apply randomly to multiple jobs without knowing whether their qualifications match the requirements. This results in repeated rejection, frustration, and inefficient job searching.
+
+The **Smart Job Portal** is designed to solve this mismatch by introducing AI-based automation into the hiring workflow.
+
+The system operates as follows:
+
+1. The job seeker registers and uploads their CV.
+2. The AI analyzes the CV using NLP to extract skills, qualifications, and experience.
+3. The system stores this information in a structured candidate profile.
+4. The platform recommends suitable jobs automatically based on the candidate’s skills.
+5. The company registers and posts job requirements.
+6. Candidates apply to jobs through the platform.
+7. The AI ranks applicants automatically from best to least suitable.
+8. HR managers review ranked candidates and make faster hiring decisions.
+
+---
+
+## Figure 2.1: Smart Job Portal Workflow
+
+The workflow shows the following process:
+
+**Job Seeker: Upload CV → AI Analysis (NLP): Extract Skills & Experience → Structured Candidate Profile → Company: Posts Jobs → AI Ranking & HR Review: Faster Hiring**
+
+There is also a **Job Recommendation / Smart Matching** step connected to the candidate profile.
+
+---
+
+## 2.2 Benefits of the Smart Job Portal
+
+The proposed system provides several advantages for both employers and job seekers:
+
+1. **Automated CV Screening:** Eliminates manual filtering of resumes.
+2. **Smart Job Matching:** Connects candidates to the most relevant opportunities.
+3. **Time Efficiency:** Reduces hiring time significantly.
+4. **Improved Hiring Accuracy:** Matches based on real skills, not just keywords.
+5. **AI-Based Ranking:** Helps HR focus only on top candidates.
+6. **Personalized Recommendations:** Suggests jobs aligned with candidate profiles.
+7. **Interactive AI Chatbot:** Assists users with career-related questions.
+8. **Transparency in Decisions:** Explains why candidates are selected or rejected.
+9. **HR Analytics Dashboard:** Provides insights into recruitment performance.
+10. **Better User Experience:** Reduces random applications and increases success rates.
+
+---
+
+## 2.3 Types of Data in the Smart Job Portal
+
+The system processes multiple types of data to enable intelligent decision-making:
+
+### 1. Candidate Data
+
+Includes personal information, uploaded CVs, education, and work experience.
+
+### 2. Extracted Skills Data
+
+AI-generated structured data derived from CV parsing such as:
+
+* Technical skills
+* Certifications
+* Tools and technologies
+* Soft skills
+
+### 3. Job Description Data
+
+Contains company requirements including:
+
+* Required qualifications
+* Experience level
+* Responsibilities
+* Required skills
+
+### 4. Matching Data
+
+Compatibility scores calculated between candidates and jobs.
+
+### 5. Interaction Data
+
+Applications, chatbot communication, and feedback used to improve recommendations.
+
+---
+
+## Figure 2.2: CV Analysis Using NLP
+
+The diagram shows the following flow:
+
+**Raw CV Input → AI Analysis (NLP Engine) → Structured Candidate Profile**
+
+The NLP engine includes:
+
+* Tokenization
+* Named Entity Recognition (NER)
+* Skill Extraction
+
+The structured candidate profile includes:
+
+### Skills
+
+* Python
+* Project Management Cloud
+* Communication
+
+### Experience
+
+* 5 Years
+* Software Developer
+* Team Lead
+
+### Education
+
+* MSC Computer Science
+* University of Tech
+
+---
+
+## 2.4 Review of Relevant Work
+
+Traditional job portals mainly act as listing platforms where employers post jobs and candidates submit applications. These systems rely heavily on manual HR review or basic keyword search, which lacks true understanding of candidate qualifications.
+
+Common limitations include:
+
+* Difficulty filtering thousands of CVs.
+* Time wasted interviewing unsuitable candidates.
+* Lack of intelligent matching mechanisms.
+* No clear feedback for applicants.
+* Slow hiring process.
+
+Recent research introduced AI-based recruitment tools, but many solutions focus only on CV parsing without integrating recommendation, ranking, and analytics into one platform.
+
+The **Smart Job Portal** combines all these components into a unified intelligent recruitment system.
+
+---
+
+## Figure 2.3: Smart Matching Engine
+
+The diagram shows the matching process between candidate information and job requirements.
+
+### Candidate Profile
+
+Extracted Data:
+
+* Skills
+* Experience
+* Education
+* Keywords
+
+### Job Requirements
+
+Job Metadata:
+
+* Required Skills
+* Experience Level
+* Qualifications
+
+Both sides are processed by a:
+
+**Smart Matching Algorithm (AI/NLP)**
+
+The output is:
+
+**Compatibility Score: 85% — High Match**
+
+Reasoning example:
+
+**Strong overlap in Python, Machine Learning, and Data Analysis skills.**
+
+---
+
+## 2.5 Problems Addressed by the Proposed System
+
+---
+
+## 2.5.1 Problems Faced by Companies / HR Departments
+
+* Hard to manually review thousands of CVs.
+* Time wasted interviewing unqualified applicants.
+* Difficulty identifying the best candidate quickly.
+* Lack of data-driven hiring insights.
+* Inefficient recruitment workflow.
+
+---
+
+## 2.5.2 Problems Faced by Job Seekers
+
+* Random job applications without guidance.
+* Frequent rejection due to poor matching.
+* No clear understanding of missing skills.
+* Difficulty discovering suitable job opportunities.
+
+---
+
+## 2.5.3 Proposed Solution
+
+The **Smart Job Portal** introduces several intelligent components:
+
+* **CV Analyzer:** Uses NLP to understand resume content.
+* **Smart Matching Algorithm:** Matches candidates to jobs using skill similarity.
+* **Recommendation Engine:** Suggests best-fit jobs automatically.
+* **AI Chatbot Assistant:** Answers career-related questions.
+* **HR Dashboard:** Displays ranked candidates and hiring analytics.
+* **Transparency Module:** Explains hiring decisions clearly.
+
+---
+
+## Figure 2.4: AI Candidate Ranking Dashboard
+
+The figure shows an AI candidate ranking dashboard used by HR. It includes:
+
+* Ranked candidates
+* Matching scores
+* Time-to-hire chart
+* Candidate source chart
+* Overall performance metrics
+* Active job openings
+* Pending reviews
+* Successful hires
+
+Example candidate scores shown:
+
+* Candidate 1: 95%
+* Candidate 2: 91%
+* Candidate 3: 75%
+
+---
+
+## Figure 2.5: HR Analytics and Insights Dashboard
+
+The figure shows an HR analytics dashboard containing:
+
+* Time-to-hire chart
+* Candidate source distribution
+* Overall performance metrics
+* Hiring trends
+* Active jobs
+* Pending reviews
+* Successful hires
+* Total applicants
+
+---
+
+## Comparison Table: Traditional Job Portals vs Smart Job Portal
+
+| Feature                     | Traditional Job Portals | Smart Job Portal |
+| --------------------------- | ----------------------- | ---------------- |
+| Manual CV Screening         | ✔                       | ✖                |
+| Keyword-Based Search        | ✔                       | ✖                |
+| AI Skill Extraction         | ✖                       | ✔                |
+| Smart Job Recommendation    | ✖                       | ✔                |
+| Automatic Candidate Ranking | ✖                       | ✔                |
+| HR Analytics Dashboard      | Limited                 | ✔                |
+| Feedback to Applicants      | ✖                       | ✔                |
+| Hiring Decision Support     | ✖                       | ✔                |
+
+---
+
+## Figure 2.3: Data Taxonomy for the Smart Job Portal
+
+The diagram shows the main categories of data stored and processed by the **Smart Job Portal Database**.
+
+### Candidate Data
+
+Includes:
+
+* Personal Info
+* Uploaded CVs
+* Education & Experience
+
+### Extracted Skills Data
+
+Includes:
+
+* Technical Skills
+* Soft Skills
+* Certifications
+* Tools & Technologies
+
+### Job Description Data
+
+Includes:
+
+* Company
+* Required Qualifications
+* Experience Level
+* Required Skills
+
+### Relational & Interaction Data
+
+Includes:
+
+* Matching Scores
+* Applications History
+* Chatbot Communication
+* User Feedback
+
+---
+

@@ -1,0 +1,74 @@
+Tables
+1. users
+id — int — PK
+name — varchar
+email — varchar
+password — varchar
+role — varchar
+created_at — timestamp
+2. job_seeker_profiles
+id — int — PK
+user_id — int — FK
+phone — varchar
+address — varchar
+created_at — timestamp
+3. company_profiles
+id — int — PK
+user_id — int — FK
+company_name — varchar
+website — varchar
+created_at — timestamp
+4. skills
+id — int — PK
+name — varchar
+5. job_seeker_skills
+id — int — PK
+job_seeker_id — int — FK
+skill_id — int — FK
+6. job_posts
+id — int — PK
+company_id — int — FK
+title — varchar
+description — text
+created_at — timestamp
+7. job_required_skills
+id — int — PK
+job_id — int — FK
+skill_id — int — FK
+is_mandatory — boolean
+8. applications
+id — int — PK
+job_id — int — FK
+job_seeker_id — int — FK
+ai_score — float
+missing_skills_json — json
+created_at — timestamp
+9. application_status_history
+id — int — PK
+application_id — int — FK
+status — varchar
+changed_by — int — FK
+created_at — timestamp
+10. cv_parsed_data
+id — int — PK
+job_seeker_id — int — FK
+parsed_json — json
+Relationships
+users → job_seeker_profiles
+User can have a Job Seeker Profile.
+users → company_profiles
+User can have a Company Profile.
+company_profiles → job_posts
+Company creates Job Posts.
+job_seeker_profiles → job_seeker_skills → skills
+Job Seeker has Skills.
+job_posts → job_required_skills → skills
+Job Post requires Skills.
+job_seeker_profiles → applications
+Job Seeker submits Applications.
+job_posts → applications
+Job Post receives Applications.
+applications → application_status_history
+Application has Status History.
+job_seeker_profiles → cv_parsed_data
+Job Seeker has Parsed CV Data.

@@ -1,0 +1,140 @@
+<?php
+
+namespace App\Http\Controllers\Application;
+
+use App\Http\Controllers\Controller;
+use App\Http\Requests\Application\ApplyRequest;
+use App\Http\Requests\Application\UpdateStatusRequest;
+use App\Http\Resources\ApplicationResource;
+use App\Models\Application;
+use App\Services\MatchingService;
+use App\Services\GapAnalyzerService;
+use App\Jobs\SendRejectionEmailJob;
+use App\Events\ApplicationStatusChanged;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use App\Traits\ApiResponse;
+use App\Models\JobPost;
+
+class ApplicationController extends Controller
+{
+    use ApiResponse;
+
+    public function __construct(
+        private MatchingService $matchingService,
+        private GapAnalyzerService $gapAnalyzerService
+    ) {}
+
+    public function index(Request $request)
+    {
+        $applications = Application::with(['jobPost.companyProfile'])
+            ->where('job_seeker_id', $request->user()->jobSeekerProfile->id)
+            ->paginate(15);
+
+        return $this->success(ApplicationResource::collection($applications));
+    }
+
+    public function show(Request $request, Application $application)
+    {
+        if ($request->user()->cannot('view', $application)) {
+            return $this->error('Unauthorized', 403);
+        }
+
+        return $this->success(
+            new ApplicationResource(
+                $application->load(['jobPost.companyProfile', 'applicationStatusHistory'])
+            )
+        );
+    }
+
+    public function store(ApplyRequest $request)
+    {
+        $profile = $request->user()->jobSeekerProfile;
+        $jobId   = $request->job_id;
+
+        $exists = Application::where('job_id', $jobId)
+            ->where('job_seeker_id', $profile->id)
+            ->exists();
+
+        if ($exists) {
+            return $this->error('Already applied to this job.', 409);
+        }
+
+        $job = JobPost::with('jobRequiredSkills.skill')->findOrFail($jobId);
+
+        $seekerSkillIds = $profile->jobSeekerSkills()->pluck('skill_id');
+        $requiredSkills = $job->jobRequiredSkills;
+
+        $score         = $this->matchingService->calculateScore($seekerSkillIds, $requiredSkills);
+        $missingSkills = $this->matchingService->getMissingSkills($seekerSkillIds, $requiredSkills);
+
+        $application = DB::transaction(function () use ($jobId, $profile, $score, $missingSkills) {
+            $app = Application::create([
+                'job_id'             => $jobId,
+                'job_seeker_id'      => $profile->id,
+                'status'             => 'applied',
+                'ai_score'           => $score,
+                'missing_skills_json'=> $missingSkills,
+            ]);
+
+            $app->applicationStatusHistory()->create([
+                'status'     => 'applied',
+                'changed_by' => $profile->user_id,
+                'created_at' => now(),
+            ]);
+
+            return $app;
+        });
+
+        return $this->success(new ApplicationResource($application), 'Applied successfully', 201);
+    }
+
+    public function updateStatus(UpdateStatusRequest $request, Application $application)
+    {
+        if ($request->user()->cannot('updateStatus', $application)) {
+            return $this->error('Unauthorized', 403);
+        }
+
+        $newStatus = $request->status;
+
+        DB::transaction(function () use ($application, $newStatus, $request) {
+            if ($newStatus === 'rejected') {
+                $missingSkills = $this->gapAnalyzerService->analyze($application);
+                $application->missing_skills_json = $missingSkills;
+                SendRejectionEmailJob::dispatch($application);
+            }
+
+            $application->status = $newStatus;
+            $application->save();
+
+            $application->applicationStatusHistory()->create([
+                'status'     => $newStatus,
+                'changed_by' => $request->user()->id,
+                'created_at' => now(),
+            ]);
+
+            event(new ApplicationStatusChanged($application));
+        });
+
+        return $this->success(new ApplicationResource($application), 'Status updated successfully');
+    }
+
+    public function feedback(Application $application)
+    {
+        if ($application->job_seeker_id !== auth()->user()->jobSeekerProfile->id) {
+            return $this->error('Forbidden.', 403);
+        }
+
+        if ($application->status !== 'rejected') {
+            return $this->error('Feedback only available for rejected applications.', 400);
+        }
+
+        return $this->success([
+            'application_id'  => $application->id,
+            'job_title'       => $application->jobPost->title,
+            'ai_score'        => $application->ai_score,
+            'missing_skills'  => $application->missing_skills_json ?? [],
+            'status'          => $application->status,
+        ], 'Feedback retrieved.');
+    }
+}

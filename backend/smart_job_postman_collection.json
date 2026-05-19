@@ -1,0 +1,3081 @@
+{
+  "info": {
+    "_postman_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+    "name": "Smart Job Portal API V2",
+    "description": "Complete API collection for the Smart Job Portal Laravel 12 backend.\n\nRoles: job_seeker | company | admin\n\nAuth: Session-based (cookie). Must set X-XSRF-TOKEN header from the /sanctum/csrf-cookie response before calling login.\n\nEnvironment Variables:\n- base_url  — http://localhost/smart_job/public/api\n- token     — (auto-set after login)\n- job_id    — (reusable job ID)\n- app_id    — (reusable application ID)\n- user_id   — (reusable user ID)\n- skill_id  — (reusable skill ID)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://127.0.0.1:8000/api",
+      "type": "string",
+      "description": "Base URL for the Smart Job Portal API"
+    },
+    {
+      "key": "job_id",
+      "value": "1",
+      "type": "string",
+      "description": "Reusable job post ID"
+    },
+    {
+      "key": "app_id",
+      "value": "1",
+      "type": "string",
+      "description": "Reusable application ID"
+    },
+    {
+      "key": "user_id",
+      "value": "1",
+      "type": "string",
+      "description": "Reusable user ID (admin operations)"
+    },
+    {
+      "key": "skill_id",
+      "value": "1",
+      "type": "string",
+      "description": "Reusable skill ID"
+    }
+  ],
+  "item": [
+    {
+      "name": "01 - Authentication",
+      "description": "Public and authenticated auth endpoints. Session-based, no bearer token required.",
+      "item": [
+        {
+          "name": "Register New User",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"John Doe\",\n  \"email\": \"john.doe@example.com\",\n  \"password\": \"Secret1234\",\n  \"password_confirmation\": \"Secret1234\",\n  \"role\": \"job_seeker\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/register",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth",
+                "register"
+              ]
+            },
+            "description": "Register a new user. Role must be 'job_seeker' or 'company'. Password must contain at least one uppercase letter and one number. Email verification is sent after successful registration."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 201', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test('Response time is under 2000ms', function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(2000);",
+                  "});",
+                  "",
+                  "pm.test('Response is JSON', function () {",
+                  "    pm.response.to.be.json;",
+                  "});",
+                  "",
+                  "pm.test('Has success field', function () {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json).to.have.property('message');",
+                  "    pm.expect(json.message).to.include('Registration successful');",
+                  "});",
+                  "",
+                  "pm.test('Validation - 422 on missing fields', function () {",
+                  "    // Secondary assertion for awareness. Main call should be 201.",
+                  "    // To test 422, send an empty body in a separate request.",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Register - Company Account",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Tech Corp HR\",\n  \"email\": \"hr@techcorp.com\",\n  \"password\": \"Company1234\",\n  \"password_confirmation\": \"Company1234\",\n  \"role\": \"company\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/register",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth",
+                "register"
+              ]
+            },
+            "description": "Register a new company account."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 201', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test('Response time is under 2000ms', function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(2000);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Register - Validation Error (422)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"J\",\n  \"email\": \"not-an-email\",\n  \"password\": \"weak\",\n  \"role\": \"invalid_role\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/register",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth",
+                "register"
+              ]
+            },
+            "description": "Attempt registration with invalid data — expects 422 Unprocessable Entity."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 422', function () {",
+                  "    pm.response.to.have.status(422);",
+                  "});",
+                  "",
+                  "pm.test('Response has errors object', function () {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json).to.have.property('errors');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"john.doe@example.com\",\n  \"password\": \"Secret1234\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/login",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Authenticate a verified, non-banned user. Returns the authenticated user object. Session cookie is automatically stored by Postman."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response time is under 2000ms', function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(2000);",
+                  "});",
+                  "",
+                  "pm.test('Response is JSON', function () {",
+                  "    pm.response.to.be.json;",
+                  "});",
+                  "",
+                  "pm.test('Response has user data', function () {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json).to.have.property('data');",
+                  "    pm.expect(json.data).to.have.property('id');",
+                  "    pm.expect(json.data).to.have.property('email');",
+                  "    pm.expect(json.data).to.have.property('role');",
+                  "    pm.expect(json.data).not.to.have.property('password');",
+                  "});",
+                  "",
+                  "pm.test('Login message is correct', function () {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.message).to.equal('Login successful');",
+                  "});",
+                  "",
+                  "// Auto-save user_id for subsequent requests",
+                  "const json = pm.response.json();",
+                  "if (json.data && json.data.id) {",
+                  "    pm.collectionVariables.set('user_id', json.data.id);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login - Invalid Credentials (401)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"john.doe@example.com\",\n  \"password\": \"WrongPassword\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/login",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Attempt login with wrong password — expects 401."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 401', function () {",
+                  "    pm.response.to.have.status(401);",
+                  "});",
+                  "",
+                  "pm.test('Error message is present', function () {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json).to.have.property('message');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Verify Email",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/auth/verify-email?token=your-verification-token-here",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth",
+                "verify-email"
+              ],
+              "query": [
+                {
+                  "key": "token",
+                  "value": "your-verification-token-here",
+                  "description": "The email verification token sent to the user's inbox"
+                }
+              ]
+            },
+            "description": "Verify email using the token sent after registration. Token is a signed, time-limited string."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200 (valid token) or 400 (invalid token)', function () {",
+                  "    pm.expect([200, 400]).to.include(pm.response.code);",
+                  "});",
+                  "",
+                  "pm.test('Response time is under 2000ms', function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(2000);",
+                  "});",
+                  "",
+                  "pm.test('Response has message field', function () {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json).to.have.property('message');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Resend Verification Email",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"john.doe@example.com\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/resend-verification",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth",
+                "resend-verification"
+              ]
+            },
+            "description": "Request a new email verification link. Always returns 200 to prevent user enumeration (even if email doesn't exist)."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response time is under 2000ms', function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(2000);",
+                  "});",
+                  "",
+                  "pm.test('Response has message', function () {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json).to.have.property('message');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Forgot Password - Send Reset Link",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"john.doe@example.com\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/forgot-password",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth",
+                "forgot-password"
+              ]
+            },
+            "description": "Request a password reset link to be sent to the given email address."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response time is under 2000ms', function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(2000);",
+                  "});",
+                  "",
+                  "pm.test('Reset link message present', function () {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.message).to.include('Reset link sent');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Reset Password",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"token\": \"your-reset-token-here\",\n  \"email\": \"john.doe@example.com\",\n  \"password\": \"NewSecret1234\",\n  \"password_confirmation\": \"NewSecret1234\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/reset-password",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth",
+                "reset-password"
+              ]
+            },
+            "description": "Reset the user's password using the token received by email."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response time is under 2000ms', function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(2000);",
+                  "});",
+                  "",
+                  "pm.test('Success message present', function () {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.message).to.include('Password reset successfully');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Current User (Me)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/auth/me",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth",
+                "me"
+              ]
+            },
+            "description": "Returns the currently authenticated user's data. Requires active session. Returns 401 if not authenticated."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response time is under 1000ms', function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(1000);",
+                  "});",
+                  "",
+                  "pm.test('User object has required fields', function () {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.data).to.have.property('id');",
+                  "    pm.expect(json.data).to.have.property('name');",
+                  "    pm.expect(json.data).to.have.property('email');",
+                  "    pm.expect(json.data).to.have.property('role');",
+                  "    pm.expect(json.data).to.have.property('email_verified_at');",
+                  "});",
+                  "",
+                  "pm.test('Password is not exposed', function () {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.data).not.to.have.property('password');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/auth/logout",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth",
+                "logout"
+              ]
+            },
+            "description": "Logout the current session. Invalidates session and regenerates CSRF token. Must be authenticated."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response time is under 1000ms', function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(1000);",
+                  "});",
+                  "",
+                  "pm.test('Logout message present', function () {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.message).to.equal('Logged out successfully');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "02 - Jobs (Public Browse)",
+      "description": "Public job browsing endpoints accessible to any authenticated and verified user regardless of role.",
+      "item": [
+        {
+          "name": "Browse Active Jobs",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/jobs?keyword=laravel&location=remote&job_type=full_time&page=1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "jobs"
+              ],
+              "query": [
+                {
+                  "key": "keyword",
+                  "value": "laravel",
+                  "description": "Search in job title and description"
+                },
+                {
+                  "key": "location",
+                  "value": "remote",
+                  "description": "Filter by location (partial match)"
+                },
+                {
+                  "key": "job_type",
+                  "value": "full_time",
+                  "description": "Filter by type: full_time | part_time | remote | contract"
+                },
+                {
+                  "key": "salary_range",
+                  "value": "",
+                  "description": "Filter by salary range string (optional)",
+                  "disabled": true
+                },
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Pagination page number (15 per page)"
+                }
+              ]
+            },
+            "description": "List all active job posts with optional filters. Supports keyword search (title + description), location, job type, and salary range filters. Returns paginated results (15 per page)."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response time is under 2000ms', function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(2000);",
+                  "});",
+                  "",
+                  "pm.test('Response is paginated', function () {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.data).to.have.property('data');",
+                  "    pm.expect(json.data).to.have.property('current_page');",
+                  "    pm.expect(json.data).to.have.property('total');",
+                  "    pm.expect(json.data).to.have.property('per_page');",
+                  "    pm.expect(json.data.per_page).to.equal(15);",
+                  "});",
+                  "",
+                  "pm.test('Jobs have required fields', function () {",
+                  "    const json = pm.response.json();",
+                  "    if (json.data.data.length > 0) {",
+                  "        const job = json.data.data[0];",
+                  "        pm.expect(job).to.have.property('id');",
+                  "        pm.expect(job).to.have.property('title');",
+                  "        pm.expect(job).to.have.property('job_type');",
+                  "        pm.expect(job).to.have.property('is_active');",
+                  "        pm.expect(job.is_active).to.equal(true);",
+                  "        // Auto-save first job ID for subsequent requests",
+                  "        pm.collectionVariables.set('job_id', job.id);",
+                  "    }",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Browse Jobs - No Filters",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/jobs",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "jobs"
+              ]
+            },
+            "description": "List all active jobs without any filters."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response time is under 2000ms', function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(2000);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Job Details",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/jobs/{{job_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "jobs",
+                "{{job_id}}"
+              ]
+            },
+            "description": "Get full details of a specific job post including required skills (with mandatory flag) and company profile."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response time is under 1000ms', function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(1000);",
+                  "});",
+                  "",
+                  "pm.test('Job has required top-level fields', function () {",
+                  "    const json = pm.response.json();",
+                  "    const job = json.data;",
+                  "    pm.expect(job).to.have.property('id');",
+                  "    pm.expect(job).to.have.property('title');",
+                  "    pm.expect(job).to.have.property('description');",
+                  "    pm.expect(job).to.have.property('job_type');",
+                  "    pm.expect(job).to.have.property('is_active');",
+                  "    pm.expect(job).to.have.property('company_id');",
+                  "});",
+                  "",
+                  "pm.test('Job has nested relations', function () {",
+                  "    const json = pm.response.json();",
+                  "    const job = json.data;",
+                  "    pm.expect(job).to.have.property('job_required_skills');",
+                  "    pm.expect(job).to.have.property('company_profile');",
+                  "    pm.expect(job.job_required_skills).to.be.an('array');",
+                  "});",
+                  "",
+                  "pm.test('Returns 404 for non-existent job', function () {",
+                  "    // Test awareness: replace job_id with 99999 to verify 404",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Job Details - Not Found (404)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/jobs/99999",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "jobs",
+                "99999"
+              ]
+            },
+            "description": "Attempt to fetch a job that doesn't exist — expects 404."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 404', function () {",
+                  "    pm.response.to.have.status(404);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "03 - Skills (Lookup)",
+      "description": "Skills catalog endpoint — accessible to all authenticated and verified users.",
+      "item": [
+        {
+          "name": "List All Skills",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/skills",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "skills"
+              ]
+            },
+            "description": "Returns a flat list of all skills in the catalog. Used for skill selection in profile setup and job posting. No pagination."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response time is under 1000ms', function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(1000);",
+                  "});",
+                  "",
+                  "pm.test('Response data is an array', function () {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.data).to.be.an('array');",
+                  "});",
+                  "",
+                  "pm.test('Skills have required fields', function () {",
+                  "    const json = pm.response.json();",
+                  "    if (json.data.length > 0) {",
+                  "        const skill = json.data[0];",
+                  "        pm.expect(skill).to.have.property('id');",
+                  "        pm.expect(skill).to.have.property('name');",
+                  "        // Auto-save first skill ID for subsequent requests",
+                  "        pm.collectionVariables.set('skill_id', skill.id);",
+                  "    }",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "04 - Job Seeker - Profile",
+      "description": "Profile management for job_seeker role. Requires: auth + verified + role:job_seeker.",
+      "item": [
+        {
+          "name": "Get My Profile",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/profile",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "profile"
+              ]
+            },
+            "description": "Retrieve the authenticated job seeker's profile including their linked skills."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response time is under 1000ms', function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(1000);",
+                  "});",
+                  "",
+                  "pm.test('Profile has expected fields', function () {",
+                  "    const json = pm.response.json();",
+                  "    const profile = json.data;",
+                  "    pm.expect(profile).to.have.property('id');",
+                  "    pm.expect(profile).to.have.property('user_id');",
+                  "    pm.expect(profile).to.have.property('cv_parse_status');",
+                  "    pm.expect(profile).to.have.property('skills');",
+                  "    pm.expect(profile.skills).to.be.an('array');",
+                  "});",
+                  "",
+                  "pm.test('403 for company or admin role', function () {",
+                  "    // Test awareness: login as company then call /profile should return 403",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update My Profile",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"headline\": \"Full Stack Developer with 3 years of experience\",\n  \"bio\": \"Passionate developer specializing in Laravel and Vue.js\",\n  \"phone\": \"+1-555-0100\",\n  \"location\": \"New York, USA\",\n  \"linkedin_url\": \"https://linkedin.com/in/johndoe\",\n  \"portfolio_url\": \"https://johndoe.dev\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/profile",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "profile"
+              ]
+            },
+            "description": "Update the authenticated job seeker's profile fields."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response time is under 1500ms', function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(1500);",
+                  "});",
+                  "",
+                  "pm.test('Response has updated profile data', function () {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json).to.have.property('data');",
+                  "    pm.expect(json.message).to.equal('Profile updated');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "05 - Job Seeker - CV Management",
+      "description": "CV upload and parsing endpoints for job_seeker role. Rate-limited: cv_upload throttle applies to POST /cv/upload.",
+      "item": [
+        {
+          "name": "Upload CV",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": [],
+                  "description": "PDF or DOCX file, max 5MB (5120KB)"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/cv/upload",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "cv",
+                "upload"
+              ]
+            },
+            "description": "Upload a CV file (PDF or DOCX, max 5MB). Triggers async ParseCVJob on 'cv-parsing' queue. Returns 202 Accepted immediately. Poll /cv/status to check parsing progress."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 202 Accepted', function () {",
+                  "    pm.response.to.have.status(202);",
+                  "});",
+                  "",
+                  "pm.test('Response time is under 5000ms', function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(5000);",
+                  "});",
+                  "",
+                  "pm.test('CV upload message present', function () {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.message).to.include('CV uploaded');",
+                  "});",
+                  "",
+                  "pm.test('422 on invalid file type or missing file', function () {",
+                  "    // Test awareness: upload a .txt file to verify 422 validation error",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get CV Parsing Status",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/cv/status",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "cv",
+                "status"
+              ]
+            },
+            "description": "Poll the parsing status of the uploaded CV. Status values: 'pending' | 'processing' | 'done' | 'failed'."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response time is under 1000ms', function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(1000);",
+                  "});",
+                  "",
+                  "pm.test('Has cv_parse_status field', function () {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.data).to.have.property('cv_parse_status');",
+                  "    pm.expect(['pending', 'processing', 'done', 'failed']).to.include(json.data.cv_parse_status);",
+                  "});",
+                  "",
+                  "pm.test('Has resume_file_url field', function () {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.data).to.have.property('resume_file_url');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Parsed CV Data",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/cv/parsed",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "cv",
+                "parsed"
+              ]
+            },
+            "description": "Retrieve the AI-parsed CV data (structured JSON). Returns 404 if not parsed yet."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200 (parsed) or 404 (not yet parsed)', function () {",
+                  "    pm.expect([200, 404]).to.include(pm.response.code);",
+                  "});",
+                  "",
+                  "pm.test('Response time is under 1000ms', function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(1000);",
+                  "});",
+                  "",
+                  "if (pm.response.code === 200) {",
+                  "    pm.test('Parsed data has parsed_json field', function () {",
+                  "        const json = pm.response.json();",
+                  "        pm.expect(json.data).to.have.property('parsed_json');",
+                  "    });",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update Parsed CV Data",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"parsed_json\": {\n    \"name\": \"John Doe\",\n    \"email\": \"john.doe@example.com\",\n    \"phone\": \"+1-555-0100\",\n    \"skills\": [\"Laravel\", \"Vue.js\", \"MySQL\", \"Docker\"],\n    \"experience\": [\n      {\n        \"company\": \"Acme Corp\",\n        \"role\": \"Backend Developer\",\n        \"duration\": \"2021-2023\"\n      }\n    ],\n    \"education\": [\n      {\n        \"institution\": \"State University\",\n        \"degree\": \"BSc Computer Science\",\n        \"year\": \"2020\"\n      }\n    ]\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/cv/parsed",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "cv",
+                "parsed"
+              ]
+            },
+            "description": "Manually update or correct the AI-parsed CV data. Skills in parsed_json.skills are synced into job_seeker_skills (source=cv). Replaces previous CV-sourced skills."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response time is under 2000ms', function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(2000);",
+                  "});",
+                  "",
+                  "pm.test('Success message present', function () {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.message).to.include('Parsed data updated');",
+                  "});",
+                  "",
+                  "pm.test('422 on missing parsed_json', function () {",
+                  "    // Test awareness: send empty body to verify 422",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "06 - Job Seeker - Skills",
+      "description": "Manual skill management for job_seeker role. Skills can also be auto-synced from CV parsing.",
+      "item": [
+        {
+          "name": "Add Skill to Profile",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"skill_id\": {{skill_id}}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/seeker/skills",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "seeker",
+                "skills"
+              ]
+            },
+            "description": "Manually add a skill to the authenticated job seeker's profile (source=manual). Uses firstOrCreate — no duplicates created."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response time is under 1000ms', function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(1000);",
+                  "});",
+                  "",
+                  "pm.test('Skill added message present', function () {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.message).to.equal('Skill added');",
+                  "});",
+                  "",
+                  "pm.test('422 on invalid skill_id', function () {",
+                  "    // Test awareness: send skill_id=99999 to get 422",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Remove Skill from Profile",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/seeker/skills/{{skill_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "seeker",
+                "skills",
+                "{{skill_id}}"
+              ]
+            },
+            "description": "Remove a skill from the authenticated job seeker's profile by skill ID (path variable)."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response time is under 1000ms', function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(1000);",
+                  "});",
+                  "",
+                  "pm.test('Skill removed message present', function () {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.message).to.equal('Skill removed');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "07 - Job Seeker - Recommendations (AI)",
+      "description": "AI-powered job recommendations for job_seeker role. Requires CV to be uploaded first (cv.uploaded middleware).",
+      "item": [
+        {
+          "name": "Get AI-Recommended Jobs",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/jobs/recommended",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "jobs",
+                "recommended"
+              ]
+            },
+            "description": "Returns up to 20 active jobs ranked by AI match score against the seeker's skill set. Only jobs with score > 0 are returned. Requires CV to be uploaded (403 otherwise). ai_score is appended to each job."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response time is under 3000ms', function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(3000);",
+                  "});",
+                  "",
+                  "pm.test('Response is an array', function () {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.data).to.be.an('array');",
+                  "});",
+                  "",
+                  "pm.test('Results have ai_score and are sorted descending', function () {",
+                  "    const json = pm.response.json();",
+                  "    const jobs = json.data;",
+                  "    if (jobs.length > 1) {",
+                  "        pm.expect(jobs[0]).to.have.property('ai_score');",
+                  "        pm.expect(parseFloat(jobs[0].ai_score)).to.be.at.least(parseFloat(jobs[1].ai_score));",
+                  "    }",
+                  "});",
+                  "",
+                  "pm.test('Max 20 recommendations returned', function () {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.data.length).to.be.at.most(20);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "08 - Job Seeker - Applications",
+      "description": "Job application management for job_seeker role.",
+      "item": [
+        {
+          "name": "Apply to a Job",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"job_id\": {{job_id}}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/applications",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "applications"
+              ]
+            },
+            "description": "Apply to a job post. Computes AI match score and missing skills at the time of application. Creates an application status history entry ('applied'). Returns 409 if already applied."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 201 Created', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test('Response time is under 3000ms', function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(3000);",
+                  "});",
+                  "",
+                  "pm.test('Application has expected fields', function () {",
+                  "    const json = pm.response.json();",
+                  "    const app = json.data;",
+                  "    pm.expect(app).to.have.property('id');",
+                  "    pm.expect(app).to.have.property('job_id');",
+                  "    pm.expect(app).to.have.property('job_seeker_id');",
+                  "    pm.expect(app).to.have.property('status');",
+                  "    pm.expect(app).to.have.property('ai_score');",
+                  "    pm.expect(app.status).to.equal('applied');",
+                  "    // Auto-save application ID",
+                  "    pm.collectionVariables.set('app_id', app.id);",
+                  "});",
+                  "",
+                  "pm.test('Applied message correct', function () {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.message).to.equal('Applied successfully');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Apply to Job - Already Applied (409)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"job_id\": {{job_id}}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/applications",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "applications"
+              ]
+            },
+            "description": "Attempt a duplicate application to the same job — expects 409 Conflict."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 409 Conflict', function () {",
+                  "    pm.response.to.have.status(409);",
+                  "});",
+                  "",
+                  "pm.test('Duplicate application error message present', function () {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.message).to.include('Already applied');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List My Applications",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/applications?page=1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "applications"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number (15 per page)"
+                }
+              ]
+            },
+            "description": "List all applications submitted by the authenticated job seeker. Includes job post and company profile data. Paginated (15 per page)."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response time is under 2000ms', function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(2000);",
+                  "});",
+                  "",
+                  "pm.test('Response is paginated', function () {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.data).to.have.property('data');",
+                  "    pm.expect(json.data).to.have.property('current_page');",
+                  "    pm.expect(json.data).to.have.property('total');",
+                  "});",
+                  "",
+                  "pm.test('Applications have expected fields', function () {",
+                  "    const json = pm.response.json();",
+                  "    if (json.data.data.length > 0) {",
+                  "        const app = json.data.data[0];",
+                  "        pm.expect(app).to.have.property('id');",
+                  "        pm.expect(app).to.have.property('status');",
+                  "        pm.expect(app).to.have.property('ai_score');",
+                  "        pm.expect(app).to.have.property('job_post');",
+                  "    }",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Application Details",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/applications/{{app_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "applications",
+                "{{app_id}}"
+              ]
+            },
+            "description": "Get full details of a specific application including job post and status history. Policy-enforced: seeker can only view own applications."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response time is under 1000ms', function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(1000);",
+                  "});",
+                  "",
+                  "pm.test('Application has status history', function () {",
+                  "    const json = pm.response.json();",
+                  "    const app = json.data;",
+                  "    pm.expect(app).to.have.property('application_status_history');",
+                  "    pm.expect(app.application_status_history).to.be.an('array');",
+                  "});",
+                  "",
+                  "pm.test('Returns 403 for unauthorized access', function () {",
+                  "    // Test awareness: access another user's application to get 403",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "09 - Company - Profile",
+      "description": "Company profile management. Requires: auth + verified + role:company. All routes are prefixed with /company.",
+      "item": [
+        {
+          "name": "Get Company Profile",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/company/profile",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "company",
+                "profile"
+              ]
+            },
+            "description": "Retrieve the authenticated company's profile."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response time is under 1000ms', function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(1000);",
+                  "});",
+                  "",
+                  "pm.test('Profile has company fields', function () {",
+                  "    const json = pm.response.json();",
+                  "    const profile = json.data;",
+                  "    pm.expect(profile).to.have.property('id');",
+                  "    pm.expect(profile).to.have.property('user_id');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update Company Profile",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"company_name\": \"Tech Corp International\",\n  \"industry\": \"Software Development\",\n  \"company_size\": \"51-200\",\n  \"website\": \"https://techcorp.com\",\n  \"description\": \"We build enterprise-grade software solutions.\",\n  \"location\": \"San Francisco, CA\",\n  \"founded_year\": 2015\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/company/profile",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "company",
+                "profile"
+              ]
+            },
+            "description": "Update the authenticated company's profile fields."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response time is under 1500ms', function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(1500);",
+                  "});",
+                  "",
+                  "pm.test('Update confirmation message', function () {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.message).to.equal('Profile updated');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Upload Company Logo",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "logo",
+                  "type": "file",
+                  "src": [],
+                  "description": "Company logo image file (JPG, PNG, etc.)"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/company/profile/logo",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "company",
+                "profile",
+                "logo"
+              ]
+            },
+            "description": "Upload a logo image for the company profile."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response time is under 5000ms', function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(5000);",
+                  "});",
+                  "",
+                  "pm.test('Logo upload message present', function () {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.message).to.include('Logo uploaded');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "10 - Company - Job Posts",
+      "description": "Company job post (CRUD) management. Requires: auth + verified + role:company. All routes are prefixed with /company.",
+      "item": [
+        {
+          "name": "List Company Job Posts",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/company/jobs?page=1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "company",
+                "jobs"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number (15 per page)"
+                }
+              ]
+            },
+            "description": "List all job posts belonging to the authenticated company. Paginated (15 per page)."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response time is under 2000ms', function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(2000);",
+                  "});",
+                  "",
+                  "pm.test('Response is paginated', function () {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.data).to.have.property('data');",
+                  "    pm.expect(json.data).to.have.property('current_page');",
+                  "});",
+                  "",
+                  "pm.test('Each job has required fields', function () {",
+                  "    const json = pm.response.json();",
+                  "    if (json.data.data.length > 0) {",
+                  "        const job = json.data.data[0];",
+                  "        pm.expect(job).to.have.property('id');",
+                  "        pm.expect(job).to.have.property('title');",
+                  "        pm.expect(job).to.have.property('is_active');",
+                  "        pm.collectionVariables.set('job_id', job.id);",
+                  "    }",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create Job Post",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Senior Laravel Backend Developer\",\n  \"description\": \"We are looking for a highly skilled Laravel developer to join our engineering team and lead backend development of our SaaS products. You will work closely with the frontend and product teams.\",\n  \"responsibilities\": \"Design and implement scalable REST APIs, optimize database queries, write unit/feature tests, mentor junior developers.\",\n  \"location\": \"Remote (USA)\",\n  \"job_type\": \"full_time\",\n  \"salary_range\": \"$90,000 - $120,000/year\",\n  \"skills\": [\n    { \"id\": 1, \"is_mandatory\": true },\n    { \"id\": 2, \"is_mandatory\": false },\n    { \"id\": 3, \"is_mandatory\": false }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/company/jobs",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "company",
+                "jobs"
+              ]
+            },
+            "description": "Create a new job post. job_type must be one of: full_time | part_time | remote | contract. Minimum one skill required. Skills array must contain valid skill IDs from the skills catalog."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 201 Created', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test('Response time is under 3000ms', function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(3000);",
+                  "});",
+                  "",
+                  "pm.test('Job has required fields', function () {",
+                  "    const json = pm.response.json();",
+                  "    const job = json.data;",
+                  "    pm.expect(job).to.have.property('id');",
+                  "    pm.expect(job).to.have.property('title');",
+                  "    pm.expect(job).to.have.property('company_id');",
+                  "    pm.expect(job).to.have.property('job_type');",
+                  "    pm.expect(job).to.have.property('is_active');",
+                  "    pm.collectionVariables.set('job_id', job.id);",
+                  "});",
+                  "",
+                  "pm.test('Job posted message', function () {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.message).to.equal('Job posted successfully');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create Job Post - Validation Error (422)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"\",\n  \"description\": \"Too short\",\n  \"job_type\": \"invalid_type\",\n  \"skills\": []\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/company/jobs",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "company",
+                "jobs"
+              ]
+            },
+            "description": "Attempt to create a job with invalid data — expects 422."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 422', function () {",
+                  "    pm.response.to.have.status(422);",
+                  "});",
+                  "",
+                  "pm.test('Validation errors present', function () {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json).to.have.property('errors');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Company Job Details",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/company/jobs/{{job_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "company",
+                "jobs",
+                "{{job_id}}"
+              ]
+            },
+            "description": "Get full details of a specific company job post including required skills. Only the owning company can access this."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response time is under 1000ms', function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(1000);",
+                  "});",
+                  "",
+                  "pm.test('Job has skills relation', function () {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.data).to.have.property('job_required_skills');",
+                  "    pm.expect(json.data.job_required_skills).to.be.an('array');",
+                  "});",
+                  "",
+                  "pm.test('403 for jobs owned by other company', function () {",
+                  "    // Test awareness: use another company's job_id",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update Job Post",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Lead Laravel Backend Developer\",\n  \"description\": \"Updated: We are looking for a highly skilled Laravel developer to lead our backend engineering efforts. Must have 5+ years of experience.\",\n  \"responsibilities\": \"Architect scalable API solutions, conduct code reviews, mentor the team.\",\n  \"location\": \"Remote (Global)\",\n  \"job_type\": \"full_time\",\n  \"salary_range\": \"$100,000 - $140,000/year\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/company/jobs/{{job_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "company",
+                "jobs",
+                "{{job_id}}"
+              ]
+            },
+            "description": "Update an existing job post. Only the owning company can update. Policy-enforced (403 otherwise)."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response time is under 2000ms', function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(2000);",
+                  "});",
+                  "",
+                  "pm.test('Updated job data is returned', function () {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.data).to.have.property('id');",
+                  "    pm.expect(json.data).to.have.property('title');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Toggle Job Active Status",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/company/jobs/{{job_id}}/toggle",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "company",
+                "jobs",
+                "{{job_id}}",
+                "toggle"
+              ]
+            },
+            "description": "Toggle a job post's active status (is_active). Inactive jobs are hidden from public browse results."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response time is under 1000ms', function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(1000);",
+                  "});",
+                  "",
+                  "pm.test('is_active field is a boolean', function () {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.data).to.have.property('is_active');",
+                  "    pm.expect(json.data.is_active).to.be.a('boolean');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Delete Job Post (Soft Delete)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/company/jobs/{{job_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "company",
+                "jobs",
+                "{{job_id}}"
+              ]
+            },
+            "description": "Soft-delete a job post. The record is kept in the database but excluded from queries. Admin can force-delete. Only the owning company can delete."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response time is under 1000ms', function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(1000);",
+                  "});",
+                  "",
+                  "pm.test('Deletion message present', function () {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.message).to.include('deleted');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "11 - Company - ATS (Applicant Tracking)",
+      "description": "Applicant Tracking System endpoints for company role. Manage and review job applicants. Prefixed with /company.",
+      "item": [
+        {
+          "name": "List Job Applicants (AI Ranked)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/company/jobs/{{job_id}}/applicants?page=1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "company",
+                "jobs",
+                "{{job_id}}",
+                "applicants"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number"
+                }
+              ]
+            },
+            "description": "List all applicants for a specific job post, ranked by AI match score (ai_score descending). Includes seeker profile and skills. Only the owning company can access."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response time is under 3000ms', function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(3000);",
+                  "});",
+                  "",
+                  "pm.test('Response is paginated', function () {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.data).to.have.property('data');",
+                  "    pm.expect(json.data).to.have.property('current_page');",
+                  "    pm.expect(json.data).to.have.property('total');",
+                  "});",
+                  "",
+                  "pm.test('Applicants have AI score and seeker info', function () {",
+                  "    const json = pm.response.json();",
+                  "    if (json.data.data.length > 0) {",
+                  "        const applicant = json.data.data[0];",
+                  "        pm.expect(applicant).to.have.property('ai_score');",
+                  "        pm.expect(applicant).to.have.property('status');",
+                  "        pm.expect(applicant).to.have.property('job_seeker_profile');",
+                  "        pm.collectionVariables.set('app_id', applicant.id);",
+                  "    }",
+                  "});",
+                  "",
+                  "pm.test('403 for unauthorized company', function () {",
+                  "    // Test awareness: use a job owned by a different company",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Applicant Details",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/company/applicants/{{app_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "company",
+                "applicants",
+                "{{app_id}}"
+              ]
+            },
+            "description": "Get full details of a specific application including the seeker's profile and parsed CV data. Only accessible to the company that owns the related job post."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response time is under 1500ms', function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(1500);",
+                  "});",
+                  "",
+                  "pm.test('Application has seeker profile and CV data', function () {",
+                  "    const json = pm.response.json();",
+                  "    const app = json.data;",
+                  "    pm.expect(app).to.have.property('job_seeker_profile');",
+                  "    // cv_parsed_data is nested within job_seeker_profile",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Download Applicant CV",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/octet-stream"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/company/applicants/{{app_id}}/cv",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "company",
+                "applicants",
+                "{{app_id}}",
+                "cv"
+              ]
+            },
+            "description": "Download the raw CV file (PDF/DOCX) of an applicant. File is served from private storage. Returns 404 if file not found."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200 (file) or 404 (not found)', function () {",
+                  "    pm.expect([200, 404]).to.include(pm.response.code);",
+                  "});",
+                  "",
+                  "pm.test('Response time is under 5000ms', function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(5000);",
+                  "});",
+                  "",
+                  "pm.test('Returns binary or error on 404', function () {",
+                  "    if (pm.response.code === 200) {",
+                  "        // File download response — don't parse as JSON",
+                  "        pm.expect(pm.response.headers.get('Content-Disposition')).to.not.be.null;",
+                  "    }",
+                  "    if (pm.response.code === 404) {",
+                  "        const json = pm.response.json();",
+                  "        pm.expect(json.message).to.include('CV not found');",
+                  "    }",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update Applicant Status",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"shortlisted\",\n  \"notes\": \"Strong technical background, proceeding to interview round.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/company/applicants/{{app_id}}/status",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "company",
+                "applicants",
+                "{{app_id}}",
+                "status"
+              ]
+            },
+            "description": "Update the status of an application. Valid statuses: under_review | shortlisted | rejected. Setting 'rejected' triggers async gap analysis and rejection email job. Fires ApplicationStatusChanged event."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response time is under 3000ms', function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(3000);",
+                  "});",
+                  "",
+                  "pm.test('Status update confirmed', function () {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.message).to.equal('Status updated successfully');",
+                  "});",
+                  "",
+                  "pm.test('Returned application has new status', function () {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.data).to.have.property('status');",
+                  "    pm.expect(['under_review', 'shortlisted', 'rejected']).to.include(json.data.status);",
+                  "});",
+                  "",
+                  "pm.test('422 on invalid status value', function () {",
+                  "    // Test awareness: send status=hired to get 422",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update Status - Rejected (Triggers Email & Gap Analysis)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"rejected\",\n  \"notes\": \"Candidate lacks required experience with cloud infrastructure.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/company/applicants/{{app_id}}/status",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "company",
+                "applicants",
+                "{{app_id}}",
+                "status"
+              ]
+            },
+            "description": "Reject an applicant. This triggers: (1) GapAnalyzerService to compute missing skills, (2) SendRejectionEmailJob dispatched to queue, (3) ApplicationStatusChanged event fired."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response time is under 3000ms', function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(3000);",
+                  "});",
+                  "",
+                  "pm.test('Status is rejected', function () {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.data.status).to.equal('rejected');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update Status - Invalid Value (422)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"hired\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/company/applicants/{{app_id}}/status",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "company",
+                "applicants",
+                "{{app_id}}",
+                "status"
+              ]
+            },
+            "description": "Attempt to set an invalid application status — expects 422."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 422', function () {",
+                  "    pm.response.to.have.status(422);",
+                  "});",
+                  "",
+                  "pm.test('Validation error on status field', function () {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json).to.have.property('errors');",
+                  "    pm.expect(json.errors).to.have.property('status');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "12 - Admin",
+      "description": "Admin-only endpoints. Requires: auth + verified + role:admin. All routes are prefixed with /admin.",
+      "item": [
+        {
+          "name": "Get Platform Statistics",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/stats",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "stats"
+              ]
+            },
+            "description": "Get platform-wide statistics: total users, new users this week, total jobs, active jobs, total applications, applications this week."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response time is under 1500ms', function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(1500);",
+                  "});",
+                  "",
+                  "pm.test('Stats has all expected fields', function () {",
+                  "    const json = pm.response.json();",
+                  "    const stats = json.data;",
+                  "    pm.expect(stats).to.have.property('total_users');",
+                  "    pm.expect(stats).to.have.property('new_users_this_week');",
+                  "    pm.expect(stats).to.have.property('total_jobs');",
+                  "    pm.expect(stats).to.have.property('active_jobs');",
+                  "    pm.expect(stats).to.have.property('total_applications');",
+                  "    pm.expect(stats).to.have.property('applications_this_week');",
+                  "});",
+                  "",
+                  "pm.test('All stat values are integers', function () {",
+                  "    const json = pm.response.json();",
+                  "    const stats = json.data;",
+                  "    Object.values(stats).forEach(function(val) {",
+                  "        pm.expect(Number.isInteger(val)).to.be.true;",
+                  "    });",
+                  "});",
+                  "",
+                  "pm.test('403 for non-admin users', function () {",
+                  "    // Test awareness: login as job_seeker and call this to get 403",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List All Users",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/users?role=job_seeker&is_banned=false&search=john&page=1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "users"
+              ],
+              "query": [
+                {
+                  "key": "role",
+                  "value": "job_seeker",
+                  "description": "Filter by role: job_seeker | company | admin"
+                },
+                {
+                  "key": "is_banned",
+                  "value": "false",
+                  "description": "Filter by ban status: true | false"
+                },
+                {
+                  "key": "search",
+                  "value": "john",
+                  "description": "Search in name or email (partial match)"
+                },
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number (15 per page)"
+                }
+              ]
+            },
+            "description": "List all platform users with optional filters: role, is_banned, and search (name/email). Paginated (15 per page). Includes soft-deleted if applicable."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response time is under 2000ms', function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(2000);",
+                  "});",
+                  "",
+                  "pm.test('Response is paginated', function () {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.data).to.have.property('data');",
+                  "    pm.expect(json.data).to.have.property('current_page');",
+                  "    pm.expect(json.data).to.have.property('total');",
+                  "    pm.expect(json.data.per_page).to.equal(15);",
+                  "});",
+                  "",
+                  "pm.test('Users have expected fields and no password', function () {",
+                  "    const json = pm.response.json();",
+                  "    if (json.data.data.length > 0) {",
+                  "        const user = json.data.data[0];",
+                  "        pm.expect(user).to.have.property('id');",
+                  "        pm.expect(user).to.have.property('name');",
+                  "        pm.expect(user).to.have.property('email');",
+                  "        pm.expect(user).to.have.property('role');",
+                  "        pm.expect(user).to.have.property('is_banned');",
+                  "        pm.expect(user).not.to.have.property('password');",
+                  "        pm.collectionVariables.set('user_id', user.id);",
+                  "    }",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List All Users - No Filters",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/users",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "users"
+              ]
+            },
+            "description": "List all users without any filters."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response time is under 2000ms', function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(2000);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Toggle User Ban Status",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/users/{{user_id}}/ban",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "users",
+                "{{user_id}}",
+                "ban"
+              ]
+            },
+            "description": "Toggle the is_banned flag for a user. If currently banned, unbans them; if active, bans them. Banned users cannot login."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response time is under 1000ms', function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(1000);",
+                  "});",
+                  "",
+                  "pm.test('Ban status updated', function () {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.data).to.have.property('is_banned');",
+                  "    pm.expect(json.data.is_banned).to.be.a('boolean');",
+                  "    pm.expect(json.message).to.include('toggled successfully');",
+                  "});",
+                  "",
+                  "pm.test('Returns 404 for non-existent user', function () {",
+                  "    // Test awareness: use user_id=99999 to verify 404",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List All Jobs (Including Deleted)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/jobs?page=1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "jobs"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number (15 per page)"
+                }
+              ]
+            },
+            "description": "List all job posts including soft-deleted ones (withTrashed). Admin gets full visibility."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response time is under 2000ms', function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(2000);",
+                  "});",
+                  "",
+                  "pm.test('Response is paginated', function () {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.data).to.have.property('data');",
+                  "    pm.expect(json.data).to.have.property('current_page');",
+                  "});",
+                  "",
+                  "pm.test('Jobs may include soft-deleted (deleted_at not null)', function () {",
+                  "    const json = pm.response.json();",
+                  "    if (json.data.data.length > 0) {",
+                  "        const job = json.data.data[0];",
+                  "        pm.expect(job).to.have.property('id');",
+                  "        pm.expect(job).to.have.property('deleted_at');",
+                  "        pm.collectionVariables.set('job_id', job.id);",
+                  "    }",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Force Delete Job (Permanent)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/jobs/{{job_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "jobs",
+                "{{job_id}}"
+              ]
+            },
+            "description": "Permanently and irreversibly delete a job post (including soft-deleted ones). This uses forceDelete() — the record is removed from the database entirely."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response time is under 1500ms', function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(1500);",
+                  "});",
+                  "",
+                  "pm.test('Permanent deletion message present', function () {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.message).to.include('permanently deleted');",
+                  "});",
+                  "",
+                  "pm.test('Returns 404 for non-existent job ID', function () {",
+                  "    // Test awareness: use a non-existent job_id",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

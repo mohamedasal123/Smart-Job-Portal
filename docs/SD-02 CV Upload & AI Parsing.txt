@@ -1,0 +1,30 @@
+Actors / Components:
+
+Job Seeker
+Frontend
+Backend
+AI Engine
+DB
+
+Sequence Flow:
+
+Job Seeker → Frontend
+Upload CV (PDF/DOCX)
+Frontend → Backend
+POST /upload-cv
+Backend → AI Engine
+Send CV File
+AI Engine → AI Engine
+Text Extraction + NLP
+AI Engine → AI Engine
+Extract Skills & Experience
+AI Engine → Backend
+Structured JSON
+Backend → DB
+Store Parsed Data
+DB → Backend
+Saved
+Backend → Frontend
+Parsing Complete
+Frontend → Job Seeker
+Display Extracted Data

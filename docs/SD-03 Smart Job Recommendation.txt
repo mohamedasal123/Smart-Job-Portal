@@ -1,0 +1,28 @@
+Actors  Components
+
+Job Seeker
+Frontend
+Backend
+DB
+Matching Algorithm
+
+Sequence Flow
+
+Job Seeker → Frontend
+Open Recommended Jobs
+Frontend → Backend
+GET recommended
+Backend → DB
+Fetch User Skills
+Backend → DB
+Fetch Active Jobs
+Backend → Matching Algorithm
+Compare Skills
+Matching Algorithm → Matching Algorithm
+Calculate Matching %
+Matching Algorithm → Backend
+Sorted Jobs List
+Backend → Frontend
+Jobs + Scores
+Frontend → Job Seeker
+Display Ranked Jobs

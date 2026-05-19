@@ -1,0 +1,59 @@
+Tables
+1. USER
+ID — int — PK
+Full_Name — string
+Email — string
+Password_Hash — string
+Role — string
+2. COMPANY
+User_ID — int — PK, FK
+Description — string
+Logo_URL — string
+Website_Link — string
+Location — string
+3. JOB_SEEKER
+User_ID — int — PK, FK
+Resume_File_URL — string
+Years_Of_Experience — int
+Education_Level — string
+Contact_Information — string
+4. JOB_POST
+ID — int — PK
+Company_ID — int — FK
+Title — string
+Detailed_Description — text
+Responsibilities — text
+Location — string
+Job_Type — string
+Salary_Range — string
+5. SKILL
+ID — int — PK
+Name — string
+Type — string
+6. APPLICATION
+ID — int — PK
+JobSeeker_ID — int — FK
+Job_ID — int — FK
+Matching_Score — decimal
+Status — string
+7. JOB_SEEKER_SKILL
+JobSeeker_ID — int — PK, FK
+Skill_ID — int — PK, FK
+8. JOB_SKILL
+Job_ID — int — PK, FK
+Skill_ID — int — PK, FK
+Relationships
+USER → COMPANY
+User is a Company.
+USER → JOB_SEEKER
+User is a Job Seeker.
+COMPANY → JOB_POST
+Company creates Job Posts.
+JOB_SEEKER → APPLICATION
+Job Seeker submits Applications.
+JOB_POST → APPLICATION
+Job Post receives Applications.
+JOB_SEEKER → JOB_SEEKER_SKILL → SKILL
+Job Seeker has Skills.
+JOB_POST → JOB_SKILL → SKILL
+Job Post requires Skills.

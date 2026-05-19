@@ -1,0 +1,24 @@
+Actors / Components:
+
+Recruiter
+Frontend
+Backend
+DB
+Matching Algorithm
+
+Sequence Flow:
+
+Recruiter → Frontend
+Open Applicants Page
+Frontend → Backend
+GET /applicants
+Backend → DB
+Fetch Applicants + Skills
+Backend → Matching Algorithm
+Calculate Score for Each
+Matching Algorithm → Backend
+Sorted Applicants
+Backend → Frontend
+Ranked List
+Frontend → Recruiter
+Display Top Candidates

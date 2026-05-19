@@ -1,0 +1,28 @@
+Actors / Components:
+
+User
+Frontend
+Auth Controller
+DB
+Email Service
+
+Sequence Flow:
+
+User → Frontend
+Fill Registration Form
+Frontend → Auth Controller
+POST /register
+Auth Controller → Auth Controller
+Validate Email & Password
+Auth Controller → DB
+Save User (Hashed Password)
+DB → Auth Controller
+User Created
+Auth Controller → Email Service
+Send Verification Email
+Email Service → User
+Verification Link
+Auth Controller → Frontend
+Registration Success
+Frontend → User
+Show Success Message

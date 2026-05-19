@@ -1,0 +1,34 @@
+Actors / Components:
+
+Recruiter
+Frontend
+Backend
+DB
+AI Gap Analyzer
+Email Service
+Job Seeker
+
+Sequence Flow:
+
+Recruiter → Frontend
+Click "Reject"
+Frontend → Backend
+POST /reject
+Backend → DB
+Get Job Required Skills
+Backend → DB
+Get Applicant Skills
+Backend → AI Gap Analyzer
+Compare Skills
+AI Gap Analyzer → AI Gap Analyzer
+Identify Missing Skills
+AI Gap Analyzer → Backend
+Missing Skills List
+Backend → DB
+Update Status = Rejected
+Backend → Email Service
+Generate Email + Missing Skills
+Email Service → Job Seeker
+Send Rejection Email
+Backend → Frontend
+Rejection Completed

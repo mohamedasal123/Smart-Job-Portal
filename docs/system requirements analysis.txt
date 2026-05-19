@@ -1,0 +1,163 @@
+System Requirements Analysis
+
+This chapter provides a detailed and comprehensive analysis of the requirements for the "Smart Job Portal" platform. These requirements are categorically classified into User Requirements (UR) representing stakeholder needs, Functional Requirements (FR) describing the specific behaviors and operations of the system, and Non-Functional Requirements (NFR) specifying quality standards and performance constraints.
+
+3.1 User Requirements (UR)
+
+These requirements describe high-level goals and needs from the perspective of end-users: Job Seekers, Companies/Recruiters, and System Administrators. They represent what the user expects the system to achieve to fulfill their objectives.
+
+UR-01: General User Needs
+UR-01.1: Users need a secure and reliable mechanism to create a new account, including email verification to ensure legitimacy.
+UR-01.2: Users must be able to clearly identify their role upon registration, either Job Seeker or Employer, as the system interface will differ significantly based on this selection.
+UR-01.3: Users need a personal dashboard/profile to manage their data, change passwords, and update contact information.
+UR-01.4: Users expect an interactive main Home Feed displaying recent activities or general platform announcements.
+UR-02: Job Seeker Needs
+UR-02.1: Job seekers need to save time by avoiding manual data entry of their resumes. They expect to upload a CV file, either PDF or Word, and have the system automatically extract the data.
+UR-02.2: Job seekers expect the system to understand their professional profile by accurately analyzing skills and experiences to provide genuinely relevant job recommendations, rather than relying solely on keyword searching.
+UR-02.3: Job seekers need a quick application mechanism, One-Click Apply, for suitable jobs without filling out lengthy forms for each individual application.
+UR-02.4: Transparency is vital; job seekers need real-time visibility into the status of their applications, such as Submitted or Viewed by HR.
+UR-02.5: In the event of rejection, job seekers need to know the real reason, specifically what skills were missing, to enable self-improvement rather than receiving generic rejection messages.
+UR-03: Company/Recruiter Needs
+UR-03.1: Companies need to create a branded profile page including logo, description, and location to attract potential candidates.
+UR-03.2: Recruiters need a detailed job posting interface that allows specific definition of required skills to enable smart matching algorithms to function effectively.
+UR-03.3: A major challenge for HR is managing high volumes of unqualified applicants. Therefore, they urgently need an automated ranking system that surfaces the best candidates based on skill matching to the top of the list.
+UR-03.4: Recruiters need quick decision-making tools to change applicant status, such as Shortlist or Reject, with a single click.
+UR-03.5: Companies need to maintain professional standards by notifying rejected candidates, but they require this process to be automated, providing useful feedback without manual effort.
+UR-04: System Administrator Needs
+UR-04.1: The admin needs comprehensive overview metrics of platform performance, such as number of new users and count of active jobs.
+UR-04.2: The admin needs the ability to intervene by banning abusive users or removing job posts that violate usage policies.
+3.2 Functional Requirements (FR)
+
+This section is the most detailed, describing the specific operations the system shall perform, expected inputs and outputs, and the behavior of the AI components.
+
+Module 1: Identity & Access Management (IAM)
+FR-IAM-01 New User Registration:
+The system shall provide a registration form requiring standard inputs: Full Name, Email, Password, and a mandatory dropdown selection for the account role: Job Seeker / Company.
+FR-IAM-02 Data Validation:
+The system shall validate email format and enforce strong password complexity before completing registration.
+FR-IAM-03 Secure Login:
+The system shall authenticate users securely using email and password, automatically redirecting the user to the appropriate dashboard based on their role.
+FR-IAM-04 Password Recovery:
+The system shall provide a mechanism to send a password reset link to the registered email address in case of forgotten passwords.
+Module 2: Core AI Engine — Analysis & Matching Backend
+
+This module operates in the backend and constitutes the core intelligence of the system.
+
+FR-AI-01 CV Parsing Pipeline
+
+Upon a Job Seeker uploading a CV file, either PDF or DOCX, the system shall receive and pass it to the AI processing unit.
+
+The unit shall perform:
+
+Text Extraction
+Natural Language Processing, NLP
+Identification and categorization of:
+Technical Skills / Hard Skills
+Soft Skills
+Years of Experience
+Education Level
+Contact Information
+FR-AI-02 Data Structuring
+
+Extracted unstructured data must be converted into a structured format, such as Structured JSON, and stored in the database linked to the user's profile.
+
+FR-AI-03 Matching Algorithm
+
+The system shall utilize an algorithm to compare the Job Required Skills List against the Applicant's Extracted Skills List.
+
+The algorithm shall generate a Matching Score as a percentage, for example 85% Match, calculated based on the presence of required skills in the CV versus the total skills required by the job.
+
+FR-AI-04 Gap Analysis for Rejection
+
+In cases of a low matching score, or when HR manually triggers a rejection, the system shall identify Missing Features/Skills — skills specified in the job post but absent in the applicant's CV.
+
+Module 3: Job Seeker Module
+FR-JS-01 Mandatory Profile Building:
+Upon initial login, the system shall enforce CV upload to enable platform features.
+FR-JS-02 View & Edit Extracted Data:
+After CV parsing, the system shall display the extracted data to the user in their profile, allowing for manual editing or addition in case of parsing inaccuracies.
+FR-JS-03 Recommendation Engine:
+The system shall feature a Recommended Jobs page displaying active job posts sorted descending by the AI-calculated Matching Score, showing the most relevant jobs first.
+FR-JS-04 Search & Filtering:
+The system shall provide a search engine allowing users to find jobs using keywords and filters:
+Location
+Job Type
+Salary Range
+FR-JS-05 Application Tracking:
+The system shall provide a dashboard displaying a table of all applied-to jobs and their current status:
+Applied
+Under Review
+Shortlisted
+Rejected
+Module 4: Company Module
+FR-CO-01 Company Profile Management:
+The system shall allow companies to add:
+Company logo
+Brief description
+Website link
+Headquarters location
+
+FR-CO-02 Detailed Job Posting:
+The system shall provide an advanced form for creating job posts containing fields for:
+
+Job Title
+Detailed Description
+Responsibilities
+Required Skills as tags
+
+The required skills field is essential for the matching algorithm.
+
+FR-CO-03 Smart Applicant Dashboard / Smart ATS:
+For each posted job, a page displaying the list of applicants shall exist.
+
+Critical requirement: the applicant list must be automatically sorted from top to bottom based on the AI Matching Score.
+
+A quick summary for each applicant shall be displayed without needing to open the full CV, including:
+
+Name
+Last Job Title
+Matching Score
+FR-CO-04 Decision Making & Status Management:
+Recruiters shall be able to change applicant status via quick action buttons:
+Shortlist
+Reject
+FR-CO-05 Automated Personalized Rejection System:
+When a recruiter selects Reject for a candidate:
+The system shall automatically generate an email using a predefined template.
+The system shall inject the specific Missing Skills, identified in FR-AI-04, into the email body to inform the applicant of the precise technical reason for rejection.
+3.3 Non-Functional Requirements (NFR)
+
+These requirements define the system's quality standards and how it performs under various conditions.
+
+NFR-01: Performance & Efficiency
+NFR-01.1 CV Parsing Response Time:
+The CV analysis and data extraction process, AI Parsing, shall complete within a maximum of 20 seconds for an average-sized file of 2MB to ensure a smooth user experience.
+NFR-01.2 Page Load Speed:
+Job display pages and dashboards shall load in under 3 seconds under standard internet connection conditions.
+NFR-01.3 Concurrency:
+The system shall be capable of handling 100 concurrent active users without significant performance degradation.
+NFR-02: Security & Privacy
+NFR-02.1 Sensitive Data Encryption:
+User passwords must be hashed securely in the database using strong hashing algorithms, such as bcrypt.
+NFR-02.2 Secure Communication:
+All communications between browser and server must occur via HTTPS to prevent data eavesdropping.
+NFR-02.3 File Privacy:
+CV files must be stored in secure cloud storage with Role-Based Access Control (RBAC), accessible only by the CV owner and the companies they have applied to.
+NFR-02.4 Input Validation:
+The system must sanitize and validate all user inputs to prevent common web vulnerabilities such as:
+SQL Injection
+Cross-Site Scripting, XSS
+NFR-03: Usability & User Experience (UX)
+NFR-03.1 Responsive Design:
+The user interface shall be fully responsive, functioning efficiently on desktops, tablets, and smartphones of varying screen sizes.
+NFR-03.2 Ease of Navigation:
+The site structure and menus shall be designed such that no primary function requires more than 3 clicks to access.
+NFR-03.3 Error Messages:
+The system shall display clear, user-friendly error messages in case of issues, for example:
+"Upload failed, ensure file is PDF under 5MB"
+rather than technical error codes.
+NFR-04: Reliability & Availability
+NFR-04.1 Uptime:
+The system should aim for a 99% availability target during core business hours.
+NFR-04.2 Data Backup:
+Daily database backups must be performed to ensure data resilience in the event of catastrophic server failure.
