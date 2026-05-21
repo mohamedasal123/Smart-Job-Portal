@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { getJobs } from '../../services/jobSeekerDataService';
 import SeekerJobCard from '../../components/jobSeeker/SeekerJobCard';
 import SeekerEmptyState from '../../components/jobSeeker/SeekerEmptyState';
+import Stagger from '../../motion/Stagger';
+import { SkeletonCard } from '../../components/Skeleton';
 
 export default function JobSeekerJobSearchPage() {
   const [jobs, setJobs] = useState([]);
@@ -155,16 +157,19 @@ export default function JobSeekerJobSearchPage() {
           
           {/* Results List */}
           {loading ? (
-            <div className="flex-1 flex justify-center items-center py-12">
-              <span className="material-symbols-outlined animate-spin text-[48px] text-secondary">progress_activity</span>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-gutter" aria-busy="true" aria-live="polite">
+              {Array.from({ length: 6 }).map((_, i) => <SkeletonCard key={i} />)}
+              <span className="sr-only">Loading jobs…</span>
             </div>
           ) : jobs.length > 0 ? (
             <>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-gutter">
+              <Stagger className="grid grid-cols-1 md:grid-cols-2 gap-gutter" delayChildren={0.05} staggerChildren={0.05}>
                 {jobs.slice((page - 1) * itemsPerPage, page * itemsPerPage).map(job => (
-                  <SeekerJobCard key={job.id} job={job} />
+                  <Stagger.Item key={job.id}>
+                    <SeekerJobCard job={job} />
+                  </Stagger.Item>
                 ))}
-              </div>
+              </Stagger>
               
               <div className="flex flex-col sm:flex-row justify-between items-center gap-3 mt-stack-md bg-surface-container-lowest p-stack-sm rounded-lg border border-outline-variant">
                 <button className="w-full sm:w-auto px-4 py-2 border border-outline-variant rounded-lg text-primary disabled:opacity-50" disabled={page <= 1} onClick={() => setPage(p => p - 1)}>Previous</button>

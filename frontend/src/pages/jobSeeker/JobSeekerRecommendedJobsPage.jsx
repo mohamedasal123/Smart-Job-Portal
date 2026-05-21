@@ -3,6 +3,8 @@ import { getRecommendedJobs } from '../../services/jobSeekerDataService';
 import SeekerPageHeader from '../../components/jobSeeker/SeekerPageHeader';
 import SeekerJobCard from '../../components/jobSeeker/SeekerJobCard';
 import SeekerEmptyState from '../../components/jobSeeker/SeekerEmptyState';
+import Stagger from '../../motion/Stagger';
+import { SkeletonCard } from '../../components/Skeleton';
 
 export default function JobSeekerRecommendedJobsPage() {
   const [recommendations, setRecommendations] = useState([]);
@@ -113,15 +115,18 @@ export default function JobSeekerRecommendedJobsPage() {
           
           {/* Results List */}
           {loading ? (
-            <div className="flex-1 flex justify-center items-center py-12">
-              <span className="material-symbols-outlined animate-spin text-[48px] text-secondary">progress_activity</span>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-gutter" aria-busy="true" aria-live="polite">
+              {Array.from({ length: 6 }).map((_, i) => <SkeletonCard key={i} />)}
+              <span className="sr-only">Loading recommendations…</span>
             </div>
           ) : recommendations.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-gutter">
+            <Stagger className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-gutter" delayChildren={0.05} staggerChildren={0.05}>
               {recommendations.map(rec => (
-                <SeekerJobCard key={rec.id} job={{...rec.job, recommendation: rec}} />
+                <Stagger.Item key={rec.id}>
+                  <SeekerJobCard job={{...rec.job, recommendation: rec}} />
+                </Stagger.Item>
               ))}
-            </div>
+            </Stagger>
           ) : errorStatus === 403 ? (
             <SeekerEmptyState 
               icon="lock"

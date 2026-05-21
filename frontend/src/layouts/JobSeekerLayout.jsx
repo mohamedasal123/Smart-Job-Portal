@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { NavLink, Outlet, Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/useAuth';
 import { ROUTES } from '../utils/constants';
+import PageTransition from '../motion/PageTransition';
 
 export default function JobSeekerLayout({ children }) {
   const { user, logout } = useAuth();
@@ -119,9 +120,12 @@ export default function JobSeekerLayout({ children }) {
           </div>
         </header>
 
-        {/* Page Content */}
+        {/* Page Content — PageTransition keys on the current route so leaf
+            pages fade up between navigations instead of swapping instantly. */}
         <main className="flex-1 overflow-x-hidden">
-          {children || <Outlet />}
+          <PageTransition>
+            {children || <Outlet />}
+          </PageTransition>
         </main>
       </div>
     </div>

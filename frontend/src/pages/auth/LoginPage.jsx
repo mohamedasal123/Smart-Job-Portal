@@ -1,15 +1,20 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { motion, useReducedMotion } from 'framer-motion';
 import { ROUTES, getRoleRedirect } from '../../utils/constants';
 import { useToast } from '../../components/useToast';
 import { useAuth } from '../../context/useAuth';
 import { normalizeApiError } from '../../utils/apiError';
+import Stagger from '../../motion/Stagger';
+import Reveal from '../../motion/Reveal';
+import { SPRING_PRESS, EASE } from '../../motion/variants';
 
 export default function LoginPage() {
   const { login, user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const { addToast } = useToast();
+  const reduce = useReducedMotion();
 
   const [form, setForm] = useState({ email: '', password: '' });
   const [errors, setErrors] = useState({});
@@ -90,32 +95,46 @@ export default function LoginPage() {
       </header>
 
       <main className="flex-1 grid lg:grid-cols-2 bg-background">
-        <section className="hidden lg:flex flex-col justify-between p-margin-desktop bg-primary-container text-on-secondary-container">
-          <div>
-            <div className="w-12 h-12 rounded-full bg-secondary flex items-center justify-center text-on-secondary font-bold mb-stack-lg">S</div>
-            <h1 className="font-h1 text-h1 mb-stack-md">Find better matches, faster.</h1>
-            <p className="font-body-lg text-body-lg max-w-xl text-secondary-fixed">
-              Sign in to manage applications, review recommendations, and keep your Smart Job Portal profile ready for the next opportunity.
-            </p>
-          </div>
-          <div className="grid grid-cols-3 gap-stack-md">
-            <div className="rounded-xl border border-on-primary-fixed-variant/30 p-stack-md">
+        <Reveal as="section" className="hidden lg:flex flex-col justify-between p-margin-desktop bg-primary-container text-on-secondary-container relative overflow-hidden">
+          <motion.div
+            aria-hidden="true"
+            className="absolute -top-32 -right-32 w-[480px] h-[480px] rounded-full opacity-20 pointer-events-none"
+            style={{ background: 'radial-gradient(circle, #316bf3 0%, transparent 65%)' }}
+            animate={reduce ? undefined : { y: [0, -14, 0] }}
+            transition={reduce ? undefined : { duration: 10, repeat: Infinity, ease: 'easeInOut' }}
+          />
+          <Stagger className="relative z-10" delayChildren={0.1} staggerChildren={0.1}>
+            <Stagger.Item className="w-12 h-12 rounded-full bg-secondary flex items-center justify-center text-on-secondary font-bold mb-stack-lg">S</Stagger.Item>
+            <Stagger.Item as="h1" className="font-h1 text-h1 mb-stack-md">
+              <span>Find better matches, faster.</span>
+            </Stagger.Item>
+            <Stagger.Item as="p" className="font-body-lg text-body-lg max-w-xl text-secondary-fixed">
+              <span>Sign in to manage applications, review recommendations, and keep your Smart Job Portal profile ready for the next opportunity.</span>
+            </Stagger.Item>
+          </Stagger>
+          <Stagger className="grid grid-cols-3 gap-stack-md relative z-10" delayChildren={0.4} staggerChildren={0.08}>
+            <Stagger.Item className="rounded-xl border border-on-primary-fixed-variant/30 p-stack-md">
               <p className="font-h2 text-h2">10k+</p>
               <p className="font-label-sm text-label-sm text-secondary-fixed">Active Jobs</p>
-            </div>
-            <div className="rounded-xl border border-on-primary-fixed-variant/30 p-stack-md">
+            </Stagger.Item>
+            <Stagger.Item className="rounded-xl border border-on-primary-fixed-variant/30 p-stack-md">
               <p className="font-h2 text-h2">500+</p>
               <p className="font-label-sm text-label-sm text-secondary-fixed">Companies</p>
-            </div>
-            <div className="rounded-xl border border-on-primary-fixed-variant/30 p-stack-md">
+            </Stagger.Item>
+            <Stagger.Item className="rounded-xl border border-on-primary-fixed-variant/30 p-stack-md">
               <p className="font-h2 text-h2">24h</p>
               <p className="font-label-sm text-label-sm text-secondary-fixed">Avg. Response</p>
-            </div>
-          </div>
-        </section>
+            </Stagger.Item>
+          </Stagger>
+        </Reveal>
 
         <section className="flex items-center justify-center px-gutter py-margin-desktop">
-          <div className="w-full max-w-md bg-surface-container-lowest border border-outline-variant rounded-xl shadow-[0px_4px_20px_rgba(15,23,42,0.05)] p-stack-lg">
+          <motion.div
+            className="w-full max-w-md bg-surface-container-lowest border border-outline-variant rounded-xl shadow-[0px_4px_20px_rgba(15,23,42,0.05)] p-stack-lg"
+            initial={reduce ? false : { opacity: 0, y: 24 }}
+            animate={reduce ? { opacity: 1 } : { opacity: 1, y: 0 }}
+            transition={{ duration: 0.45, ease: EASE }}
+          >
             <div className="mb-stack-lg">
               <p className="font-label-sm text-label-sm uppercase text-secondary mb-unit">Welcome back</p>
               <h2 className="font-h1 text-h1 text-primary">Log in to Smart Job Portal</h2>
@@ -163,21 +182,22 @@ export default function LoginPage() {
                 {errors.password && <p className="mt-unit font-body-md text-body-md text-error text-sm">{errors.password}</p>}
               </div>
 
-              <button
+              <motion.button
                 className={`w-full bg-secondary text-on-secondary font-h3 text-h3 py-3 rounded-lg hover:bg-secondary-container transition-colors flex items-center justify-center gap-2 ${loading ? 'opacity-60 cursor-not-allowed' : ''}`}
                 type="submit"
                 disabled={loading}
+                whileTap={reduce || loading ? undefined : { scale: 0.97, transition: SPRING_PRESS }}
               >
-                {loading && <span className="material-symbols-outlined animate-spin text-[18px]">progress_activity</span>}
+                {loading && <span className="material-symbols-outlined animate-spin text-[18px]" aria-hidden="true">progress_activity</span>}
                 {loading ? 'Signing in...' : 'Log In'}
-              </button>
+              </motion.button>
             </form>
 
             <p className="font-body-md text-body-md text-on-surface-variant text-center mt-stack-lg">
               New to Smart Job Portal?{' '}
               <Link className="text-secondary font-semibold hover:underline" to={ROUTES.REGISTER}>Create an account</Link>
             </p>
-          </div>
+          </motion.div>
         </section>
       </main>
     </div>

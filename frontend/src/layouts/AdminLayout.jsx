@@ -1,4 +1,5 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import PageTransition from '../motion/PageTransition';
 import { useAuth } from '../context/useAuth';
 import { ROUTES } from '../utils/constants';
 
@@ -95,7 +96,9 @@ export default function AdminLayout() {
         </header>
 
         <div className="flex-1 overflow-y-auto p-gutter lg:p-margin-desktop space-y-gutter pb-stack-lg">
-          <Outlet />
+          <PageTransition>
+            <Outlet />
+          </PageTransition>
         </div>
       </main>
     </div>

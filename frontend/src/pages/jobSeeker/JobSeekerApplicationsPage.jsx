@@ -3,6 +3,8 @@ import { getApplications } from '../../services/jobSeekerDataService';
 import SeekerPageHeader from '../../components/jobSeeker/SeekerPageHeader';
 import SeekerApplicationCard from '../../components/jobSeeker/SeekerApplicationCard';
 import SeekerEmptyState from '../../components/jobSeeker/SeekerEmptyState';
+import Stagger from '../../motion/Stagger';
+import { SkeletonCard } from '../../components/Skeleton';
 
 export default function JobSeekerApplicationsPage() {
   const [applications, setApplications] = useState([]);
@@ -66,13 +68,16 @@ export default function JobSeekerApplicationsPage() {
       
       <div className="flex-1">
         {loading ? (
-          <div className="flex justify-center items-center py-12">
-            <span className="material-symbols-outlined animate-spin text-[48px] text-secondary">progress_activity</span>
+          <div className="space-y-gutter" aria-busy="true" aria-live="polite">
+            {Array.from({ length: 4 }).map((_, i) => <SkeletonCard key={i} />)}
+            <span className="sr-only">Loading applications…</span>
           </div>
         ) : applications.length > 0 ? (
-          <div className="space-y-gutter">
+          <Stagger className="space-y-gutter" delayChildren={0.05} staggerChildren={0.06}>
             {applications.slice((page - 1) * itemsPerPage, page * itemsPerPage).map(app => (
-              <SeekerApplicationCard key={app.id} application={app} />
+              <Stagger.Item key={app.id}>
+                <SeekerApplicationCard application={app} />
+              </Stagger.Item>
             ))}
             
             <div className="flex flex-col sm:flex-row justify-between items-center gap-3 mt-stack-md bg-surface-container-lowest p-stack-sm rounded-lg border border-outline-variant">
@@ -80,7 +85,7 @@ export default function JobSeekerApplicationsPage() {
               <span className="text-on-surface-variant font-label-md">Page {page} of {Math.max(1, Math.ceil(applications.length / itemsPerPage))}</span>
               <button className="w-full sm:w-auto px-4 py-2 border border-outline-variant rounded-lg text-primary disabled:opacity-50" disabled={page * itemsPerPage >= applications.length} onClick={() => setPage(p => p + 1)}>Next</button>
             </div>
-          </div>
+          </Stagger>
         ) : (
           <SeekerEmptyState 
             icon="description"

@@ -21,7 +21,10 @@ export default {
         'on-background': '#1b1b1d',
         'inverse-surface': '#303032',
         'inverse-on-surface': '#f3f0f2',
-        primary: '#000000',
+        // primary was '#000000' (pure black) — too flat against the off-white
+        // surfaces. Aligned with the existing primary-container deep navy so
+        // primary text gets brand identity instead of generic body color.
+        primary: '#1b2240',
         'on-primary': '#ffffff',
         'primary-container': '#131b2e',
         'on-primary-container': '#7c839b',
@@ -38,7 +41,10 @@ export default {
         'secondary-fixed-dim': '#b4c5ff',
         'on-secondary-fixed': '#00174b',
         'on-secondary-fixed-variant': '#003ea8',
-        tertiary: '#000000',
+        // tertiary was also '#000000'. Mapped to the deep amber that
+        // tertiary-container/tertiary-fixed-dim already imply so accents
+        // (badges, highlights) actually look tertiary instead of black.
+        tertiary: '#574425',
         'on-tertiary': '#ffffff',
         'tertiary-container': '#271901',
         'on-tertiary-container': '#98805d',
@@ -57,6 +63,45 @@ export default {
         'info-blue': '#3b82f6',
         success: '#22c55e',
         'success-container': '#bbf7d0',
+      },
+      keyframes: {
+        shimmer: {
+          '0%':   { backgroundPosition: '-200% 0' },
+          '100%': { backgroundPosition: '200% 0' },
+        },
+        'fade-in': {
+          '0%':   { opacity: '0' },
+          '100%': { opacity: '1' },
+        },
+        'fade-up': {
+          '0%':   { opacity: '0', transform: 'translateY(8px)' },
+          '100%': { opacity: '1', transform: 'translateY(0)' },
+        },
+        'scale-in': {
+          '0%':   { opacity: '0', transform: 'scale(0.96)' },
+          '100%': { opacity: '1', transform: 'scale(1)' },
+        },
+        'slide-in-right': {
+          '0%':   { opacity: '0', transform: 'translateX(16px)' },
+          '100%': { opacity: '1', transform: 'translateX(0)' },
+        },
+        'pulse-soft': {
+          '0%, 100%': { opacity: '1' },
+          '50%':      { opacity: '0.55' },
+        },
+        float: {
+          '0%, 100%': { transform: 'translateY(0)' },
+          '50%':      { transform: 'translateY(-6px)' },
+        },
+      },
+      animation: {
+        shimmer:          'shimmer 1.4s ease-in-out infinite',
+        'fade-in':        'fade-in 200ms ease-out both',
+        'fade-up':        'fade-up 320ms cubic-bezier(0.16, 1, 0.3, 1) both',
+        'scale-in':       'scale-in 200ms cubic-bezier(0.16, 1, 0.3, 1) both',
+        'slide-in-right': 'slide-in-right 240ms cubic-bezier(0.16, 1, 0.3, 1) both',
+        'pulse-soft':     'pulse-soft 2s ease-in-out infinite',
+        float:            'float 4s ease-in-out infinite',
       },
       spacing: {
         unit: '4px',

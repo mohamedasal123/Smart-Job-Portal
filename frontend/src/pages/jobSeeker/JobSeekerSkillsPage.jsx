@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { addSkill, getSkills, getSuggestedSkills, removeSkill } from '../../services/jobSeekerDataService';
 import SeekerPageHeader from '../../components/jobSeeker/SeekerPageHeader';
 import { useToast } from '../../components/useToast';
+import ConfirmModal from '../../components/ConfirmModal';
 
 const SkillChip = ({ skill, onRemove }) => (
   <div className="inline-flex items-center bg-surface-container-low border border-outline-variant rounded-full px-3 py-1.5 gap-2 group">
@@ -40,6 +41,7 @@ export default function JobSeekerSkillsPage() {
   const [suggested, setSuggested] = useState([]);
   const [loading, setLoading] = useState(true);
   const [newSkill, setNewSkill] = useState('');
+  const [skillPendingRemoval, setSkillPendingRemoval] = useState(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -60,17 +62,24 @@ export default function JobSeekerSkillsPage() {
     fetchData();
   }, []);
 
-  const handleRemoveSkill = async (skill) => {
-    // Lightweight confirm — better than a silent delete, no extra dependency.
-    if (typeof window !== 'undefined' && !window.confirm(`Remove "${skill.name}" from your skills?`)) {
-      return;
-    }
+  // We don't delete the skill inline — instead we open a styled ConfirmModal
+  // and remove only after the user confirms there. Keeps destructive flows
+  // consistent with the rest of the app (no jarring native browser alert).
+  const handleRemoveSkill = (skill) => {
+    setSkillPendingRemoval(skill);
+  };
+
+  const confirmRemoveSkill = async () => {
+    const skill = skillPendingRemoval;
+    if (!skill) return;
     try {
       await removeSkill(skill.id);
       setSkills((prev) => prev.filter(s => s.id !== skill.id));
       addToast({ title: 'Skill removed', message: `${skill.name} has been removed.`, type: 'info' });
     } catch {
       addToast({ title: 'Error', message: 'Could not remove this skill.', type: 'error' });
+    } finally {
+      setSkillPendingRemoval(null);
     }
   };
 
@@ -174,6 +183,21 @@ export default function JobSeekerSkillsPage() {
           </div>
         </aside>
       </div>
+
+      <ConfirmModal
+        open={Boolean(skillPendingRemoval)}
+        title="Remove skill?"
+        message={
+          skillPendingRemoval
+            ? `Remove "${skillPendingRemoval.name}" from your skills? This may affect your AI job recommendations.`
+            : null
+        }
+        confirmLabel="Remove"
+        cancelLabel="Keep"
+        variant="danger"
+        onConfirm={confirmRemoveSkill}
+        onCancel={() => setSkillPendingRemoval(null)}
+      />
     </div>
   );
 }

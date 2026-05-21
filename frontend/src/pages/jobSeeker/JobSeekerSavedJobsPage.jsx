@@ -3,6 +3,8 @@ import { api, getListItems } from '../../api/axios';
 import SeekerPageHeader from '../../components/jobSeeker/SeekerPageHeader';
 import SeekerJobCard from '../../components/jobSeeker/SeekerJobCard';
 import SeekerEmptyState from '../../components/jobSeeker/SeekerEmptyState';
+import Stagger from '../../motion/Stagger';
+import { SkeletonCard } from '../../components/Skeleton';
 
 export default function JobSeekerSavedJobsPage() {
   const [savedJobs, setSavedJobs] = useState([]);
@@ -119,12 +121,13 @@ export default function JobSeekerSavedJobsPage() {
           </div>
           
           {loading ? (
-            <div className="flex-1 flex justify-center items-center py-12">
-              <span className="material-symbols-outlined animate-spin text-[48px] text-secondary">progress_activity</span>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-gutter" aria-busy="true" aria-live="polite">
+              {Array.from({ length: 6 }).map((_, i) => <SkeletonCard key={i} />)}
+              <span className="sr-only">Loading saved jobs…</span>
             </div>
           ) : savedJobs.length > 0 ? (
             <>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-gutter">
+              <Stagger className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-gutter" delayChildren={0.05} staggerChildren={0.05}>
                 {savedJobs.slice((page - 1) * itemsPerPage, page * itemsPerPage).map(job => {
                   const normalizedJob = {
                     id: job.id,
@@ -137,9 +140,13 @@ export default function JobSeekerSavedJobsPage() {
                     postedAt: job.created_at,
                     skills: job.jobRequiredSkills?.map(s => s.skill?.name) || []
                   };
-                  return <SeekerJobCard key={job.id} job={normalizedJob} onSavedStateChange={handleSavedStateChange} />;
+                  return (
+                    <Stagger.Item key={job.id}>
+                      <SeekerJobCard job={normalizedJob} onSavedStateChange={handleSavedStateChange} />
+                    </Stagger.Item>
+                  );
                 })}
-              </div>
+              </Stagger>
               
               <div className="flex justify-between items-center mt-stack-md bg-surface-container-lowest p-stack-sm rounded-lg border border-outline-variant">
                 <button className="px-4 py-2 border border-outline-variant rounded-lg text-primary disabled:opacity-50" disabled={page <= 1} onClick={() => setPage(p => p - 1)}>Previous</button>

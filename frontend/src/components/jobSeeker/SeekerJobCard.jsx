@@ -1,13 +1,16 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { motion, useReducedMotion } from 'framer-motion';
 import { isJobSaved, toggleSavedJob } from '../../services/jobSeekerDataService';
 import { useToast } from '../useToast';
 import MatchScoreBadge from './MatchScoreBadge';
+import { EASE, SPRING_PRESS } from '../../motion/variants';
 
 export default function SeekerJobCard({ job, onSavedStateChange }) {
   const [isSaved, setIsSaved] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const { addToast } = useToast();
+  const reduce = useReducedMotion();
 
   useEffect(() => {
     const checkSaved = async () => {
@@ -52,7 +55,10 @@ export default function SeekerJobCard({ job, onSavedStateChange }) {
   const matchScore = job.recommendation?.matchScore || job.matchScore;
 
   return (
-    <div className="bg-surface-container-lowest border border-outline-variant rounded-xl p-6 hover:shadow-md transition-shadow flex flex-col h-full relative group overflow-hidden">
+    <motion.div
+      whileHover={reduce ? undefined : { y: -4, boxShadow: '0px 14px 40px rgba(15,23,42,0.12)', transition: { duration: 0.25, ease: EASE } }}
+      className="bg-surface-container-lowest border border-outline-variant rounded-xl p-6 transition-shadow flex flex-col h-full relative group overflow-hidden"
+    >
       <div className="flex items-start justify-between mb-4 gap-4">
         <div className="flex items-center gap-4 flex-1 min-w-0">
           <div className="w-12 h-12 shrink-0 rounded-lg bg-surface-variant flex items-center justify-center text-on-surface-variant font-bold text-xl">
@@ -67,15 +73,18 @@ export default function SeekerJobCard({ job, onSavedStateChange }) {
             <p className="font-body-md text-body-md text-secondary truncate">{job.company}</p>
           </div>
         </div>
-        
+
         <div className="flex items-center gap-2 shrink-0">
           {matchScore && (
             <MatchScoreBadge score={matchScore} size="sm" showLabel={false} />
           )}
-          <button
+          <motion.button
             type="button"
             onClick={handleToggleSave}
             disabled={isSaving}
+            whileTap={reduce || isSaving ? undefined : { scale: 0.85, transition: SPRING_PRESS }}
+            animate={reduce ? undefined : { scale: isSaved ? [1, 1.18, 1] : 1 }}
+            transition={reduce ? undefined : { duration: 0.32, ease: EASE }}
             aria-label={isSaved ? `Remove ${job.title} from saved jobs` : `Save ${job.title} to your saved jobs`}
             aria-pressed={isSaved}
             className={`p-1.5 rounded-full transition-colors disabled:cursor-not-allowed disabled:opacity-60 focus:outline-none focus-visible:ring-2 focus-visible:ring-secondary ${isSaved ? 'text-secondary hover:bg-secondary/10' : 'text-on-surface-variant hover:text-secondary hover:bg-surface-variant/50'}`}
@@ -84,7 +93,7 @@ export default function SeekerJobCard({ job, onSavedStateChange }) {
             <span className={`material-symbols-outlined text-[22px] ${isSaved ? 'fill-current' : ''}`} style={{ fontVariationSettings: isSaved ? '"FILL" 1' : '"FILL" 0' }} aria-hidden="true">
               bookmark
             </span>
-          </button>
+          </motion.button>
         </div>
       </div>
 
@@ -111,13 +120,15 @@ export default function SeekerJobCard({ job, onSavedStateChange }) {
         <span className="font-body-sm text-xs text-on-surface-variant">
           Posted {new Date(job.postedAt).toLocaleDateString()}
         </span>
-        <Link
-          to={`/seeker/jobs/${job.id}`}
-          className="w-full sm:w-auto inline-flex items-center justify-center px-4 py-2 rounded-lg font-label-md border border-secondary text-secondary hover:bg-secondary/10 transition-colors"
-        >
-          View Details
-        </Link>
+        <motion.div whileTap={reduce ? undefined : { scale: 0.97, transition: SPRING_PRESS }} className="w-full sm:w-auto">
+          <Link
+            to={`/seeker/jobs/${job.id}`}
+            className="w-full sm:w-auto inline-flex items-center justify-center px-4 py-2 rounded-lg font-label-md border border-secondary text-secondary hover:bg-secondary/10 transition-colors"
+          >
+            View Details
+          </Link>
+        </motion.div>
       </div>
-    </div>
+    </motion.div>
   );
 }

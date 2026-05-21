@@ -3,6 +3,7 @@ import { useAuth } from '../context/useAuth';
 import { companyDataService } from '../services/companyDataService';
 import { ROUTES } from '../utils/constants';
 import { useState, useEffect } from 'react';
+import PageTransition from '../motion/PageTransition';
 
 const navItems = [
   { label: 'Dashboard', icon: 'dashboard', to: ROUTES.COMPANY_DASHBOARD },
@@ -143,7 +144,9 @@ export default function CompanyLayout() {
         </header>
 
         <div className="flex-1 overflow-y-auto p-gutter lg:p-margin-desktop space-y-gutter pb-stack-lg">
-          <Outlet />
+          <PageTransition>
+            <Outlet />
+          </PageTransition>
         </div>
       </main>
     </div>

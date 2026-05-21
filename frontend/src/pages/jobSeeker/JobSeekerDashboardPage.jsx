@@ -6,6 +6,9 @@ import SeekerPageHeader from '../../components/jobSeeker/SeekerPageHeader';
 import SeekerStatsCard from '../../components/jobSeeker/SeekerStatsCard';
 import SeekerJobCard from '../../components/jobSeeker/SeekerJobCard';
 import SeekerApplicationCard from '../../components/jobSeeker/SeekerApplicationCard';
+import Stagger from '../../motion/Stagger';
+import Reveal from '../../motion/Reveal';
+import { SkeletonCard } from '../../components/Skeleton';
 
 export default function JobSeekerDashboardPage() {
   const navigate = useNavigate();
@@ -29,8 +32,20 @@ export default function JobSeekerDashboardPage() {
 
   if (loading || !data) {
     return (
-      <div className="px-4 sm:px-6 lg:px-margin-desktop py-6 lg:py-margin-desktop flex justify-center items-center h-full">
-        <span className="material-symbols-outlined animate-spin text-[48px] text-secondary">progress_activity</span>
+      <div className="px-4 sm:px-6 lg:px-margin-desktop py-6 lg:py-margin-desktop space-y-gutter pb-stack-lg max-w-7xl mx-auto" aria-busy="true" aria-live="polite">
+        <div className="h-10 w-72 rounded-md bg-surface-container-low animate-shimmer bg-[length:200%_100%] bg-gradient-to-r from-surface-container-low via-surface-container-high to-surface-container-low" />
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-gutter">
+          {[0, 1, 2, 3].map((i) => <SkeletonCard key={i} />)}
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-gutter">
+          <div className="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-gutter">
+            <SkeletonCard /><SkeletonCard />
+          </div>
+          <div className="space-y-gutter">
+            <SkeletonCard />
+          </div>
+        </div>
+        <span className="sr-only">Loading dashboard…</span>
       </div>
     );
   }
@@ -93,32 +108,40 @@ export default function JobSeekerDashboardPage() {
         )}
       </section>
 
-      <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-gutter">
-        <SeekerStatsCard
-          title="Applied"
-          value={data.stats.totalApplications}
-          icon="send"
-          onClick={() => navigate(ROUTES.SEEKER_APPLICATIONS)}
-        />
-        <SeekerStatsCard
-          title="Under Review"
-          value={data.stats.underReviewCount}
-          icon="visibility"
-          onClick={() => navigate(ROUTES.SEEKER_APPLICATIONS)}
-        />
-        <SeekerStatsCard
-          title="Shortlisted"
-          value={data.stats.shortlistedCount}
-          icon="stars"
-          onClick={() => navigate(ROUTES.SEEKER_APPLICATIONS)}
-        />
-        <SeekerStatsCard
-          title="Profile Skills"
-          value={data.skillsCount}
-          icon="psychology"
-          onClick={() => navigate(ROUTES.SEEKER_SKILLS)}
-        />
-      </section>
+      <Stagger as="section" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-gutter" delayChildren={0.05} staggerChildren={0.07}>
+        <Stagger.Item>
+          <SeekerStatsCard
+            title="Applied"
+            value={data.stats.totalApplications}
+            icon="send"
+            onClick={() => navigate(ROUTES.SEEKER_APPLICATIONS)}
+          />
+        </Stagger.Item>
+        <Stagger.Item>
+          <SeekerStatsCard
+            title="Under Review"
+            value={data.stats.underReviewCount}
+            icon="visibility"
+            onClick={() => navigate(ROUTES.SEEKER_APPLICATIONS)}
+          />
+        </Stagger.Item>
+        <Stagger.Item>
+          <SeekerStatsCard
+            title="Shortlisted"
+            value={data.stats.shortlistedCount}
+            icon="stars"
+            onClick={() => navigate(ROUTES.SEEKER_APPLICATIONS)}
+          />
+        </Stagger.Item>
+        <Stagger.Item>
+          <SeekerStatsCard
+            title="Profile Skills"
+            value={data.skillsCount}
+            icon="psychology"
+            onClick={() => navigate(ROUTES.SEEKER_SKILLS)}
+          />
+        </Stagger.Item>
+      </Stagger>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-gutter">
         <section className="lg:col-span-2 space-y-stack-md min-w-0">
@@ -129,17 +152,19 @@ export default function JobSeekerDashboardPage() {
             </Link>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-gutter">
+          <Stagger className="grid grid-cols-1 md:grid-cols-2 gap-gutter" delayChildren={0.05} staggerChildren={0.06}>
             {data.topRecommendedJobs.map((rec) => (
-              <SeekerJobCard key={rec.jobId} job={{...rec.job, recommendation: rec}} />
+              <Stagger.Item key={rec.jobId}>
+                <SeekerJobCard job={{...rec.job, recommendation: rec}} />
+              </Stagger.Item>
             ))}
             {data.topRecommendedJobs.length === 0 && (
-              <div className="col-span-1 md:col-span-2 p-8 text-center bg-surface-container-lowest border border-outline-variant rounded-xl border-dashed">
+              <Reveal className="col-span-1 md:col-span-2 p-8 text-center bg-surface-container-lowest border border-outline-variant rounded-xl border-dashed">
                 <p className="text-on-surface-variant mb-4">No recommended jobs found. Try adding more skills.</p>
                 <Link to={ROUTES.SEEKER_SKILLS} className="text-secondary hover:underline">Update Skills</Link>
-              </div>
+              </Reveal>
             )}
-          </div>
+          </Stagger>
         </section>
         
         <section className="space-y-stack-md min-w-0">
@@ -150,17 +175,19 @@ export default function JobSeekerDashboardPage() {
             </Link>
           </div>
           
-          <div className="flex flex-col gap-gutter">
+          <Stagger className="flex flex-col gap-gutter" delayChildren={0.05} staggerChildren={0.06}>
             {data.recentApplications.map((app) => (
-              <SeekerApplicationCard key={app.id} application={app} />
+              <Stagger.Item key={app.id}>
+                <SeekerApplicationCard application={app} />
+              </Stagger.Item>
             ))}
             {data.recentApplications.length === 0 && (
-              <div className="p-8 text-center bg-surface-container-lowest border border-outline-variant rounded-xl border-dashed">
+              <Reveal className="p-8 text-center bg-surface-container-lowest border border-outline-variant rounded-xl border-dashed">
                 <p className="text-on-surface-variant mb-4">You haven't applied to any jobs yet.</p>
                 <Link to={ROUTES.SEEKER_JOBS} className="text-secondary hover:underline">Browse Jobs</Link>
-              </div>
+              </Reveal>
             )}
-          </div>
+          </Stagger>
           
           <div className="bg-surface-container-lowest rounded-xl p-stack-lg shadow-[0px_4px_20px_rgba(15,23,42,0.05)] mt-stack-lg">
             <h3 className="font-h3 text-h3 text-primary mb-stack-md">Quick Actions</h3>
