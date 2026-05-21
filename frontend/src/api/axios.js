@@ -65,24 +65,52 @@ const onResponseError = (error) => {
   // bootstrap call (that 401 is expected when the user is not logged in
   // and is handled gracefully by AuthContext itself).
   if (status === 401 && !url.includes('/auth/me')) {
-    localStorage.removeItem('user');
-    if (!window.location.pathname.startsWith('/login') &&
-        !window.location.pathname.startsWith('/register')) {
+    const path = window.location.pathname;
+    const isAuthPage = path.startsWith('/login') || path.startsWith('/register');
+    if (!isAuthPage) {
+      // Preserve the user's destination so they're sent back after login
+      // instead of dumped on the dashboard. The login page reads this off
+      // sessionStorage on submit and clears it afterwards.
+      try {
+        sessionStorage.setItem('postLoginRedirect', path + window.location.search);
+      } catch {
+        // sessionStorage may be unavailable (private mode / SSR) — non-fatal.
+      }
       window.location.href = '/login';
     }
   }
 
-  // 404 — return a silent empty-data envelope so callers that don't
-  // explicitly catch 404 simply receive an empty result instead of
-  // crashing or spamming the console.
-  if (status === 404) {
-    return Promise.resolve({ data: { success: true, data: [], message: 'Not found' } });
-  }
+  // 404s are no longer silently rewritten to empty success envelopes.
+  // Callers should catch real "not found" cases explicitly — pretending
+  // a 404 is a successful empty response makes it impossible to distinguish
+  // "the user has zero notifications" from "the notifications endpoint
+  // doesn't exist," and it forced every caller to write defensive
+  // `res.data?.data?.data || res.data?.data || []` chains.
 
   return Promise.reject(error);
 };
 
 api.interceptors.response.use((r) => r, onResponseError);
 backend.interceptors.response.use((r) => r, onResponseError);
+
+/**
+ * Extract a list payload from a Laravel JSON envelope, regardless of whether
+ * the endpoint paginates or returns a bare array.
+ *
+ * - Plain list:       { success, data: [...] }                  → returns [...]
+ * - Paginated list:   { success, data: { data: [...], total } } → returns [...]
+ * - Anything else:    returns []
+ *
+ * Call sites should use this instead of writing
+ * `res.data?.data?.data || res.data?.data || []` cascades.
+ */
+export const getListItems = (response) => {
+  const envelope = response?.data;
+  const payload = envelope?.data;
+
+  if (Array.isArray(payload)) return payload;
+  if (Array.isArray(payload?.data)) return payload.data;
+  return [];
+};
 
 export default api;

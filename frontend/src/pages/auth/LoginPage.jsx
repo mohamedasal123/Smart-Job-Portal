@@ -19,9 +19,19 @@ export default function LoginPage() {
   // 1. التوجيه هيحصل هنا بس! لما الـ user state تتحدث فعلياً
   useEffect(() => {
     if (user) {
-      const from = location.state?.from?.pathname;
-      // بنوجهه للمكان اللي كان رايحه، أو للصفحة الافتراضية للرول بتاعته
-      navigate(from || getRoleRedirect(user.role) || ROUTES.HOME, { replace: true });
+      // Priority: explicit router state (ProtectedRoute) > sessionStorage
+      // (axios 401 interceptor stash) > role default. The sessionStorage
+      // entry is consumed once and then cleared.
+      const fromState = location.state?.from?.pathname;
+      let stashed = null;
+      try {
+        stashed = sessionStorage.getItem('postLoginRedirect');
+        if (stashed) sessionStorage.removeItem('postLoginRedirect');
+      } catch {
+        // sessionStorage unavailable — fall through to defaults.
+      }
+      const target = fromState || stashed || getRoleRedirect(user.role) || ROUTES.HOME;
+      navigate(target, { replace: true });
     }
   }, [user, navigate, location]);
 
