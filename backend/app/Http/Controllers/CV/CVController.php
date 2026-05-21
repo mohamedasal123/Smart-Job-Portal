@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use App\Traits\ApiResponse;
 use App\Jobs\ParseCVJob;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use App\Models\Skill;
 
 class CVController extends Controller
@@ -16,24 +17,43 @@ class CVController extends Controller
     public function upload(Request $request)
     {
         $request->validate([
-            'file' => 'required|mimes:pdf,docx|max:5120'
+            // mimetypes (not just mimes) makes Laravel inspect the upload's
+            // MIME magic, not just the extension.
+            'file' => 'required|file|mimetypes:application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document|mimes:pdf,docx|max:5120',
         ]);
 
         $user = $request->user();
         $profile = $user->jobSeekerProfile;
 
-        $path = $request->file('file')->storeAs(
-            'cvs',
-            "{$user->id}_" . time() . '.' . $request->file('file')->extension(),
-            'local'
+        if (!$profile) {
+            return $this->errorResponse('Job seeker profile not found.', 404);
+        }
+
+        $uploaded = $request->file('file');
+
+        // Random unguessable filename so the stored path can't be reconstructed
+        // from the user id + timestamp. The user id is still part of the path
+        // segment for operational clarity, not as a security boundary.
+        $filename = sprintf(
+            'cvs/%d/%s.%s',
+            $user->id,
+            Str::uuid()->toString(),
+            $uploaded->extension()
         );
 
+        // Remove any previous CV from disk so abandoned files don't pile up.
+        if ($profile->resume_file_url && Storage::disk('local')->exists($profile->resume_file_url)) {
+            Storage::disk('local')->delete($profile->resume_file_url);
+        }
+
+        Storage::disk('local')->put($filename, file_get_contents($uploaded->getRealPath()));
+
         $profile->update([
-            'resume_file_url' => $path,
-            'cv_parse_status' => 'processing'
+            'resume_file_url' => $filename,
+            'cv_parse_status' => 'processing',
         ]);
 
-        ParseCVJob::dispatch($profile, $path)->onQueue('cv-parsing');
+        ParseCVJob::dispatch($profile, $filename)->onQueue('cv-parsing');
 
         return $this->successResponse(null, 'CV uploaded. Parsing in progress.', 202);
     }

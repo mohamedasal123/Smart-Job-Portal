@@ -58,16 +58,20 @@ class AdminController extends Controller
 
     public function showUser(User $user): JsonResponse
     {
+        $profile = null;
+
         if ($user->role === 'job_seeker') {
             $user->load([
                 'jobSeekerProfile.jobSeekerSkills.skill',
                 'jobSeekerProfile.cvParsedData',
             ]);
-            $user->profile = $user->jobSeekerProfile;
+            $profile = $user->jobSeekerProfile;
         } elseif ($user->role === 'company') {
             $user->load('companyProfile');
-            $user->companyProfile->loadCount('jobPosts');
-            $user->profile = $user->companyProfile;
+            if ($user->companyProfile) {
+                $user->companyProfile->loadCount('jobPosts');
+            }
+            $profile = $user->companyProfile;
         }
 
         return $this->success([
@@ -78,12 +82,21 @@ class AdminController extends Controller
             'is_banned' => (bool) $user->is_banned,
             'email_verified_at' => $user->email_verified_at,
             'created_at' => $user->created_at,
-            'profile' => $user->profile,
+            'profile' => $profile,
         ], 'OK');
     }
 
-    public function toggleBan(User $user): JsonResponse
+    public function toggleBan(Request $request, User $user): JsonResponse
     {
+        // Prevent an admin from locking themselves out, and prevent banning
+        // other admin accounts via this endpoint.
+        if ($request->user()->id === $user->id) {
+            return $this->error('You cannot ban your own account.', 422);
+        }
+        if ($user->role === 'admin') {
+            return $this->error('Admin accounts cannot be banned through this endpoint.', 422);
+        }
+
         $user->is_banned = !$user->is_banned;
         $user->save();
 

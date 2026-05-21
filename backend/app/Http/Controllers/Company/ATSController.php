@@ -62,10 +62,15 @@ class ATSController extends Controller
         }
 
         $url = $application->jobSeekerProfile->resume_file_url;
-        if (!$url || !Storage::disk('private')->exists($url)) {
+        if (!$url || !Storage::disk('local')->exists($url)) {
             return $this->error('CV not found', 404);
         }
 
-        return Storage::disk('private')->download($url);
+        // Suggest a friendly filename rather than the random UUID we store on disk.
+        $seekerName = $application->jobSeekerProfile->user->name ?? 'candidate';
+        $extension  = pathinfo($url, PATHINFO_EXTENSION);
+        $download   = sprintf('%s-cv.%s', \Illuminate\Support\Str::slug($seekerName), $extension);
+
+        return Storage::disk('local')->download($url, $download);
     }
 }

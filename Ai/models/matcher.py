@@ -8,9 +8,9 @@ This two-stage approach (retrieve + re-rank) is the industry standard
 used by search engines to achieve >90% accuracy.
 """
 
-import pickle
 import os
 import re
+import json
 
 
 class MatchingEngine:
@@ -30,12 +30,28 @@ class MatchingEngine:
             self.cross_encoder = CrossEncoder(cross_encoder_model)
             print("Cross-encoder loaded.")
 
-    def load_embeddings(self, path):
-        """Load pre-computed job embeddings from pickle file."""
-        with open(path, 'rb') as f:
-            data = pickle.load(f)
-        self.job_data = data['job_data']
-        self.job_embeddings = data['embeddings']
+    def load_embeddings(self, embeddings_path, job_data_path=None):
+        """Load pre-computed job embeddings safely.
+
+        Reads embeddings from a ``.npy`` file (numpy array) and job metadata
+        from a JSON sidecar. If ``job_data_path`` is omitted, it is derived by
+        swapping the embeddings extension for ``.json``.
+
+        We deliberately do NOT support ``pickle``: ``pickle.load`` will execute
+        arbitrary Python during deserialization, so any process that loaded an
+        attacker-controlled pickle would be remote-code-execution-vulnerable.
+        ``numpy.load`` is called with ``allow_pickle=False`` to keep that
+        guarantee even if a ``.npy`` file is replaced.
+        """
+        import numpy as np
+
+        if job_data_path is None:
+            base, _ = os.path.splitext(embeddings_path)
+            job_data_path = base + '.json'
+
+        self.job_embeddings = np.load(embeddings_path, allow_pickle=False)
+        with open(job_data_path, 'r', encoding='utf-8') as f:
+            self.job_data = json.load(f)
         print(f"Loaded {len(self.job_data)} job embeddings.")
 
     def _build_job_text(self, job):
