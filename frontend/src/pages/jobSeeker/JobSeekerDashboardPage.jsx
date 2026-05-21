@@ -29,14 +29,14 @@ export default function JobSeekerDashboardPage() {
 
   if (loading || !data) {
     return (
-      <div className="p-margin-desktop flex justify-center items-center h-full">
+      <div className="px-4 sm:px-6 lg:px-margin-desktop py-6 lg:py-margin-desktop flex justify-center items-center h-full">
         <span className="material-symbols-outlined animate-spin text-[48px] text-secondary">progress_activity</span>
       </div>
     );
   }
 
   return (
-    <div className="p-margin-desktop space-y-gutter pb-stack-lg max-w-7xl mx-auto">
+    <div className="px-4 sm:px-6 lg:px-margin-desktop py-6 lg:py-margin-desktop space-y-gutter pb-stack-lg max-w-7xl mx-auto">
       <SeekerPageHeader 
         title="Welcome back!" 
         subtitle={`Your profile is ${data.profileCompletion}% complete. Let's find your next opportunity.`} 
@@ -62,11 +62,11 @@ export default function JobSeekerDashboardPage() {
                 </div>
               </div>
             </div>
-            <div className="flex gap-3">
-              <Link to="/seeker/cv-upload" className="px-4 py-2 border border-outline-variant text-on-surface rounded-lg font-label-md hover:bg-surface-container-low transition-colors">
+            <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+              <Link to="/seeker/cv-upload" className="w-full sm:w-auto px-4 py-2 border border-outline-variant text-on-surface rounded-lg font-label-md hover:bg-surface-container-low transition-colors text-center">
                 Re-upload CV
               </Link>
-              <Link to="/seeker/cv-review" className="px-4 py-2 bg-secondary text-on-secondary rounded-lg font-label-md hover:bg-secondary-container transition-colors shadow-sm">
+              <Link to="/seeker/cv-review" className="w-full sm:w-auto px-4 py-2 bg-secondary text-on-secondary rounded-lg font-label-md hover:bg-secondary-container transition-colors shadow-sm text-center">
                 Review Extracted Data
               </Link>
             </div>
@@ -84,8 +84,8 @@ export default function JobSeekerDashboardPage() {
                 </p>
               </div>
             </div>
-            <div>
-              <Link to="/seeker/cv-upload" className="px-6 py-2 bg-secondary text-on-secondary rounded-lg font-label-md hover:bg-secondary-container transition-colors shadow-sm flex items-center gap-2">
+            <div className="w-full md:w-auto">
+              <Link to="/seeker/cv-upload" className="w-full sm:w-auto justify-center px-6 py-2 bg-secondary text-on-secondary rounded-lg font-label-md hover:bg-secondary-container transition-colors shadow-sm flex items-center gap-2">
                 <span className="material-symbols-outlined text-[18px]">upload</span> Upload CV
               </Link>
             </div>
@@ -121,10 +121,10 @@ export default function JobSeekerDashboardPage() {
       </section>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-gutter">
-        <section className="lg:col-span-2 space-y-stack-md">
-          <div className="flex justify-between items-center">
-            <h2 className="font-h2 text-h2 text-primary">Top Matches for You</h2>
-            <Link className="font-label-sm text-label-sm text-secondary hover:underline" to={ROUTES.SEEKER_RECOMMENDED_JOBS}>
+        <section className="lg:col-span-2 space-y-stack-md min-w-0">
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
+            <h2 className="font-h2 text-h2 text-primary truncate">Top Matches for You</h2>
+            <Link className="font-label-sm text-label-sm text-secondary hover:underline whitespace-nowrap" to={ROUTES.SEEKER_RECOMMENDED_JOBS}>
               View all
             </Link>
           </div>
@@ -134,7 +134,7 @@ export default function JobSeekerDashboardPage() {
               <SeekerJobCard key={rec.jobId} job={{...rec.job, recommendation: rec}} />
             ))}
             {data.topRecommendedJobs.length === 0 && (
-              <div className="col-span-2 p-8 text-center bg-surface-container-lowest border border-outline-variant rounded-xl border-dashed">
+              <div className="col-span-1 md:col-span-2 p-8 text-center bg-surface-container-lowest border border-outline-variant rounded-xl border-dashed">
                 <p className="text-on-surface-variant mb-4">No recommended jobs found. Try adding more skills.</p>
                 <Link to={ROUTES.SEEKER_SKILLS} className="text-secondary hover:underline">Update Skills</Link>
               </div>
@@ -142,10 +142,10 @@ export default function JobSeekerDashboardPage() {
           </div>
         </section>
         
-        <section className="space-y-stack-md">
-          <div className="flex justify-between items-center">
-            <h2 className="font-h2 text-h2 text-primary">Recent Applications</h2>
-            <Link className="font-label-sm text-label-sm text-secondary hover:underline" to={ROUTES.SEEKER_APPLICATIONS}>
+        <section className="space-y-stack-md min-w-0">
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
+            <h2 className="font-h2 text-h2 text-primary truncate">Recent Applications</h2>
+            <Link className="font-label-sm text-label-sm text-secondary hover:underline whitespace-nowrap" to={ROUTES.SEEKER_APPLICATIONS}>
               View all
             </Link>
           </div>

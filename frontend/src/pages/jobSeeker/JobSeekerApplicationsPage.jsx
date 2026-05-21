@@ -30,7 +30,7 @@ export default function JobSeekerApplicationsPage() {
   }, [filterStatus]);
 
   return (
-    <div className="p-margin-desktop max-w-7xl mx-auto flex flex-col h-full">
+    <div className="px-4 sm:px-6 lg:px-margin-desktop py-6 lg:py-margin-desktop max-w-7xl mx-auto flex flex-col h-full">
       <SeekerPageHeader 
         title="My Applications" 
         subtitle="Track the status of your job applications." 
@@ -75,10 +75,10 @@ export default function JobSeekerApplicationsPage() {
               <SeekerApplicationCard key={app.id} application={app} />
             ))}
             
-            <div className="flex justify-between items-center mt-stack-md bg-surface-container-lowest p-stack-sm rounded-lg border border-outline-variant">
-              <button className="px-4 py-2 border border-outline-variant rounded-lg text-primary disabled:opacity-50" disabled={page <= 1} onClick={() => setPage(p => p - 1)}>Previous</button>
+            <div className="flex flex-col sm:flex-row justify-between items-center gap-3 mt-stack-md bg-surface-container-lowest p-stack-sm rounded-lg border border-outline-variant">
+              <button className="w-full sm:w-auto px-4 py-2 border border-outline-variant rounded-lg text-primary disabled:opacity-50" disabled={page <= 1} onClick={() => setPage(p => p - 1)}>Previous</button>
               <span className="text-on-surface-variant font-label-md">Page {page} of {Math.max(1, Math.ceil(applications.length / itemsPerPage))}</span>
-              <button className="px-4 py-2 border border-outline-variant rounded-lg text-primary disabled:opacity-50" disabled={page * itemsPerPage >= applications.length} onClick={() => setPage(p => p + 1)}>Next</button>
+              <button className="w-full sm:w-auto px-4 py-2 border border-outline-variant rounded-lg text-primary disabled:opacity-50" disabled={page * itemsPerPage >= applications.length} onClick={() => setPage(p => p + 1)}>Next</button>
             </div>
           </div>
         ) : (

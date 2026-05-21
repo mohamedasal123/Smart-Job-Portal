@@ -24,15 +24,15 @@ export default function JobSeekerProfilePage() {
 
   if (loading || !profile) {
     return (
-      <div className="p-margin-desktop flex justify-center items-center h-full">
+      <div className="px-4 sm:px-6 lg:px-margin-desktop py-6 lg:py-margin-desktop flex justify-center items-center h-full">
         <span className="material-symbols-outlined animate-spin text-[48px] text-secondary">progress_activity</span>
       </div>
     );
   }
 
   return (
-    <div className="p-margin-desktop max-w-4xl mx-auto flex flex-col h-full space-y-gutter pb-12">
-      <div className="flex justify-between items-start">
+    <div className="px-4 sm:px-6 lg:px-margin-desktop py-6 lg:py-margin-desktop max-w-4xl mx-auto flex flex-col h-full space-y-gutter pb-12">
+      <div className="flex flex-col sm:flex-row justify-between sm:items-start gap-4">
         <SeekerPageHeader 
           title="My Profile" 
           subtitle="View and manage your public profile." 
@@ -40,7 +40,7 @@ export default function JobSeekerProfilePage() {
         />
         <Link 
           to={ROUTES.SEEKER_PROFILE_EDIT} 
-          className="bg-secondary text-on-secondary px-6 py-2 rounded-lg font-label-md hover:bg-secondary-container transition-colors shadow-sm flex items-center gap-2"
+          className="w-full sm:w-auto justify-center bg-secondary text-on-secondary px-6 py-2 rounded-lg font-label-md hover:bg-secondary-container transition-colors shadow-sm flex items-center gap-2"
         >
           <span className="material-symbols-outlined text-[18px]">edit</span>
           Edit Profile
@@ -91,45 +91,45 @@ export default function JobSeekerProfilePage() {
         <div className="p-8">
           <h3 className="font-h3 text-h3 text-primary mb-6">Contact & Links</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="flex items-start gap-3">
+            <div className="flex items-start gap-3 min-w-0">
               <div className="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center shrink-0">
                 <span className="material-symbols-outlined text-on-surface-variant">mail</span>
               </div>
-              <div>
+              <div className="min-w-0">
                 <p className="text-label-sm text-on-surface-variant mb-1">Email</p>
-                <p className="text-body-md font-medium text-on-surface">{profile.email}</p>
+                <p className="text-body-md font-medium text-on-surface truncate" title={profile.email}>{profile.email}</p>
               </div>
             </div>
-            <div className="flex items-start gap-3">
+            <div className="flex items-start gap-3 min-w-0">
               <div className="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center shrink-0">
                 <span className="material-symbols-outlined text-on-surface-variant">phone</span>
               </div>
-              <div>
+              <div className="min-w-0">
                 <p className="text-label-sm text-on-surface-variant mb-1">Phone</p>
-                <p className="text-body-md font-medium text-on-surface">{profile.phone}</p>
+                <p className="text-body-md font-medium text-on-surface truncate">{profile.phone}</p>
               </div>
             </div>
             {profile.portfolio && (
-              <div className="flex items-start gap-3">
+              <div className="flex items-start gap-3 min-w-0">
                 <div className="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center shrink-0">
                   <span className="material-symbols-outlined text-on-surface-variant">language</span>
                 </div>
-                <div>
+                <div className="min-w-0">
                   <p className="text-label-sm text-on-surface-variant mb-1">Portfolio</p>
-                  <a href={profile.portfolio} target="_blank" rel="noopener noreferrer" className="text-secondary hover:underline text-body-md font-medium">
+                  <a href={profile.portfolio} target="_blank" rel="noopener noreferrer" className="text-secondary hover:underline text-body-md font-medium truncate block" title={profile.portfolio}>
                     {profile.portfolio.replace('https://', '')}
                   </a>
                 </div>
               </div>
             )}
             {profile.linkedin && (
-              <div className="flex items-start gap-3">
+              <div className="flex items-start gap-3 min-w-0">
                 <div className="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center shrink-0">
                   <span className="material-symbols-outlined text-on-surface-variant">link</span>
                 </div>
-                <div>
+                <div className="min-w-0">
                   <p className="text-label-sm text-on-surface-variant mb-1">LinkedIn</p>
-                  <a href={profile.linkedin} target="_blank" rel="noopener noreferrer" className="text-secondary hover:underline text-body-md font-medium">
+                  <a href={profile.linkedin} target="_blank" rel="noopener noreferrer" className="text-secondary hover:underline text-body-md font-medium truncate block" title={profile.linkedin}>
                     {profile.linkedin.replace('https://', '')}
                   </a>
                 </div>

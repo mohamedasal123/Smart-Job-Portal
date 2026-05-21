@@ -72,13 +72,16 @@ export default function SeekerJobCard({ job, onSavedStateChange }) {
           {matchScore && (
             <MatchScoreBadge score={matchScore} size="sm" showLabel={false} />
           )}
-          <button 
+          <button
+            type="button"
             onClick={handleToggleSave}
             disabled={isSaving}
-            className={`p-1.5 rounded-full transition-colors ${isSaved ? 'text-secondary hover:bg-secondary/10' : 'text-on-surface-variant hover:text-secondary hover:bg-surface-variant/50'}`}
-            title={isSaved ? "Remove from saved jobs" : "Save this job"}
+            aria-label={isSaved ? `Remove ${job.title} from saved jobs` : `Save ${job.title} to your saved jobs`}
+            aria-pressed={isSaved}
+            className={`p-1.5 rounded-full transition-colors disabled:cursor-not-allowed disabled:opacity-60 focus:outline-none focus-visible:ring-2 focus-visible:ring-secondary ${isSaved ? 'text-secondary hover:bg-secondary/10' : 'text-on-surface-variant hover:text-secondary hover:bg-surface-variant/50'}`}
+            title={isSaved ? 'Remove from saved jobs' : 'Save this job'}
           >
-            <span className={`material-symbols-outlined text-[22px] ${isSaved ? 'fill-current' : ''}`} style={{ fontVariationSettings: isSaved ? '"FILL" 1' : '"FILL" 0' }}>
+            <span className={`material-symbols-outlined text-[22px] ${isSaved ? 'fill-current' : ''}`} style={{ fontVariationSettings: isSaved ? '"FILL" 1' : '"FILL" 0' }} aria-hidden="true">
               bookmark
             </span>
           </button>
@@ -104,13 +107,13 @@ export default function SeekerJobCard({ job, onSavedStateChange }) {
         {job.description}
       </p>
 
-      <div className="mt-auto pt-4 border-t border-outline-variant flex items-center justify-between">
+      <div className="mt-auto pt-4 border-t border-outline-variant flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <span className="font-body-sm text-xs text-on-surface-variant">
           Posted {new Date(job.postedAt).toLocaleDateString()}
         </span>
         <Link
           to={`/seeker/jobs/${job.id}`}
-          className="inline-flex items-center justify-center px-4 py-2 rounded-lg font-label-md border border-secondary text-secondary hover:bg-secondary/10 transition-colors"
+          className="w-full sm:w-auto inline-flex items-center justify-center px-4 py-2 rounded-lg font-label-md border border-secondary text-secondary hover:bg-secondary/10 transition-colors"
         >
           View Details
         </Link>

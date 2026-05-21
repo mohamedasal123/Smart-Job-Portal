@@ -117,11 +117,11 @@ export default function JobSeekerCvReviewPage() {
   };
 
   if (loading) {
-    return <div className="p-margin-desktop flex justify-center items-center h-full"><span className="material-symbols-outlined animate-spin text-[48px] text-secondary">progress_activity</span></div>;
+    return <div className="px-4 sm:px-6 lg:px-margin-desktop py-6 lg:py-margin-desktop flex justify-center items-center h-full"><span className="material-symbols-outlined animate-spin text-[48px] text-secondary">progress_activity</span></div>;
   }
   if (!profileData) {
     return (
-      <div className="p-margin-desktop flex flex-col justify-center items-center h-full gap-4">
+      <div className="px-4 sm:px-6 lg:px-margin-desktop py-6 lg:py-margin-desktop flex flex-col justify-center items-center h-full gap-4">
         <span className="material-symbols-outlined text-[48px] text-on-surface-variant">upload_file</span>
         <p className="font-body-lg text-on-surface-variant">No CV uploaded yet.</p>
         <Link to={ROUTES.SEEKER_CV_UPLOAD} className="px-6 py-2.5 rounded-lg bg-secondary text-on-secondary font-label-md">Upload CV</Link>
@@ -130,7 +130,7 @@ export default function JobSeekerCvReviewPage() {
   }
 
   return (
-    <div className="p-margin-desktop max-w-4xl mx-auto flex flex-col h-full space-y-gutter pb-12">
+    <div className="px-4 sm:px-6 lg:px-margin-desktop py-6 lg:py-margin-desktop max-w-4xl mx-auto flex flex-col h-full space-y-gutter pb-12">
       <SeekerPageHeader 
         title="Review Parsed CV Data" 
         subtitle="We've extracted the following information from your CV. Review and edit the AI-extracted CV data before using it for job matching." 

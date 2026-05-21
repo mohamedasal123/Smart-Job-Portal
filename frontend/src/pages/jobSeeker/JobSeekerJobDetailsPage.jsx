@@ -1,20 +1,19 @@
 import { useState, useEffect } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useParams, useNavigate } from 'react-router-dom';
 import { ROUTES } from '../../utils/constants';
 import { applyToJob, getApplications, getJobById, isJobSaved, toggleSavedJob } from '../../services/jobSeekerDataService';
-import ConfirmModal from '../../components/ConfirmModal';
 import { useToast } from '../../components/useToast';
 import MatchScoreBadge from '../../components/jobSeeker/MatchScoreBadge';
 
-
 export default function JobSeekerJobDetailsPage() {
   const { jobId } = useParams();
+  const navigate = useNavigate();
   const { addToast } = useToast();
   const [job, setJob] = useState(null);
   const [loading, setLoading] = useState(true);
   const [hasApplied, setHasApplied] = useState(false);
   const [saved, setSaved] = useState(false);
-  const [showApplyModal, setShowApplyModal] = useState(false);
+  const [isApplying, setIsApplying] = useState(false);
 
   useEffect(() => {
     const fetchJob = async () => {
@@ -34,13 +33,24 @@ export default function JobSeekerJobDetailsPage() {
   }, [jobId]);
 
   const handleApply = async () => {
+    if (isApplying) return;
+    setIsApplying(true);
     try {
       await applyToJob(jobId);
       setHasApplied(true);
-      setShowApplyModal(false);
       addToast({ title: 'Application Submitted', message: `Your application has been sent to ${job?.company}.`, type: 'success' });
     } catch (error) {
-      addToast({ title: 'Application failed', message: error.message || 'Could not submit your application.', type: 'error' });
+      if (error?.status === 403 && error?.data?.message?.includes('CV')) {
+         addToast({ title: 'CV Required', message: 'You must upload and parse your CV before applying.', type: 'error' });
+         navigate(ROUTES.SEEKER_CV_UPLOAD);
+      } else if (error?.status === 409) {
+         setHasApplied(true);
+         addToast({ title: 'Already Applied', message: 'You have already applied to this job.', type: 'info' });
+      } else {
+         addToast({ title: 'Application failed', message: error.message || 'Could not submit your application.', type: 'error' });
+      }
+    } finally {
+      setIsApplying(false);
     }
   };
 
@@ -59,14 +69,14 @@ export default function JobSeekerJobDetailsPage() {
     }
   };
 
-  if (loading) return <div className="p-margin-desktop flex justify-center items-center h-full"><span className="material-symbols-outlined animate-spin text-[48px] text-secondary">progress_activity</span></div>;
-  if (!job) return <div className="p-margin-desktop text-center text-on-surface-variant"><p>Job not found.</p><Link to={ROUTES.SEEKER_JOBS} className="text-secondary hover:underline mt-4 inline-block">Browse Jobs</Link></div>;
+  if (loading) return <div className="px-4 sm:px-6 lg:px-margin-desktop py-6 lg:py-margin-desktop flex justify-center items-center h-full"><span className="material-symbols-outlined animate-spin text-[48px] text-secondary">progress_activity</span></div>;
+  if (!job) return <div className="px-4 sm:px-6 lg:px-margin-desktop py-6 lg:py-margin-desktop text-center text-on-surface-variant"><p>Job not found.</p><Link to={ROUTES.SEEKER_JOBS} className="text-secondary hover:underline mt-4 inline-block">Browse Jobs</Link></div>;
 
   const matchScore = job.recommendation?.matchScore || job.matchScore;
   const matchedSkills = job.recommendation?.matchedSkills || [];
 
   return (
-    <div className="p-margin-desktop max-w-5xl mx-auto flex flex-col h-full pb-12">
+    <div className="px-4 sm:px-6 lg:px-margin-desktop py-6 lg:py-margin-desktop max-w-5xl mx-auto flex flex-col h-full pb-12">
       <div className="flex flex-col gap-stack-lg">
         <nav className="flex items-center gap-2 text-on-surface-variant font-body-md">
           <Link className="hover:text-secondary transition-colors" to={ROUTES.SEEKER_JOBS}>Jobs</Link>
@@ -85,16 +95,16 @@ export default function JobSeekerJobDetailsPage() {
           <div className="lg:col-span-8 flex flex-col gap-stack-lg">
             {/* Header Card */}
             <div className="bg-surface-container-lowest rounded-[16px] p-stack-xl shadow-sm border border-outline-variant flex flex-col gap-stack-md relative overflow-hidden">
-              <div className="flex items-center gap-stack-md">
-                <div className="w-16 h-16 rounded-lg border border-surface-variant bg-surface flex items-center justify-center p-2 font-bold text-2xl text-on-surface-variant">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-stack-md">
+                <div className="w-16 h-16 shrink-0 rounded-lg border border-surface-variant bg-surface flex items-center justify-center p-2 font-bold text-2xl text-on-surface-variant">
                   {job.companyLogo ? <img alt="Logo" className="w-full h-full object-contain" src={job.companyLogo} /> : job.company?.charAt(0)}
                 </div>
-                <div className="flex flex-col gap-1">
-                  <div className="flex items-center gap-3">
-                    <h1 className="font-h1 text-h1 text-primary">{job.title}</h1>
+                <div className="flex flex-col gap-1 min-w-0 flex-1">
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                    <h1 className="font-h1 text-h1 text-primary break-words min-w-0">{job.title}</h1>
                     {matchScore && <MatchScoreBadge score={matchScore} size="md" showLabel={true} />}
                   </div>
-                  <h2 className="font-h3 text-h3 text-on-surface-variant">{job.company}</h2>
+                  <h2 className="font-h3 text-h3 text-on-surface-variant break-words">{job.company}</h2>
                 </div>
               </div>
               <div className="flex flex-wrap items-center gap-stack-md mt-2">
@@ -104,17 +114,22 @@ export default function JobSeekerJobDetailsPage() {
                 <div className="w-1 h-1 rounded-full bg-outline-variant" />
                 <div className="flex items-center gap-1 text-on-surface-variant font-body-md"><span className="material-symbols-outlined text-[18px]">schedule</span> {job.type?.replace('_', '-')}</div>
               </div>
-              <div className="flex flex-wrap items-center gap-stack-md mt-4 pt-4 border-t border-surface-variant">
+              <div className="flex flex-col sm:flex-row flex-wrap items-center gap-stack-md mt-4 pt-4 border-t border-surface-variant">
                 {hasApplied ? (
-                  <button className="bg-success-container/20 text-success font-body-lg font-bold py-3 px-6 rounded-lg flex items-center gap-2 cursor-default border border-success" disabled>
+                  <button className="w-full sm:w-auto justify-center bg-success-container/20 text-success font-body-lg font-bold py-3 px-6 rounded-lg flex items-center gap-2 cursor-default border border-success" disabled>
                     <span className="material-symbols-outlined" style={{ fontVariationSettings: '"FILL" 1' }}>check_circle</span> Already Applied
                   </button>
                 ) : (
-                  <button className="bg-secondary text-on-secondary font-body-lg font-bold py-3 px-6 rounded-lg flex items-center gap-2 hover:bg-secondary-container transition-colors" onClick={() => setShowApplyModal(true)}>
-                    Apply with One Click <span className="material-symbols-outlined">send</span>
+                  <button 
+                    className={`w-full sm:w-auto justify-center bg-secondary text-on-secondary font-body-lg font-bold py-3 px-6 rounded-lg flex items-center gap-2 hover:bg-secondary-container transition-colors ${isApplying ? 'opacity-70 cursor-not-allowed' : ''}`} 
+                    onClick={handleApply}
+                    disabled={isApplying}
+                  >
+                    {isApplying ? <span className="material-symbols-outlined animate-spin">progress_activity</span> : 'Apply with One Click'} 
+                    {!isApplying && <span className="material-symbols-outlined">send</span>}
                   </button>
                 )}
-                <button className={`bg-transparent border ${saved ? 'border-secondary text-secondary' : 'border-outline-variant text-on-surface'} font-body-lg font-bold py-3 px-6 rounded-lg hover:bg-surface-variant/30 transition-colors flex items-center gap-2`} onClick={handleSave}>
+                <button className={`w-full sm:w-auto justify-center bg-transparent border ${saved ? 'border-secondary text-secondary' : 'border-outline-variant text-on-surface'} font-body-lg font-bold py-3 px-6 rounded-lg hover:bg-surface-variant/30 transition-colors flex items-center gap-2`} onClick={handleSave}>
                   <span className="material-symbols-outlined">{saved ? 'bookmark' : 'bookmark_border'}</span> {saved ? 'Saved' : 'Save Job'}
                 </button>
               </div>
@@ -173,13 +188,6 @@ export default function JobSeekerJobDetailsPage() {
           </div>
         </div>
       </div>
-
-      {showApplyModal && (
-        <ConfirmModal isOpen={showApplyModal} title={`Apply for ${job.title}`}
-          message="You are about to apply using your default CV profile. Are you sure?"
-          confirmText="Yes, Apply" cancelText="Cancel"
-          onConfirm={handleApply} onCancel={() => setShowApplyModal(false)} />
-      )}
     </div>
   );
 }

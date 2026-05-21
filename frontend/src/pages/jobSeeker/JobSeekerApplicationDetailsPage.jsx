@@ -47,7 +47,7 @@ export default function JobSeekerApplicationDetailsPage() {
   const { job } = application;
 
   return (
-    <div className="p-margin-desktop max-w-4xl mx-auto flex flex-col h-full space-y-gutter">
+    <div className="px-4 sm:px-6 lg:px-margin-desktop py-6 lg:py-margin-desktop max-w-4xl mx-auto flex flex-col h-full space-y-gutter">
       <div>
         <Link to={ROUTES.SEEKER_APPLICATIONS} className="inline-flex items-center text-on-surface-variant hover:text-secondary mb-4 transition-colors font-label-md">
           <span className="material-symbols-outlined mr-1 text-[18px]">arrow_back</span>
@@ -168,7 +168,7 @@ export default function JobSeekerApplicationDetailsPage() {
                   View Original Job Post
                 </Link>
                 {application.status === 'rejected' && (
-                  <Link to={ROUTES.SEEKER_REJECTION_FEEDBACK} className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-secondary text-on-secondary hover:bg-secondary-container rounded-lg transition-colors font-label-md">
+                  <Link to={ROUTES.SEEKER_REJECTION_FEEDBACK.replace(':applicationId', application.id)} className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-secondary text-on-secondary hover:bg-secondary-container rounded-lg transition-colors font-label-md">
                     <span className="material-symbols-outlined text-[18px]">feedback</span>
                     View Rejection Feedback
                   </Link>

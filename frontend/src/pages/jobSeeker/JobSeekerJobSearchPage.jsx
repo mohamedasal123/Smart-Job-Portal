@@ -68,7 +68,7 @@ export default function JobSeekerJobSearchPage() {
   };
 
   return (
-    <div className="p-margin-desktop max-w-7xl mx-auto flex flex-col h-full">
+    <div className="px-4 sm:px-6 lg:px-margin-desktop py-6 lg:py-margin-desktop max-w-7xl mx-auto flex flex-col h-full">
       <div className="mb-stack-lg">
         <h1 className="font-h1 text-h1 text-primary mb-stack-md">Search Jobs</h1>
         <div className="flex flex-col md:flex-row gap-stack-sm bg-surface-container-lowest p-stack-sm rounded-lg border border-outline-variant shadow-[0px_4px_20px_rgba(15,23,42,0.05)]">
@@ -98,7 +98,7 @@ export default function JobSeekerJobSearchPage() {
           </div>
           <button 
             onClick={handleSearch}
-            className="bg-secondary text-on-secondary font-body-md font-bold px-6 py-3 rounded-lg hover:bg-secondary-container transition-colors flex items-center gap-2 justify-center"
+            className="w-full md:w-auto bg-secondary text-on-secondary font-body-md font-bold px-6 py-3 rounded-lg hover:bg-secondary-container transition-colors flex items-center gap-2 justify-center"
           >
             Search
           </button>
@@ -119,15 +119,15 @@ export default function JobSeekerJobSearchPage() {
               <div className="space-y-2">
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input name="full_time" checked={filters.type === 'full_time'} onChange={handleFilterChange} className="rounded border-outline-variant text-secondary focus:ring-secondary" type="checkbox" />
-                  <span className="font-body-md text-on-surface-variant">Full-time</span>
+                  <span className="font-body-md text-on-surface-variant break-words">Full-time</span>
                 </label>
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input name="contract" checked={filters.type === 'contract'} onChange={handleFilterChange} className="rounded border-outline-variant text-secondary focus:ring-secondary" type="checkbox" />
-                  <span className="font-body-md text-on-surface-variant">Contract</span>
+                  <span className="font-body-md text-on-surface-variant break-words">Contract</span>
                 </label>
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input name="part_time" checked={filters.type === 'part_time'} onChange={handleFilterChange} className="rounded border-outline-variant text-secondary focus:ring-secondary" type="checkbox" />
-                  <span className="font-body-md text-on-surface-variant">Part-time</span>
+                  <span className="font-body-md text-on-surface-variant break-words">Part-time</span>
                 </label>
               </div>
             </div>
@@ -135,16 +135,16 @@ export default function JobSeekerJobSearchPage() {
         </aside>
         
         {/* Job Results */}
-        <div className="flex-1 flex flex-col">
+        <div className="flex-1 flex flex-col min-w-0">
           {/* Top Bar */}
-          <div className="flex justify-between items-center mb-stack-md">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-stack-md">
             <span className="font-body-md text-on-surface-variant">Showing <strong className="text-primary">{jobs.length}</strong> jobs</span>
             <div className="flex items-center gap-2">
-              <span className="font-label-sm text-on-surface-variant">Sort by:</span>
+              <span className="font-label-sm text-on-surface-variant whitespace-nowrap">Sort by:</span>
               <select 
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value)}
-                className="bg-surface-container-lowest border border-outline-variant rounded-lg font-body-md text-primary py-1 px-3 focus:ring-secondary focus:border-secondary outline-none"
+                className="w-full sm:w-auto bg-surface-container-lowest border border-outline-variant rounded-lg font-body-md text-primary py-1 px-3 focus:ring-secondary focus:border-secondary outline-none"
               >
                 <option>Best match</option>
                 <option>Newest</option>
@@ -166,10 +166,10 @@ export default function JobSeekerJobSearchPage() {
                 ))}
               </div>
               
-              <div className="flex justify-between items-center mt-stack-md bg-surface-container-lowest p-stack-sm rounded-lg border border-outline-variant">
-                <button className="px-4 py-2 border border-outline-variant rounded-lg text-primary disabled:opacity-50" disabled={page <= 1} onClick={() => setPage(p => p - 1)}>Previous</button>
+              <div className="flex flex-col sm:flex-row justify-between items-center gap-3 mt-stack-md bg-surface-container-lowest p-stack-sm rounded-lg border border-outline-variant">
+                <button className="w-full sm:w-auto px-4 py-2 border border-outline-variant rounded-lg text-primary disabled:opacity-50" disabled={page <= 1} onClick={() => setPage(p => p - 1)}>Previous</button>
                 <span className="text-on-surface-variant font-label-md">Page {page} of {Math.max(1, Math.ceil(jobs.length / itemsPerPage))}</span>
-                <button className="px-4 py-2 border border-outline-variant rounded-lg text-primary disabled:opacity-50" disabled={page * itemsPerPage >= jobs.length} onClick={() => setPage(p => p + 1)}>Next</button>
+                <button className="w-full sm:w-auto px-4 py-2 border border-outline-variant rounded-lg text-primary disabled:opacity-50" disabled={page * itemsPerPage >= jobs.length} onClick={() => setPage(p => p + 1)}>Next</button>
               </div>
             </>
           ) : (

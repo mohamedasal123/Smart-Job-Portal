@@ -30,6 +30,8 @@ export default function JobSeekerCvUploadPage() {
   const [loadingProfile, setLoadingProfile] = useState(true);
   const pollingRef  = useRef(null);
   const timeoutRef  = useRef(null);
+  const completionTimeoutRef = useRef(null);
+  const isMountedRef = useRef(true);
 
   // Edit Modes State
   const [editModes, setEditModes] = useState({
@@ -52,6 +54,19 @@ export default function JobSeekerCvUploadPage() {
   const stopPolling = useCallback(() => {
     if (pollingRef.current)  { clearInterval(pollingRef.current);  pollingRef.current  = null; }
     if (timeoutRef.current)  { clearTimeout(timeoutRef.current);   timeoutRef.current  = null; }
+    if (completionTimeoutRef.current) {
+      clearTimeout(completionTimeoutRef.current);
+      completionTimeoutRef.current = null;
+    }
+  }, []);
+
+  // Tracks mount state so the celebratory "100%" delay below can't write to
+  // state on an unmounted component if the user navigates mid-upload.
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
   }, []);
 
   // ── On mount: load any previously parsed profile ─────────────────────────────
@@ -152,8 +167,10 @@ export default function JobSeekerCvUploadPage() {
               
               // Ensure progress reaches 100% visibly before unmounting
               setUploadProgress(100);
-              
-              setTimeout(() => {
+
+              completionTimeoutRef.current = setTimeout(() => {
+                completionTimeoutRef.current = null;
+                if (!isMountedRef.current) return;
                 setParsed(true);
                 setUploading(false);
               }, 600); // 600ms delay to let the user see 100%
@@ -287,7 +304,7 @@ export default function JobSeekerCvUploadPage() {
   };
 
   return (
-    <div className="p-margin-desktop max-w-7xl mx-auto flex flex-col h-full space-y-stack-lg pb-12">
+    <div className="px-4 sm:px-6 lg:px-margin-desktop py-6 lg:py-margin-desktop max-w-7xl mx-auto flex flex-col h-full space-y-stack-lg pb-12">
       <SeekerPageHeader 
         title="Upload Resume" 
         subtitle="Upload your CV and let our AI instantly extract your skills, experience, and education to build your profile." 
@@ -306,12 +323,24 @@ export default function JobSeekerCvUploadPage() {
               onDragOver={!parsed ? handleDragOver : undefined}
               onDragLeave={!parsed ? handleDragLeave : undefined}
               onClick={() => !parsed && fileInputRef.current?.click()}
+              onKeyDown={(e) => {
+                if (parsed) return;
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  fileInputRef.current?.click();
+                }
+              }}
+              role="button"
+              tabIndex={parsed ? -1 : 0}
+              aria-label="Upload your CV — PDF or DOCX, up to 5 MB"
+              aria-disabled={parsed}
             >
               <input
                 ref={fileInputRef}
                 type="file"
                 accept=".pdf,.docx"
                 className="hidden"
+                aria-label="Choose a CV file to upload"
                 onChange={(e) => { if (e.target.files[0]) handleFile(e.target.files[0]); }}
               />
               <div className="bg-surface-container rounded-full p-stack-sm mb-stack-md group-hover:bg-secondary-container transition-colors">
@@ -416,13 +445,14 @@ export default function JobSeekerCvUploadPage() {
 
                 {/* --- PERSONAL INFORMATION --- */}
                 <section className="border border-outline-variant rounded-lg p-5">
-                  <div className="flex justify-between items-center mb-4 border-b border-outline-variant pb-2">
-                    <h3 className="font-h3 text-h3 text-primary flex items-center gap-2">
-                      <span className="material-symbols-outlined text-secondary text-[20px]">person</span> Personal Information
-                      <span className="bg-surface-container-high text-on-surface-variant px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-wider ml-2">AI Extracted</span>
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 border-b border-outline-variant pb-2 gap-2">
+                    <h3 className="font-h3 text-h3 text-primary flex items-center gap-2 min-w-0">
+                      <span className="material-symbols-outlined text-secondary text-[20px] shrink-0">person</span> 
+                      <span className="truncate">Personal Information</span>
+                      <span className="bg-surface-container-high text-on-surface-variant px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-wider shrink-0 ml-2">AI Extracted</span>
                     </h3>
                     {!editModes.personal && (
-                      <button onClick={() => toggleEdit('personal')} className="text-on-surface-variant hover:text-secondary flex items-center gap-1 transition-colors font-label-sm">
+                      <button onClick={() => toggleEdit('personal')} className="text-on-surface-variant hover:text-secondary flex items-center gap-1 transition-colors font-label-sm shrink-0">
                         <span className="material-symbols-outlined text-[16px]">edit</span> Edit
                       </button>
                     )}
@@ -473,13 +503,14 @@ export default function JobSeekerCvUploadPage() {
 
                 {/* --- SUMMARY/ABOUT --- */}
                 <section className="border border-outline-variant rounded-lg p-5">
-                  <div className="flex justify-between items-center mb-4 border-b border-outline-variant pb-2">
-                    <h3 className="font-h3 text-h3 text-primary flex items-center gap-2">
-                      <span className="material-symbols-outlined text-secondary text-[20px]">notes</span> Summary
-                      <span className="bg-surface-container-high text-on-surface-variant px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-wider ml-2">AI Extracted</span>
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 border-b border-outline-variant pb-2 gap-2">
+                    <h3 className="font-h3 text-h3 text-primary flex items-center gap-2 min-w-0">
+                      <span className="material-symbols-outlined text-secondary text-[20px] shrink-0">notes</span> 
+                      <span className="truncate">Summary</span>
+                      <span className="bg-surface-container-high text-on-surface-variant px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-wider shrink-0 ml-2">AI Extracted</span>
                     </h3>
                     {!editModes.summary && (
-                      <button onClick={() => toggleEdit('summary')} className="text-on-surface-variant hover:text-secondary flex items-center gap-1 transition-colors font-label-sm">
+                      <button onClick={() => toggleEdit('summary')} className="text-on-surface-variant hover:text-secondary flex items-center gap-1 transition-colors font-label-sm shrink-0">
                         <span className="material-symbols-outlined text-[16px]">edit</span> Edit
                       </button>
                     )}
@@ -499,13 +530,14 @@ export default function JobSeekerCvUploadPage() {
 
                 {/* --- WORK EXPERIENCE --- */}
                 <section className="border border-outline-variant rounded-lg p-5">
-                  <div className="flex justify-between items-center mb-4 border-b border-outline-variant pb-2">
-                    <h3 className="font-h3 text-h3 text-primary flex items-center gap-2">
-                      <span className="material-symbols-outlined text-secondary text-[20px]">work_history</span> Experience History
-                      <span className="bg-surface-container-high text-on-surface-variant px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-wider ml-2">AI Extracted</span>
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 border-b border-outline-variant pb-2 gap-2">
+                    <h3 className="font-h3 text-h3 text-primary flex items-center gap-2 min-w-0">
+                      <span className="material-symbols-outlined text-secondary text-[20px] shrink-0">work_history</span> 
+                      <span className="truncate">Experience History</span>
+                      <span className="bg-surface-container-high text-on-surface-variant px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-wider shrink-0 ml-2">AI Extracted</span>
                     </h3>
                     {!editModes.experience && (
-                      <button onClick={() => toggleEdit('experience')} className="text-on-surface-variant hover:text-secondary flex items-center gap-1 transition-colors font-label-sm">
+                      <button onClick={() => toggleEdit('experience')} className="text-on-surface-variant hover:text-secondary flex items-center gap-1 transition-colors font-label-sm shrink-0">
                         <span className="material-symbols-outlined text-[16px]">edit</span> Edit
                       </button>
                     )}
@@ -549,13 +581,14 @@ export default function JobSeekerCvUploadPage() {
 
                 {/* --- EDUCATION --- */}
                 <section className="border border-outline-variant rounded-lg p-5">
-                  <div className="flex justify-between items-center mb-4 border-b border-outline-variant pb-2">
-                    <h3 className="font-h3 text-h3 text-primary flex items-center gap-2">
-                      <span className="material-symbols-outlined text-secondary text-[20px]">school</span> Education
-                      <span className="bg-surface-container-high text-on-surface-variant px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-wider ml-2">AI Extracted</span>
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 border-b border-outline-variant pb-2 gap-2">
+                    <h3 className="font-h3 text-h3 text-primary flex items-center gap-2 min-w-0">
+                      <span className="material-symbols-outlined text-secondary text-[20px] shrink-0">school</span> 
+                      <span className="truncate">Education</span>
+                      <span className="bg-surface-container-high text-on-surface-variant px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-wider shrink-0 ml-2">AI Extracted</span>
                     </h3>
                     {!editModes.education && (
-                      <button onClick={() => toggleEdit('education')} className="text-on-surface-variant hover:text-secondary flex items-center gap-1 transition-colors font-label-sm">
+                      <button onClick={() => toggleEdit('education')} className="text-on-surface-variant hover:text-secondary flex items-center gap-1 transition-colors font-label-sm shrink-0">
                         <span className="material-symbols-outlined text-[16px]">edit</span> Edit
                       </button>
                     )}
@@ -597,13 +630,14 @@ export default function JobSeekerCvUploadPage() {
 
                 {/* --- SKILLS --- */}
                 <section className="border border-outline-variant rounded-lg p-5">
-                  <div className="flex justify-between items-center mb-4 border-b border-outline-variant pb-2">
-                    <h3 className="font-h3 text-h3 text-primary flex items-center gap-2">
-                      <span className="material-symbols-outlined text-secondary text-[20px]">psychology</span> Skills
-                      <span className="bg-surface-container-high text-on-surface-variant px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-wider ml-2">AI Extracted</span>
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 border-b border-outline-variant pb-2 gap-2">
+                    <h3 className="font-h3 text-h3 text-primary flex items-center gap-2 min-w-0">
+                      <span className="material-symbols-outlined text-secondary text-[20px] shrink-0">psychology</span> 
+                      <span className="truncate">Skills</span>
+                      <span className="bg-surface-container-high text-on-surface-variant px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-wider shrink-0 ml-2">AI Extracted</span>
                     </h3>
                     {!editModes.skills && (
-                      <button onClick={() => toggleEdit('skills')} className="text-on-surface-variant hover:text-secondary flex items-center gap-1 transition-colors font-label-sm">
+                      <button onClick={() => toggleEdit('skills')} className="text-on-surface-variant hover:text-secondary flex items-center gap-1 transition-colors font-label-sm shrink-0">
                         <span className="material-symbols-outlined text-[16px]">edit</span> Edit
                       </button>
                     )}

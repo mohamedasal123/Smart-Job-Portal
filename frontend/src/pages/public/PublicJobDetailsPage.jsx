@@ -25,7 +25,7 @@ export default function PublicJobDetailsPage() {
 
   const handleApplyClick = () => {
     // Login-to-apply flow
-    navigate(ROUTES.LOGIN, { state: { returnUrl: `/jobs/${jobId}` } });
+    navigate(ROUTES.LOGIN, { state: { from: { pathname: `/seeker/jobs/${jobId}` } } });
   };
 
   if (loading) return (

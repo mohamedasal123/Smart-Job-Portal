@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { api } from '../../api/axios';
+import { api, getListItems } from '../../api/axios';
 import SeekerPageHeader from '../../components/jobSeeker/SeekerPageHeader';
 import SeekerJobCard from '../../components/jobSeeker/SeekerJobCard';
 import SeekerEmptyState from '../../components/jobSeeker/SeekerEmptyState';
@@ -17,7 +17,7 @@ export default function JobSeekerSavedJobsPage() {
     setLoading(true);
     try {
       const res = await api.get('/seeker/saved-jobs');
-      let result = res.data?.data?.data || res.data?.data || [];
+      let result = getListItems(res);
       
       // Filter by search
       if (activeFilters.search) {
@@ -73,7 +73,7 @@ export default function JobSeekerSavedJobsPage() {
   };
 
   return (
-    <div className="p-margin-desktop max-w-7xl mx-auto flex flex-col h-full">
+    <div className="px-4 sm:px-6 lg:px-margin-desktop py-6 lg:py-margin-desktop max-w-7xl mx-auto flex flex-col h-full">
       <SeekerPageHeader 
         title="Saved Jobs" 
         subtitle="Keep track of jobs you're interested in applying for later." 

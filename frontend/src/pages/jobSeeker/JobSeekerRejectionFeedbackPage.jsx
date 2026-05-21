@@ -23,11 +23,11 @@ export default function JobSeekerRejectionFeedbackPage() {
       .finally(() => setLoading(false));
   }, [applicationId]);
 
-  if (loading) return <div className="p-margin-desktop flex justify-center items-center h-full"><span className="material-symbols-outlined animate-spin text-[48px] text-secondary">progress_activity</span></div>;
-  if (error || !feedbackData) return <div className="p-margin-desktop text-center text-on-surface-variant"><p>No rejection feedback available.</p><Link to={ROUTES.SEEKER_APPLICATIONS} className="text-secondary hover:underline mt-4 inline-block">Back to Applications</Link></div>;
+  if (loading) return <div className="px-4 sm:px-6 lg:px-margin-desktop py-6 lg:py-margin-desktop flex justify-center items-center h-full"><span className="material-symbols-outlined animate-spin text-[48px] text-secondary">progress_activity</span></div>;
+  if (error || !feedbackData) return <div className="px-4 sm:px-6 lg:px-margin-desktop py-6 lg:py-margin-desktop text-center text-on-surface-variant"><p>No rejection feedback available.</p><Link to={ROUTES.SEEKER_APPLICATIONS} className="text-secondary hover:underline mt-4 inline-block">Back to Applications</Link></div>;
 
   return (
-    <div className="p-margin-desktop max-w-4xl mx-auto flex flex-col h-full space-y-gutter pb-12">
+    <div className="px-4 sm:px-6 lg:px-margin-desktop py-6 lg:py-margin-desktop max-w-4xl mx-auto flex flex-col h-full space-y-gutter pb-12">
       <div className="mb-4">
         <Link to={ROUTES.SEEKER_APPLICATIONS} className="text-secondary font-label-md hover:underline flex items-center gap-1">
           <span className="material-symbols-outlined text-[18px]">arrow_back</span>

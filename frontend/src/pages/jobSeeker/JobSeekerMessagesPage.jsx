@@ -2,7 +2,7 @@ import SeekerPageHeader from '../../components/jobSeeker/SeekerPageHeader';
 
 export default function JobSeekerMessagesPage() {
   return (
-    <div className="p-margin-desktop max-w-7xl mx-auto flex flex-col h-[calc(100vh-80px)] space-y-gutter">
+    <div className="px-4 sm:px-6 lg:px-margin-desktop py-6 lg:py-margin-desktop max-w-7xl mx-auto flex flex-col h-[calc(100vh-80px)] space-y-gutter">
       <SeekerPageHeader title="Messages" subtitle="Communicate directly with recruiters and hiring managers." icon="chat" />
 
       <div className="bg-surface-container-low p-stack-lg rounded-xl border border-secondary text-center mb-stack-lg">

@@ -15,7 +15,7 @@ import { useToast } from '../../components/useToast';
 import { useValidationErrors } from '../../hooks/useValidationErrors';
 import { companyDataService } from '../../services/companyDataService';
 import { companyApi } from '../../api/companyApi';
-import { api } from '../../api/axios';
+import { api, getListItems } from '../../api/axios';
 import { ROUTES } from '../../utils/constants';
 
 const salary = (job) => `$${Math.round(job.salaryMin / 1000)}k - $${Math.round(job.salaryMax / 1000)}k`;
@@ -1063,8 +1063,7 @@ export function CompanyNotifications() {
     setLoading(true);
     api.get('/notifications', { params: { type: nextFilter } })
       .then(res => {
-         const items = res.data?.data?.data || res.data?.data || res.data || [];
-         setNotifications(Array.isArray(items) ? items : []);
+         setNotifications(getListItems(res));
       })
       .catch(e => console.error(e))
       .finally(() => setLoading(false));

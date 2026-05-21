@@ -63,7 +63,7 @@ export default function JobSeekerSettingsPage() {
   ];
 
   return (
-    <div className="p-margin-desktop max-w-4xl mx-auto flex flex-col h-full space-y-gutter">
+    <div className="px-4 sm:px-6 lg:px-margin-desktop py-6 lg:py-margin-desktop max-w-4xl mx-auto flex flex-col h-full space-y-gutter">
       <SeekerPageHeader 
         title="Settings" 
         subtitle="Manage your account preferences, notifications, and privacy." 

@@ -24,9 +24,9 @@ export default function JobSeekerCvParsingPage() {
   }, [navigate]);
 
   return (
-    <div className="relative flex flex-col items-center justify-center bg-surface-bright h-[calc(100vh-80px)] overflow-y-auto p-margin-desktop">
+    <div className="relative flex flex-col items-center justify-center bg-surface-bright h-[calc(100vh-80px)] overflow-y-auto px-4 sm:px-6 lg:px-margin-desktop py-6 lg:py-margin-desktop">
       {/* Background Skeletons (Content Area) */}
-      <div className="absolute inset-0 p-margin-desktop grid grid-cols-1 md:grid-cols-3 gap-gutter opacity-30 pointer-events-none z-0">
+      <div className="absolute inset-0 px-4 sm:px-6 lg:px-margin-desktop py-6 lg:py-margin-desktop grid grid-cols-1 md:grid-cols-3 gap-gutter opacity-30 pointer-events-none z-0">
         {/* Left Column Skeletons */}
         <div className="col-span-1 space-y-gutter">
           <div className="bg-surface-container-lowest rounded-xl p-stack-lg shadow-sm border border-surface-container">
@@ -91,7 +91,7 @@ export default function JobSeekerCvParsingPage() {
       </div>
 
       {/* Foreground Loading Modal/Container */}
-      <div className="relative z-10 bg-surface-container-lowest rounded-[16px] shadow-lg border border-outline-variant w-full max-w-2xl p-margin-desktop flex flex-col items-center text-center">
+      <div className="relative z-10 bg-surface-container-lowest rounded-[16px] shadow-lg border border-outline-variant w-full max-w-2xl px-4 sm:px-6 lg:px-margin-desktop py-6 lg:py-margin-desktop flex flex-col items-center text-center">
         {/* AI Visual / Progress Indicator */}
         <div className="relative mb-stack-lg flex items-center justify-center">
           {/* Abstract AI Neural background SVG */}

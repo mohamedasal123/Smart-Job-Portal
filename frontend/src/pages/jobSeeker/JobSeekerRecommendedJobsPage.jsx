@@ -63,7 +63,7 @@ export default function JobSeekerRecommendedJobsPage() {
   };
 
   return (
-    <div className="p-margin-desktop max-w-7xl mx-auto flex flex-col h-full">
+    <div className="px-4 sm:px-6 lg:px-margin-desktop py-6 lg:py-margin-desktop max-w-7xl mx-auto flex flex-col h-full">
       <SeekerPageHeader 
         title="Recommended Jobs" 
         subtitle="Jobs matched specifically to your skills and preferences." 

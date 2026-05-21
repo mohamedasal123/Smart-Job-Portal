@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { addSkill, getSkills, getSuggestedSkills, removeSkill } from '../../services/jobSeekerDataService';
 import SeekerPageHeader from '../../components/jobSeeker/SeekerPageHeader';
 import { useToast } from '../../components/useToast';
@@ -7,11 +7,17 @@ const SkillChip = ({ skill, onRemove }) => (
   <div className="inline-flex items-center bg-surface-container-low border border-outline-variant rounded-full px-3 py-1.5 gap-2 group">
     <span className="font-body-md text-sm text-on-surface">{skill.name}</span>
     <span className={`material-symbols-outlined ${skill.source === 'cv_parsed' ? 'text-secondary' : 'text-on-surface-variant'} text-[14px]`}
-      title={skill.source === 'cv_parsed' ? 'Extracted from CV' : 'Added manually'}>
+      title={skill.source === 'cv_parsed' ? 'Extracted from CV' : 'Added manually'}
+      aria-hidden="true">
       {skill.source === 'cv_parsed' ? 'smart_toy' : 'person_add'}
     </span>
-    <button onClick={() => onRemove(skill)} className="text-outline-variant hover:text-error transition-colors rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 focus:opacity-100">
-      <span className="material-symbols-outlined text-[16px]">close</span>
+    <button
+      type="button"
+      onClick={() => onRemove(skill)}
+      aria-label={`Remove ${skill.name} from your skills`}
+      className="text-outline-variant hover:text-error transition-colors rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 focus:opacity-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-error"
+    >
+      <span className="material-symbols-outlined text-[16px]" aria-hidden="true">close</span>
     </button>
   </div>
 );
@@ -55,9 +61,13 @@ export default function JobSeekerSkillsPage() {
   }, []);
 
   const handleRemoveSkill = async (skill) => {
+    // Lightweight confirm — better than a silent delete, no extra dependency.
+    if (typeof window !== 'undefined' && !window.confirm(`Remove "${skill.name}" from your skills?`)) {
+      return;
+    }
     try {
       await removeSkill(skill.id);
-      setSkills(skills.filter(s => s.id !== skill.id));
+      setSkills((prev) => prev.filter(s => s.id !== skill.id));
       addToast({ title: 'Skill removed', message: `${skill.name} has been removed.`, type: 'info' });
     } catch {
       addToast({ title: 'Error', message: 'Could not remove this skill.', type: 'error' });
@@ -93,19 +103,36 @@ export default function JobSeekerSkillsPage() {
     }
   };
 
-  if (loading) {
-    return <div className="flex justify-center items-center h-full p-12"><span className="material-symbols-outlined animate-spin text-[48px] text-secondary">progress_activity</span></div>;
-  }
-
-  const technicalSkills = skills.filter(s => s.category === 'technical' || s.category === 'framework');
-  const softSkills = skills.filter(s => s.category === 'soft_skill');
-  const tools = skills.filter(s => s.category === 'tool');
+  const technicalSkills = useMemo(
+    () => skills.filter(s => s.category === 'technical' || s.category === 'framework'),
+    [skills],
+  );
+  const softSkills = useMemo(
+    () => skills.filter(s => s.category === 'soft_skill'),
+    [skills],
+  );
+  const tools = useMemo(
+    () => skills.filter(s => s.category === 'tool'),
+    [skills],
+  );
 
   // Filter out already-added skills from suggestions
-  const filteredSuggestions = suggested.filter(s => !skills.some(sk => sk.name.toLowerCase() === s.name.toLowerCase()));
+  const filteredSuggestions = useMemo(() => {
+    const taken = new Set(skills.map((sk) => sk.name.toLowerCase()));
+    return suggested.filter((s) => !taken.has(s.name.toLowerCase()));
+  }, [suggested, skills]);
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-full p-12" role="status" aria-live="polite">
+        <span className="material-symbols-outlined animate-spin text-[48px] text-secondary" aria-hidden="true">progress_activity</span>
+        <span className="sr-only">Loading your skills…</span>
+      </div>
+    );
+  }
 
   return (
-    <div className="p-margin-desktop max-w-7xl mx-auto flex flex-col h-full space-y-gutter">
+    <div className="px-4 sm:px-6 lg:px-margin-desktop py-6 lg:py-margin-desktop max-w-7xl mx-auto flex flex-col h-full space-y-gutter">
       <SeekerPageHeader title="My Skills" subtitle="Manage your skills to improve your AI job recommendations." icon="psychology" />
 
       <div className="flex flex-col lg:flex-row gap-gutter">

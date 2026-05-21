@@ -29,11 +29,16 @@ export const ROUTES = {
   SEEKER_CV_UPLOAD: '/seeker/cv-upload',
   SEEKER_CV_PARSING: '/seeker/cv-parsing',
   SEEKER_CV_REVIEW: '/seeker/cv-review',
-  SEEKER_REJECTION_FEEDBACK: '/seeker/rejection-feedback',
+  SEEKER_REJECTION_FEEDBACK: '/seeker/applications/:applicationId/rejection-feedback',
   COMPANY_DASHBOARD: '/company/dashboard',
   COMPANY_JOBS: '/company/jobs',
   COMPANY_CREATE_JOB: '/company/jobs/create',
-  COMPANY_APPLICANTS: '/company/jobs/1/applicants',
+  // There is no global "all applicants" page — applicants live per-job. Sidebar
+  // and dashboard CTAs that point at "applicants" route the user to the manage-
+  // jobs page so they can pick a job and drill in. Use buildCompanyApplicantsPath
+  // when you have a real jobId.
+  COMPANY_APPLICANTS: '/company/jobs',
+  COMPANY_APPLICANTS_TEMPLATE: '/company/jobs/:jobId/applicants',
   COMPANY_MESSAGES: '/company/messages',
   COMPANY_PROFILE: '/company/profile',
   COMPANY_NOTIFICATIONS: '/company/notifications',
@@ -81,6 +86,13 @@ export const normalizeRole = (role) => {
 };
 
 export const getRoleRedirect = (role) => ROLE_REDIRECTS[normalizeRole(role)] || ROUTES.HOME;
+
+/**
+ * Build the URL for a specific job's applicants list.
+ * Use this whenever you have a real jobId; do NOT concatenate ROUTES.COMPANY_APPLICANTS
+ * with the id, because COMPANY_APPLICANTS intentionally points at the manage-jobs page.
+ */
+export const buildCompanyApplicantsPath = (jobId) => `/company/jobs/${jobId}/applicants`;
 
 export const APPLICATION_STATUSES = {
   APPLIED: 'applied',

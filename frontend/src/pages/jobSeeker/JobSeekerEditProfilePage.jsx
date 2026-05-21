@@ -50,7 +50,7 @@ export default function JobSeekerEditProfilePage() {
     finally { setSaving(false); }
   };
 
-  if (loading) return <div className="p-margin-desktop flex justify-center items-center h-full"><span className="material-symbols-outlined animate-spin text-[48px] text-secondary">progress_activity</span></div>;
+  if (loading) return <div className="px-4 sm:px-6 lg:px-margin-desktop py-6 lg:py-margin-desktop flex justify-center items-center h-full"><span className="material-symbols-outlined animate-spin text-[48px] text-secondary">progress_activity</span></div>;
 
   const field = (label, name, type = 'text', extra = {}) => (
     <div className={extra.span2 ? 'md:col-span-2' : ''}>
@@ -68,7 +68,7 @@ export default function JobSeekerEditProfilePage() {
   );
 
   return (
-    <div className="p-margin-desktop max-w-4xl mx-auto flex flex-col h-full space-y-gutter pb-12">
+    <div className="px-4 sm:px-6 lg:px-margin-desktop py-6 lg:py-margin-desktop max-w-4xl mx-auto flex flex-col h-full space-y-gutter pb-12">
       <SeekerPageHeader title="Edit Profile" subtitle="Update your personal details and professional summary." icon="edit_document" />
       <div className="bg-surface-container-lowest rounded-xl border border-outline-variant shadow-sm overflow-hidden">
         <form onSubmit={handleSubmit} className="p-6 md:p-8 space-y-8">

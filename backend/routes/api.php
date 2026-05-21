@@ -80,7 +80,7 @@ Route::middleware(['auth:sanctum', 'verified', 'ban.check'])->group(function () 
             ->get('seeker/jobs/recommended', [JobRecommendationController::class, 'index']);
 
         Route::get('applications',               [ApplicationController::class, 'index']);
-        Route::post('applications',              [ApplicationController::class, 'store']);
+        Route::post('applications',              [ApplicationController::class, 'store'])->middleware('cv.uploaded');
         Route::get('applications/{application}', [ApplicationController::class, 'show']);
         Route::get('applications/{application}/feedback', [ApplicationController::class, 'feedback']);
     });

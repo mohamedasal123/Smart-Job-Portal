@@ -97,7 +97,7 @@ export const appRoutes = [
   { path: '/seeker/notifications', element: <JobSeekerNotificationsPage />, roles: ['job_seeker'] },
   { path: '/seeker/profile', element: <JobSeekerProfilePage />, roles: ['job_seeker'] },
   { path: '/seeker/recommended-jobs', element: <JobSeekerRecommendedJobsPage />, roles: ['job_seeker'] },
-  { path: '/seeker/rejection-feedback', element: <JobSeekerRejectionFeedbackPage />, roles: ['job_seeker'] },
+  { path: '/seeker/applications/:applicationId/rejection-feedback', element: <JobSeekerRejectionFeedbackPage />, roles: ['job_seeker'] },
   { path: '/seeker/cv-review', element: <JobSeekerCvReviewPage />, roles: ['job_seeker'] },
   { path: '/seeker/settings', element: <JobSeekerSettingsPage />, roles: ['job_seeker'] },
   {

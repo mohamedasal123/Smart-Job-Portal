@@ -18,14 +18,14 @@ export default function SeekerPageHeader({ title, subtitle, actionLabel, actionT
         actionTo ? (
           <Link
             to={actionTo}
-            className="inline-flex items-center justify-center px-6 py-2.5 rounded-lg font-label-lg bg-secondary text-on-secondary hover:bg-secondary-container transition-colors"
+            className="inline-flex items-center justify-center w-full sm:w-auto px-6 py-2.5 rounded-lg font-label-md bg-secondary text-on-secondary hover:bg-secondary-container transition-all hover:-translate-y-0.5 shadow-sm"
           >
             {actionLabel}
           </Link>
         ) : (
           <button
             onClick={actionOnClick}
-            className="inline-flex items-center justify-center px-6 py-2.5 rounded-lg font-label-lg bg-secondary text-on-secondary hover:bg-secondary-container transition-colors"
+            className="inline-flex items-center justify-center w-full sm:w-auto px-6 py-2.5 rounded-lg font-label-md bg-secondary text-on-secondary hover:bg-secondary-container transition-all hover:-translate-y-0.5 shadow-sm"
           >
             {actionLabel}
           </button>
