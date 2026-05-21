@@ -3,7 +3,14 @@ import { authApi } from '../api/authApi';
 import { getRoleRedirect, normalizeRole } from '../utils/constants';
 import { AuthContext } from './authContext';
 
-const USER_STORAGE_KEY = 'user';
+// SECURITY: We deliberately do NOT persist the user object (name, email, role, …)
+// to localStorage. localStorage is readable by any script that runs in this
+// origin, including any XSS payload. Authentication state lives entirely in the
+// Sanctum HTTP-only session cookie; we rehydrate the user on app boot by
+// calling /auth/me. While that request is in flight, ProtectedRoute shows a
+// brief spinner via isBootstrapping — that's the price of doing this safely.
+
+const LEGACY_USER_KEY = 'user';
 
 const normalizeUser = (user) => {
   if (!user) return null;
@@ -14,60 +21,43 @@ const normalizeUser = (user) => {
   };
 };
 
-const readStoredUser = () => {
-  const storedUser = localStorage.getItem(USER_STORAGE_KEY);
-  if (!storedUser) return null;
-
-  try {
-    return normalizeUser(JSON.parse(storedUser));
-  } catch {
-    localStorage.removeItem(USER_STORAGE_KEY);
-    return null;
-  }
-};
-
 export function AuthProvider({ children }) {
-  // Initialize from localStorage immediately so UI doesn't flash
-  const [user, setUser] = useState(() => readStoredUser());
-  // Start as true — we haven't verified the session with the server yet
+  const [user, setUser] = useState(null);
+  // Start true: we haven't verified the session with the server yet.
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
 
   const persistUser = useCallback((nextUser) => {
     const normalizedUser = normalizeUser(nextUser);
     setUser(normalizedUser);
-
-    if (normalizedUser) {
-      localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(normalizedUser));
-    } else {
-      localStorage.removeItem(USER_STORAGE_KEY);
-    }
-
     return normalizedUser;
   }, []);
 
   const refreshUser = useCallback(async () => {
     const response = await authApi.getCurrentUser();
-    // authApi.getCurrentUser() already calls .then(unwrap), so response = { success, data, message }
     return persistUser(response.data);
   }, [persistUser]);
 
   // On every mount, validate the session against the server.
-  // We ALWAYS call /auth/me, regardless of localStorage, to ensure the
-  // session cookie is still valid. localStorage is only used for the
-  // initial render so the UI doesn't flash to "logged out" before the
-  // request completes.
   useEffect(() => {
     let isMounted = true;
+
+    // Clear any user object left behind by older builds that wrote to localStorage.
+    try {
+      if (typeof window !== 'undefined') {
+        window.localStorage.removeItem(LEGACY_USER_KEY);
+      }
+    } catch {
+      // Ignore: localStorage may be unavailable (private mode, SSR, …).
+    }
 
     authApi
       .getCurrentUser()
       .then((response) => {
-        // authApi wraps with unwrap(), so response = { success, data, message }
         if (isMounted) persistUser(response.data);
       })
       .catch(() => {
-        // Session invalid/expired — clear local state
+        // Session invalid/expired — leave user as null.
         if (isMounted) persistUser(null);
       })
       .finally(() => {
@@ -82,9 +72,6 @@ export function AuthProvider({ children }) {
   const login = useCallback(
     async (payload) => {
       setError(null);
-      // Do NOT set isLoading(true) here — it would cause ProtectedRoute
-      // to briefly see isLoading=false + user=null and redirect to /login.
-      // The LoginPage manages its own local `loading` spinner instead.
 
       try {
         await authApi.login(payload);
@@ -109,7 +96,6 @@ export function AuthProvider({ children }) {
 
       try {
         const response = await authApi.register(payload);
-        // authApi.register() calls .then(unwrap), so response = { success, data, message }
         if (response.data) {
           persistUser(response.data);
         }

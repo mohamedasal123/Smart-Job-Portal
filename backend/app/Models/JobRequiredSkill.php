@@ -8,7 +8,11 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class JobRequiredSkill extends Model
 {
     public $timestamps = false; // No timestamps in this pivot table according to schema
-    protected $guarded = [];
+    protected $fillable = [
+        'job_id',
+        'skill_id',
+        'is_mandatory',
+    ];
 
     protected function casts(): array
     {

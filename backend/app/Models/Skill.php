@@ -7,7 +7,10 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Skill extends Model
 {
-    protected $guarded = [];
+    protected $fillable = [
+        'name',
+        'type',
+    ];
 
     public function jobSeekerSkills(): HasMany
     {

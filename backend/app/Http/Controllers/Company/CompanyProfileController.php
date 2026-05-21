@@ -20,7 +20,23 @@ class CompanyProfileController extends Controller
     public function update(Request $request)
     {
         $profile = $request->user()->companyProfile;
-        $profile->update($request->all());
+
+        if (!$profile) {
+            return $this->error('Company profile not found.', 404);
+        }
+
+        $validated = $request->validate([
+            'company_name'  => 'sometimes|required|string|max:255',
+            'description'   => 'sometimes|nullable|string|max:5000',
+            'website'       => 'sometimes|nullable|url|max:255',
+            'location'      => 'sometimes|nullable|string|max:255',
+            'phone'         => 'sometimes|nullable|string|max:30',
+            'founded_year'  => 'sometimes|nullable|string|max:10',
+            'company_size'  => 'sometimes|nullable|string|max:50',
+            'industry'      => 'sometimes|nullable|string|max:100',
+        ]);
+
+        $profile->update($validated);
         return $this->success($profile->fresh(), 'Profile updated.');
     }
 

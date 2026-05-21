@@ -10,7 +10,16 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class JobSeekerProfile extends Model
 {
-    protected $guarded = [];
+    protected $fillable = [
+        'user_id',
+        'resume_file_url',
+        'years_of_experience',
+        'education_level',
+        'contact_information',
+        'cv_parse_status',
+        'phone',
+        'address',
+    ];
 
     public function user(): BelongsTo
     {

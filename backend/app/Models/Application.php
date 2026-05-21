@@ -11,7 +11,13 @@ class Application extends Model
 {
     use SoftDeletes;
 
-    protected $guarded = [];
+    protected $fillable = [
+        'job_id',
+        'job_seeker_id',
+        'ai_score',
+        'missing_skills_json',
+        'status',
+    ];
 
     protected function casts(): array
     {

@@ -7,7 +7,11 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class JobSeekerSkill extends Model
 {
-    protected $guarded = [];
+    protected $fillable = [
+        'job_seeker_id',
+        'skill_id',
+        'source',
+    ];
 
     public function profile(): BelongsTo
     {

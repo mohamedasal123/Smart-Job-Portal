@@ -13,7 +13,16 @@ class JobPost extends Model
 {
     use SoftDeletes;
 
-    protected $guarded = [];
+    protected $fillable = [
+        'company_id',
+        'title',
+        'description',
+        'responsibilities',
+        'location',
+        'job_type',
+        'salary_range',
+        'is_active',
+    ];
 
     protected function casts(): array
     {

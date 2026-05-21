@@ -45,12 +45,33 @@ function Start-DevWindow {
     param(
         [string] $Title,
         [string] $WorkDir,
-        [string] $Command
+        [string] $Command,
+        [hashtable] $EnvVars = @{}
     )
 
     $shell = Get-ShellPath
-    $windowCommand = "`$Host.UI.RawUI.WindowTitle = $(Quote-PS $Title); Set-Location -LiteralPath $(Quote-PS $WorkDir); $Command"
+    $envSetup = ''
+    foreach ($key in $EnvVars.Keys) {
+        $envSetup += "`$env:$key = $(Quote-PS $EnvVars[$key]); "
+    }
+    $windowCommand = "`$Host.UI.RawUI.WindowTitle = $(Quote-PS $Title); Set-Location -LiteralPath $(Quote-PS $WorkDir); $envSetup$Command"
     Start-Process -FilePath $shell -ArgumentList @('-NoExit', '-ExecutionPolicy', 'Bypass', '-Command', $windowCommand)
+}
+
+function Read-DotEnvValue {
+    param([string] $Path, [string] $Key)
+    if (-not (Test-Path -LiteralPath $Path)) { return $null }
+    foreach ($line in Get-Content -LiteralPath $Path) {
+        if ($line -match "^\s*$([regex]::Escape($Key))\s*=\s*(.*)$") {
+            $val = $matches[1].Trim()
+            # Strip surrounding quotes if present
+            if ($val.Length -ge 2 -and (($val[0] -eq '"' -and $val[-1] -eq '"') -or ($val[0] -eq "'" -and $val[-1] -eq "'"))) {
+                $val = $val.Substring(1, $val.Length - 2)
+            }
+            return $val
+        }
+    }
+    return $null
 }
 
 foreach ($file in @((Join-Path $Backend '.env'), (Join-Path $Frontend '.env'))) {
@@ -61,9 +82,18 @@ foreach ($file in @((Join-Path $Backend '.env'), (Join-Path $Frontend '.env'))) 
 
 $aiPython = Get-VenvPython
 
+# Share the AI engine key from backend/.env so backend and AI service authenticate against the same secret.
+$aiEnv = @{}
+$aiKey = Read-DotEnvValue -Path (Join-Path $Backend '.env') -Key 'AI_ENGINE_KEY'
+if ([string]::IsNullOrWhiteSpace($aiKey)) {
+    Write-Warning 'AI_ENGINE_KEY not set in backend/.env. The AI service will refuse to start. Generate a random value, e.g. "php -r `"echo bin2hex(random_bytes(32));`"" and set it in backend/.env.'
+} else {
+    $aiEnv['AI_ENGINE_KEY'] = $aiKey
+}
+
 Start-DevWindow 'SmartJob Backend' $Backend 'php artisan serve --host=127.0.0.1 --port=8000'
 Start-DevWindow 'SmartJob Queue' $Backend 'php artisan queue:listen --queue=cv-parsing,default --tries=1'
-Start-DevWindow 'SmartJob AI' $Ai "& $(Quote-PS $aiPython) -m uvicorn main:app --host 127.0.0.1 --port 8001"
+Start-DevWindow 'SmartJob AI' $Ai "& $(Quote-PS $aiPython) -m uvicorn main:app --host 127.0.0.1 --port 8001" $aiEnv
 Start-DevWindow 'SmartJob Frontend' $Frontend 'npm run dev'
 
 Write-Host 'Started project windows.' -ForegroundColor Green

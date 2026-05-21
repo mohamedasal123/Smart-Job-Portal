@@ -8,7 +8,18 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class CompanyProfile extends Model
 {
-    protected $guarded = [];
+    protected $fillable = [
+        'user_id',
+        'company_name',
+        'description',
+        'logo_url',
+        'website',
+        'location',
+        'phone',
+        'founded_year',
+        'company_size',
+        'industry',
+    ];
 
     public function user(): BelongsTo
     {

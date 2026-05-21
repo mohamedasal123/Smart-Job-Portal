@@ -31,6 +31,26 @@ class ProfileController extends Controller
         $user = $request->user();
         $profile = $user->jobSeekerProfile;
 
+        if (!$profile) {
+            return $this->errorResponse('Job seeker profile not found.', 404);
+        }
+
+        $request->validate([
+            'firstName'           => 'sometimes|nullable|string|max:100',
+            'lastName'            => 'sometimes|nullable|string|max:100',
+            'title'               => 'sometimes|nullable|string|max:150',
+            'bio'                 => 'sometimes|nullable|string|max:5000',
+            'expectedSalary'      => 'sometimes|nullable|string|max:50',
+            'portfolio'           => 'sometimes|nullable|url|max:255',
+            'linkedin'            => 'sometimes|nullable|url|max:255',
+            'email'               => 'sometimes|nullable|email|max:255',
+            'phone'               => 'sometimes|nullable|string|max:30',
+            'location'            => 'sometimes|nullable|string|max:255',
+            'address'             => 'sometimes|nullable|string|max:500',
+            'years_of_experience' => 'sometimes|nullable|integer|min:0|max:60',
+            'education_level'     => 'sometimes|nullable|string|max:100',
+        ]);
+
         if ($request->filled('firstName') || $request->filled('lastName')) {
             $user->name = trim($request->input('firstName', '') . ' ' . $request->input('lastName', '')) ?: $user->name;
             $user->save();

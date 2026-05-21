@@ -7,7 +7,11 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class CvParsedData extends Model
 {
-    protected $guarded = [];
+    protected $fillable = [
+        'job_seeker_id',
+        'parsed_json',
+        'parsed_at',
+    ];
 
     protected function casts(): array
     {

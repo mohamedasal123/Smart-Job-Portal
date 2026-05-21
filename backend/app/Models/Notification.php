@@ -8,7 +8,13 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class Notification extends Model
 {
     public $timestamps = false;
-    protected $guarded = [];
+    protected $fillable = [
+        'user_id',
+        'type',
+        'data',
+        'read_at',
+        'created_at',
+    ];
 
     protected function casts(): array
     {

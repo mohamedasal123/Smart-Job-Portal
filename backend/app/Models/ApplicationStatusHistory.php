@@ -9,7 +9,13 @@ class ApplicationStatusHistory extends Model
 {
     protected $table = 'application_status_history';
     public $timestamps = false;
-    protected $guarded = [];
+    protected $fillable = [
+        'application_id',
+        'status',
+        'changed_by',
+        'notes',
+        'created_at',
+    ];
 
     // The user schema says 'created_at (timestamp only — no updated_at)',
     // we can manage it manually or map constants but keeping it simple:
