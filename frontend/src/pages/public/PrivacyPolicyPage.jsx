@@ -18,7 +18,7 @@ export default function PrivacyPolicyPage() {
             </div>
             <div className="flex items-center gap-stack-md">
               <Link className="hidden md:flex items-center justify-center px-4 py-2 border border-outline text-on-surface font-body-md font-semibold rounded-lg hover:bg-surface-container-low transition-colors" to={ROUTES.LOGIN}>Sign In</Link>
-              <Link className="flex items-center justify-center px-4 py-2 bg-[#2563EB] text-on-primary font-body-md font-bold rounded-lg hover:bg-secondary-container transition-colors shadow-sm" to={ROUTES.LOGIN}>Post a Job</Link>
+              <Link className="flex items-center justify-center px-4 py-2 bg-secondary text-on-secondary font-body-md font-bold rounded-lg hover:bg-secondary-container transition-colors shadow-sm" to={ROUTES.LOGIN}>Post a Job</Link>
             </div>
           </div>
         </header>

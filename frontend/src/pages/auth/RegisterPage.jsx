@@ -201,7 +201,7 @@ export default function RegisterPage() {
             {/* Submit */}
             <div className="pt-stack-md">
               <button
-                className={`w-full bg-[#2563EB] text-on-primary font-h3 text-h3 py-stack-sm rounded-lg hover:bg-secondary-container transition-colors shadow-sm flex items-center justify-center gap-2 ${loading ? 'opacity-60 cursor-not-allowed' : ''}`}
+                className={`w-full bg-secondary text-on-secondary font-h3 text-h3 py-stack-sm rounded-lg hover:bg-secondary-container transition-colors shadow-sm flex items-center justify-center gap-2 ${loading ? 'opacity-60 cursor-not-allowed' : ''}`}
                 type="submit" disabled={loading}
               >
                 {loading && <span className="material-symbols-outlined animate-spin text-[18px]">progress_activity</span>}

@@ -55,7 +55,7 @@ export default function ConfirmModal({
   const confirmBtnClass =
     variant === 'danger'
       ? 'bg-error text-on-error hover:opacity-90'
-      : 'bg-[#2563EB] text-on-primary hover:opacity-90';
+      : 'bg-secondary text-on-secondary hover:opacity-90';
 
   return (
     <div

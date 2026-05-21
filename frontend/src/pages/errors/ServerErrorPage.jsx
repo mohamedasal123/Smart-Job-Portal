@@ -20,16 +20,16 @@ export default function ServerErrorPage() {
             try again in a few minutes.
           </p>
           <div className="flex flex-col sm:flex-row items-center gap-stack-md w-full justify-center mb-stack-md">
-            <button className="w-full sm:w-auto bg-[#2563EB] hover:bg-[#1D4ED8] text-[#FFFFFF] font-h3 text-h3 px-6 py-3 rounded-lg transition-colors flex items-center justify-center gap-2">
+            <button className="w-full sm:w-auto bg-secondary hover:bg-secondary-container text-on-secondary font-h3 text-h3 px-6 py-3 rounded-lg transition-colors flex items-center justify-center gap-2">
               <span className="material-symbols-outlined" data-icon="refresh">refresh</span>
               Try Again
             </button>
-            <Link className="w-full sm:w-auto bg-transparent border border-[#E2E8F0] text-[#0F172A] hover:bg-surface-container-low font-h3 text-h3 px-6 py-3 rounded-lg transition-colors flex items-center justify-center" to={ROUTES.HOME}>
+            <Link className="w-full sm:w-auto bg-transparent border border-outline-variant text-on-surface hover:bg-surface-container-low font-h3 text-h3 px-6 py-3 rounded-lg transition-colors flex items-center justify-center" to={ROUTES.HOME}>
               Go to Home
             </Link>
           </div>
           <p className="font-body-md text-body-md text-on-surface-variant mt-stack-md">
-            If the issue persists, please <Link className="text-[#2563EB] hover:underline font-semibold" to={ROUTES.CONTACT}>Contact
+            If the issue persists, please <Link className="text-secondary hover:underline font-semibold" to={ROUTES.CONTACT}>Contact
               Support</Link>.
           </p>
         </div>

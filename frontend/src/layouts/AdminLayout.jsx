@@ -1,5 +1,6 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import PageTransition from '../motion/PageTransition';
+import ThemeToggle from '../components/ThemeToggle';
 import { useAuth } from '../context/useAuth';
 import { ROUTES } from '../utils/constants';
 
@@ -77,6 +78,7 @@ export default function AdminLayout() {
           </div>
 
           <div className="flex items-center gap-stack-md">
+            <ThemeToggle compact />
             <NavLink className="w-10 h-10 rounded-full bg-surface-container-low flex items-center justify-center text-on-surface-variant hover:bg-surface-container-high transition-colors relative" to={ROUTES.ADMIN_ACTIVITY_LOG}>
               <span className="material-symbols-outlined">notifications</span>
               {metrics.pendingReports > 0 && <span className="absolute top-2 right-2 w-2 h-2 bg-error rounded-full border border-surface-container-lowest" />}

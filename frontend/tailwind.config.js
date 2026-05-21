@@ -4,66 +4,34 @@ export default {
   darkMode: 'class',
   theme: {
     extend: {
-      colors: {
-        background: '#fcf8fa',
-        surface: '#fcf8fa',
-        'surface-dim': '#dcd9db',
-        'surface-bright': '#fcf8fa',
-        'surface-container-lowest': '#ffffff',
-        'surface-container-low': '#f6f3f5',
-        'surface-container': '#f0edef',
-        'surface-container-high': '#eae7e9',
-        'surface-container-highest': '#e4e2e4',
-        'surface-variant': '#e4e2e4',
-        'surface-tint': '#565e74',
-        'on-surface': '#1b1b1d',
-        'on-surface-variant': '#45464d',
-        'on-background': '#1b1b1d',
-        'inverse-surface': '#303032',
-        'inverse-on-surface': '#f3f0f2',
-        // primary was '#000000' (pure black) — too flat against the off-white
-        // surfaces. Aligned with the existing primary-container deep navy so
-        // primary text gets brand identity instead of generic body color.
-        primary: '#1b2240',
-        'on-primary': '#ffffff',
-        'primary-container': '#131b2e',
-        'on-primary-container': '#7c839b',
-        'primary-fixed': '#dae2fd',
-        'primary-fixed-dim': '#bec6e0',
-        'on-primary-fixed': '#131b2e',
-        'on-primary-fixed-variant': '#3f465c',
-        'inverse-primary': '#bec6e0',
-        secondary: '#0051d5',
-        'on-secondary': '#ffffff',
-        'secondary-container': '#316bf3',
-        'on-secondary-container': '#fefcff',
-        'secondary-fixed': '#dbe1ff',
-        'secondary-fixed-dim': '#b4c5ff',
-        'on-secondary-fixed': '#00174b',
-        'on-secondary-fixed-variant': '#003ea8',
-        // tertiary was also '#000000'. Mapped to the deep amber that
-        // tertiary-container/tertiary-fixed-dim already imply so accents
-        // (badges, highlights) actually look tertiary instead of black.
-        tertiary: '#574425',
-        'on-tertiary': '#ffffff',
-        'tertiary-container': '#271901',
-        'on-tertiary-container': '#98805d',
-        'tertiary-fixed': '#fcdeb5',
-        'tertiary-fixed-dim': '#dec29a',
-        'on-tertiary-fixed': '#271901',
-        'on-tertiary-fixed-variant': '#574425',
-        error: '#ba1a1a',
-        'on-error': '#ffffff',
-        'error-container': '#ffdad6',
-        'on-error-container': '#93000a',
-        outline: '#76777d',
-        'outline-variant': '#c6c6cd',
-        'professional-blue': '#2563eb',
-        'match-green': '#22c55e',
-        'info-blue': '#3b82f6',
-        success: '#22c55e',
-        'success-container': '#bbf7d0',
-      },
+      colors: (() => {
+        // Bind every brand/surface token to a CSS variable defined in index.css.
+        // Wrapping in rgb(var(--x) / <alpha-value>) lets Tailwind alpha modifiers
+        // (bg-secondary/20, ring-secondary/30, etc.) keep working, and means
+        // toggling the `dark` class on <html> recolors the entire UI in one shot.
+        const v = (name) => `rgb(var(--${name}) / <alpha-value>)`;
+        const tokens = [
+          'background', 'surface', 'surface-dim', 'surface-bright',
+          'surface-container-lowest', 'surface-container-low', 'surface-container',
+          'surface-container-high', 'surface-container-highest', 'surface-variant',
+          'surface-tint', 'on-surface', 'on-surface-variant', 'on-background',
+          'inverse-surface', 'inverse-on-surface',
+          'primary', 'on-primary', 'primary-container', 'on-primary-container',
+          'primary-fixed', 'primary-fixed-dim', 'on-primary-fixed',
+          'on-primary-fixed-variant', 'inverse-primary',
+          'secondary', 'on-secondary', 'secondary-container', 'on-secondary-container',
+          'secondary-fixed', 'secondary-fixed-dim', 'on-secondary-fixed',
+          'on-secondary-fixed-variant',
+          'tertiary', 'on-tertiary', 'tertiary-container', 'on-tertiary-container',
+          'tertiary-fixed', 'tertiary-fixed-dim', 'on-tertiary-fixed',
+          'on-tertiary-fixed-variant',
+          'error', 'on-error', 'error-container', 'on-error-container',
+          'outline', 'outline-variant',
+          'professional-blue', 'match-green', 'info-blue',
+          'success', 'success-container',
+        ];
+        return Object.fromEntries(tokens.map((name) => [name, v(name)]));
+      })(),
       keyframes: {
         shimmer: {
           '0%':   { backgroundPosition: '-200% 0' },

@@ -5,59 +5,168 @@
 @tailwind components;
 @tailwind utilities;
 
+/*
+ * Theme tokens
+ * -------------------------------------------------------------------
+ * Color variables are stored as space-separated RGB triples (no commas)
+ * so Tailwind utilities can compose alpha through
+ * `rgb(var(--secondary) / <alpha-value>)`, which is how
+ * `bg-secondary/20`, `ring-secondary/30`, etc. resolve.
+ *
+ * Light values live on :root, dark overrides on .dark. The ThemeProvider
+ * toggles the `dark` class on documentElement; the rest is automatic.
+ */
+
 :root {
   color-scheme: light;
 
   --font-sans: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --font-display: var(--font-sans);
 
-  --background: #fcf8fa;
-  --surface: #fcf8fa;
-  --surface-dim: #dcd9db;
-  --surface-bright: #fcf8fa;
-  --surface-container-lowest: #ffffff;
-  --surface-container-low: #f6f3f5;
-  --surface-container: #f0edef;
-  --surface-container-high: #eae7e9;
-  --surface-container-highest: #e4e2e4;
-  --surface-variant: #e4e2e4;
-  --on-surface: #1b1b1d;
-  --on-surface-variant: #45464d;
-  --on-background: #1b1b1d;
-  --primary: #000000;
-  --on-primary: #ffffff;
-  --primary-container: #131b2e;
-  --on-primary-container: #7c839b;
-  --secondary: #0051d5;
-  --on-secondary: #ffffff;
-  --secondary-container: #316bf3;
-  --error: #ba1a1a;
-  --error-container: #ffdad6;
-  --outline: #76777d;
-  --outline-variant: #c6c6cd;
-  --professional-blue: #2563eb;
-  --match-green: #22c55e;
+  /* Surfaces */
+  --background:                  252 248 250;
+  --surface:                     252 248 250;
+  --surface-dim:                 220 217 219;
+  --surface-bright:              252 248 250;
+  --surface-container-lowest:    255 255 255;
+  --surface-container-low:       246 243 245;
+  --surface-container:           240 237 239;
+  --surface-container-high:      234 231 233;
+  --surface-container-highest:   228 226 228;
+  --surface-variant:             228 226 228;
+  --surface-tint:                 86  94 116;
+  --inverse-surface:              48  48  50;
+  --inverse-on-surface:          243 240 242;
 
-  --surface-page: var(--background);
-  --surface-raised: var(--surface-container-lowest);
-  --surface-muted: var(--surface-container-low);
-  --border-subtle: var(--outline-variant);
-  --text-strong: var(--primary);
-  --text-muted: var(--on-surface-variant);
-  --brand-primary: var(--secondary);
-  --brand-primary-hover: var(--secondary-container);
-  --brand-soft: #dbe1ff;
-  --success: var(--match-green);
-  --success-soft: rgba(34, 197, 94, 0.1);
-  --danger: var(--error);
-  --danger-soft: var(--error-container);
+  /* Foreground */
+  --on-surface:                   27  27  29;
+  --on-surface-variant:           69  70  77;
+  --on-background:                27  27  29;
 
+  /* Primary (navy) */
+  --primary:                      27  34  64;
+  --on-primary:                  255 255 255;
+  --primary-container:            19  27  46;
+  --on-primary-container:        124 131 155;
+  --primary-fixed:               218 226 253;
+  --primary-fixed-dim:           190 198 224;
+  --on-primary-fixed:             19  27  46;
+  --on-primary-fixed-variant:     63  70  92;
+  --inverse-primary:             190 198 224;
+
+  /* Secondary (blue) */
+  --secondary:                     0  81 213;
+  --on-secondary:                255 255 255;
+  --secondary-container:          49 107 243;
+  --on-secondary-container:      254 252 255;
+  --secondary-fixed:             219 225 255;
+  --secondary-fixed-dim:         180 197 255;
+  --on-secondary-fixed:            0  23  75;
+  --on-secondary-fixed-variant:    0  62 168;
+
+  /* Tertiary (amber) */
+  --tertiary:                     87  68  37;
+  --on-tertiary:                 255 255 255;
+  --tertiary-container:           39  25   1;
+  --on-tertiary-container:       152 128  93;
+  --tertiary-fixed:              252 222 181;
+  --tertiary-fixed-dim:          222 194 154;
+  --on-tertiary-fixed:            39  25   1;
+  --on-tertiary-fixed-variant:    87  68  37;
+
+  /* Error */
+  --error:                       186  26  26;
+  --on-error:                    255 255 255;
+  --error-container:             255 218 214;
+  --on-error-container:          147   0  10;
+
+  /* Outlines */
+  --outline:                     118 119 125;
+  --outline-variant:             198 198 205;
+
+  /* Accents */
+  --professional-blue:            37  99 235;
+  --match-green:                  34 197  94;
+  --info-blue:                    59 130 246;
+  --success:                      34 197  94;
+  --success-container:           187 247 208;
+
+  /* Shadows / radii — not color, no dark override needed */
   --shadow-sm: 0px 4px 20px rgba(15, 23, 42, 0.05);
-  --shadow-md: 0px 10px 30px rgba(15, 23, 42, 0.1);
+  --shadow-md: 0px 10px 30px rgba(15, 23, 42, 0.10);
   --shadow-overlay: 0px 24px 80px rgba(15, 23, 42, 0.28);
   --radius-sm: 0.25rem;
   --radius-md: 0.75rem;
   --radius-full: 9999px;
+}
+
+.dark {
+  color-scheme: dark;
+
+  --background:                   17  18  22;
+  --surface:                      17  18  22;
+  --surface-dim:                   17  18  22;
+  --surface-bright:                40  41  47;
+  --surface-container-lowest:     12  13  16;
+  --surface-container-low:         24  25  29;
+  --surface-container:             29  30  34;
+  --surface-container-high:        37  38  43;
+  --surface-container-highest:     47  48  53;
+  --surface-variant:               73  69  78;
+  --surface-tint:                 190 198 224;
+  --inverse-surface:              230 225 229;
+  --inverse-on-surface:            48  48  50;
+
+  --on-surface:                   230 225 229;
+  --on-surface-variant:           200 195 199;
+  --on-background:                230 225 229;
+
+  /* Primary swaps so light brand stays readable on dark surfaces. */
+  --primary:                      190 198 224;
+  --on-primary:                    39  47  73;
+  --primary-container:             63  70  92;
+  --on-primary-container:         218 226 253;
+  --primary-fixed:                218 226 253;
+  --primary-fixed-dim:            190 198 224;
+  --on-primary-fixed:              19  27  46;
+  --on-primary-fixed-variant:      63  70  92;
+  --inverse-primary:               27  34  64;
+
+  --secondary:                    180 197 255;
+  --on-secondary:                   0  35 102;
+  --secondary-container:            0  62 168;
+  --on-secondary-container:       219 225 255;
+  --secondary-fixed:              219 225 255;
+  --secondary-fixed-dim:          180 197 255;
+  --on-secondary-fixed:             0  23  75;
+  --on-secondary-fixed-variant:     0  62 168;
+
+  --tertiary:                     222 194 154;
+  --on-tertiary:                   39  25   1;
+  --tertiary-container:            87  68  37;
+  --on-tertiary-container:        252 222 181;
+  --tertiary-fixed:               252 222 181;
+  --tertiary-fixed-dim:           222 194 154;
+  --on-tertiary-fixed:             39  25   1;
+  --on-tertiary-fixed-variant:     87  68  37;
+
+  --error:                        255 180 171;
+  --on-error:                     105   0   5;
+  --error-container:              147   0  10;
+  --on-error-container:           255 218 214;
+
+  --outline:                      144 144 150;
+  --outline-variant:               71  71  76;
+
+  --professional-blue:             96 165 250;
+  --match-green:                   74 222 128;
+  --info-blue:                     96 165 250;
+  --success:                       74 222 128;
+  --success-container:             20  83  45;
+
+  --shadow-sm: 0px 4px 20px rgba(0, 0, 0, 0.30);
+  --shadow-md: 0px 10px 30px rgba(0, 0, 0, 0.45);
+  --shadow-overlay: 0px 24px 80px rgba(0, 0, 0, 0.55);
 }
 
 * {
@@ -72,10 +181,11 @@ html {
 body {
   margin: 0;
   min-height: 100vh;
-  background: var(--background);
-  color: var(--on-background);
+  background: rgb(var(--background));
+  color: rgb(var(--on-background));
   font-family: var(--font-sans);
   overflow-x: hidden;
+  transition: background-color 200ms ease, color 200ms ease;
 }
 
 button,
@@ -116,8 +226,8 @@ h6 {
 }
 
 .glass-card {
-  background: rgba(255, 255, 255, 0.82);
-  border: 1px solid rgba(198, 198, 205, 0.72);
+  background: rgb(var(--surface-container-lowest) / 0.82);
+  border: 1px solid rgb(var(--outline-variant) / 0.72);
   box-shadow: var(--shadow-sm);
   backdrop-filter: blur(16px);
 }
@@ -151,10 +261,10 @@ h6 {
 }
 
 .match-ring {
-  border: 3px solid rgba(34, 197, 94, 0.22);
+  border: 3px solid rgb(var(--match-green) / 0.22);
   box-shadow:
-    inset 0 0 0 4px #ffffff,
-    0 0 0 1px rgba(34, 197, 94, 0.35);
+    inset 0 0 0 4px rgb(var(--surface-container-lowest)),
+    0 0 0 1px rgb(var(--match-green) / 0.35);
 }
 
 .sr-only {
@@ -169,32 +279,20 @@ h6 {
   border: 0;
 }
 
-/* Toast & Modal Animations */
+/* Legacy CSS animations used by ConfirmModal — keep matching the Tailwind keyframe names. */
 @keyframes slideInRight {
-  from {
-    transform: translateX(100%);
-    opacity: 0;
-  }
-  to {
-    transform: translateX(0);
-    opacity: 1;
-  }
+  from { transform: translateX(100%); opacity: 0; }
+  to   { transform: translateX(0);    opacity: 1; }
 }
 
 @keyframes fadeIn {
   from { opacity: 0; }
-  to { opacity: 1; }
+  to   { opacity: 1; }
 }
 
 @keyframes scaleIn {
-  from {
-    transform: scale(0.95);
-    opacity: 0;
-  }
-  to {
-    transform: scale(1);
-    opacity: 1;
-  }
+  from { transform: scale(0.95); opacity: 0; }
+  to   { transform: scale(1);    opacity: 1; }
 }
 
 .animate-slide-in-right {
@@ -207,4 +305,12 @@ h6 {
 
 .animate-scale-in {
   animation: scaleIn 0.2s ease-out forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-slide-in-right,
+  .animate-fade-in,
+  .animate-scale-in {
+    animation-duration: 1ms;
+  }
 }

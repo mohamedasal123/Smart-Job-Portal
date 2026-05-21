@@ -10,6 +10,18 @@
       href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
       rel="stylesheet"
     />
+    <script>
+      // Apply the stored theme BEFORE React boots so the page doesn't flash
+      // light-then-dark. The ThemeProvider takes over once mounted.
+      (function () {
+        try {
+          var stored = localStorage.getItem('theme');
+          var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+          var isDark = stored === 'dark' || ((stored === 'system' || !stored) && prefersDark);
+          if (isDark) document.documentElement.classList.add('dark');
+        } catch (e) { /* localStorage unavailable — fall through */ }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

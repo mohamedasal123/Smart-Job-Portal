@@ -5,6 +5,7 @@ import { ROUTES } from '../../utils/constants';
 import Reveal from '../../motion/Reveal';
 import Stagger from '../../motion/Stagger';
 import AnimatedCounter from '../../motion/AnimatedCounter';
+import ThemeToggle from '../../components/ThemeToggle';
 import { EASE, SPRING_PRESS } from '../../motion/variants';
 
 // Stat numbers as paired (value, suffix) so AnimatedCounter only animates the
@@ -57,9 +58,10 @@ export default function HomePage() {
               </nav>
             </div>
             <div className="flex items-center gap-stack-md">
+              <ThemeToggle compact />
               <Link className="hidden md:flex items-center justify-center px-4 py-2 border border-outline text-on-surface font-body-md font-semibold rounded-lg hover:bg-surface-container-low transition-colors" to={ROUTES.LOGIN}>Sign In</Link>
               <motion.div whileTap={reduce ? undefined : { scale: 0.96, transition: SPRING_PRESS }}>
-                <Link className="flex items-center justify-center px-4 py-2 bg-[#2563EB] text-on-primary font-body-md font-bold rounded-lg hover:bg-secondary-container transition-colors shadow-sm" to={ROUTES.POST_JOB}>Post a Job</Link>
+                <Link className="flex items-center justify-center px-4 py-2 bg-secondary text-on-secondary font-body-md font-bold rounded-lg hover:bg-secondary-container transition-colors shadow-sm" to={ROUTES.POST_JOB}>Post a Job</Link>
               </motion.div>
             </div>
           </div>
@@ -87,7 +89,7 @@ export default function HomePage() {
 
             <Stagger className="max-w-[860px] w-full text-center relative z-10" delayChildren={0.05} staggerChildren={0.08}>
               <Stagger.Item>
-                <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-[#dbe1ff] text-secondary rounded-full font-label-sm text-label-sm uppercase tracking-wider mb-6 border border-secondary/10">
+                <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-secondary-fixed text-secondary rounded-full font-label-sm text-label-sm uppercase tracking-wider mb-6 border border-secondary/10">
                   <span className="material-symbols-outlined text-[16px]" data-weight="fill" aria-hidden="true">auto_awesome</span>
                   AI-Powered Job Matching
                 </div>
@@ -131,7 +133,7 @@ export default function HomePage() {
                   <motion.button
                     type="submit"
                     whileTap={reduce ? undefined : { scale: 0.96, transition: SPRING_PRESS }}
-                    className="px-8 py-3 bg-[#2563EB] text-on-primary font-body-md font-bold rounded-full hover:bg-secondary-container transition-colors whitespace-nowrap"
+                    className="px-8 py-3 bg-secondary text-on-secondary font-body-md font-bold rounded-full hover:bg-secondary-container transition-colors whitespace-nowrap"
                   >
                     Search Jobs
                   </motion.button>
@@ -189,7 +191,7 @@ export default function HomePage() {
                     <div className="absolute -top-4 left-8 px-3 py-1 bg-secondary text-on-secondary font-label-sm text-label-sm rounded-full">
                       Step {item.step}
                     </div>
-                    <div className="w-14 h-14 rounded-xl bg-[#dbe1ff] flex items-center justify-center mb-5 mt-2 group-hover:bg-secondary transition-colors">
+                    <div className="w-14 h-14 rounded-xl bg-secondary-fixed flex items-center justify-center mb-5 mt-2 group-hover:bg-secondary transition-colors">
                       <span className="material-symbols-outlined text-secondary text-[28px] group-hover:text-on-secondary transition-colors" aria-hidden="true">{item.icon}</span>
                     </div>
                     <h3 className="font-h3 text-h3 text-primary mb-2">{item.title}</h3>
@@ -213,7 +215,7 @@ export default function HomePage() {
                   <Stagger.Item key={cat.label}>
                     <motion.div whileHover={reduce ? undefined : { y: -4, transition: { duration: 0.2, ease: EASE } }}>
                       <Link to={ROUTES.JOBS} className="flex flex-col items-center justify-center p-6 bg-surface-container-lowest rounded-xl border border-surface-container-high hover:border-secondary hover:shadow-hover transition-all group cursor-pointer">
-                        <div className="w-12 h-12 rounded-full bg-[#dbe1ff] flex items-center justify-center mb-3 group-hover:bg-secondary transition-colors">
+                        <div className="w-12 h-12 rounded-full bg-secondary-fixed flex items-center justify-center mb-3 group-hover:bg-secondary transition-colors">
                           <span className="material-symbols-outlined text-secondary text-[24px] group-hover:text-on-secondary transition-colors" aria-hidden="true">{cat.icon}</span>
                         </div>
                         <h3 className="font-h3 text-h3 text-primary mb-1 text-center">{cat.label}</h3>
@@ -241,7 +243,7 @@ export default function HomePage() {
               </p>
               <div className="flex items-center justify-center gap-4 flex-wrap">
                 <motion.div whileTap={reduce ? undefined : { scale: 0.96, transition: SPRING_PRESS }}>
-                  <Link to={ROUTES.REGISTER} className="inline-block px-8 py-3.5 bg-[#2563EB] text-on-primary font-h3 text-h3 rounded-lg hover:bg-secondary-container transition-colors shadow-sm">
+                  <Link to={ROUTES.REGISTER} className="inline-block px-8 py-3.5 bg-secondary text-on-secondary font-h3 text-h3 rounded-lg hover:bg-secondary-container transition-colors shadow-sm">
                     Create Free Account
                   </Link>
                 </motion.div>

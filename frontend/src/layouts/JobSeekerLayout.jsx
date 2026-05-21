@@ -3,6 +3,7 @@ import { NavLink, Outlet, Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/useAuth';
 import { ROUTES } from '../utils/constants';
 import PageTransition from '../motion/PageTransition';
+import ThemeToggle from '../components/ThemeToggle';
 
 export default function JobSeekerLayout({ children }) {
   const { user, logout } = useAuth();
@@ -99,6 +100,7 @@ export default function JobSeekerLayout({ children }) {
             </div>
           </div>
           <div className="flex items-center gap-4 ml-4">
+            <ThemeToggle compact />
             <Link
               to="/seeker/notifications"
               className="relative p-2 text-on-surface-variant hover:bg-surface-variant rounded-full transition-colors"

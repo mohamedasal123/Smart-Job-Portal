@@ -21,11 +21,11 @@ export default function NotFoundPage() {
               next career opportunity.
             </p>
             <div className="flex flex-col sm:flex-row gap-stack-md justify-center w-full max-w-md">
-              <Link className="inline-flex items-center justify-center px-gutter py-stack-sm rounded-lg bg-[#2563EB] text-on-primary font-body-lg text-body-lg font-bold hover:opacity-90 transition-opacity w-full sm:w-auto shadow-[0px_4px_20px_rgba(15,23,42,0.05)]" to={ROUTES.JOBS}>
+              <Link className="inline-flex items-center justify-center px-gutter py-stack-sm rounded-lg bg-secondary text-on-secondary font-body-lg text-body-lg font-bold hover:opacity-90 transition-opacity w-full sm:w-auto shadow-[0px_4px_20px_rgba(15,23,42,0.05)]" to={ROUTES.JOBS}>
                 <span className="material-symbols-outlined mr-unit text-[20px]">search</span>
                 Search Jobs
               </Link>
-              <Link className="inline-flex items-center justify-center px-gutter py-stack-sm rounded-lg border border-[#E2E8F0] text-[#0F172A] font-body-lg text-body-lg font-bold hover:bg-surface-container-low transition-colors w-full sm:w-auto bg-transparent" to={ROUTES.HOME}>
+              <Link className="inline-flex items-center justify-center px-gutter py-stack-sm rounded-lg border border-outline-variant text-on-surface font-body-lg text-body-lg font-bold hover:bg-surface-container-low transition-colors w-full sm:w-auto bg-transparent" to={ROUTES.HOME}>
                 <span className="material-symbols-outlined mr-unit text-[20px]">home</span>
                 Go to Home
               </Link>

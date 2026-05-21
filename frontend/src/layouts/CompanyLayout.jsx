@@ -4,6 +4,7 @@ import { companyDataService } from '../services/companyDataService';
 import { ROUTES } from '../utils/constants';
 import { useState, useEffect } from 'react';
 import PageTransition from '../motion/PageTransition';
+import ThemeToggle from '../components/ThemeToggle';
 
 const navItems = [
   { label: 'Dashboard', icon: 'dashboard', to: ROUTES.COMPANY_DASHBOARD },
@@ -125,6 +126,7 @@ export default function CompanyLayout() {
           </div>
 
           <div className="flex items-center gap-stack-md">
+            <ThemeToggle compact />
             <NavLink className="w-10 h-10 rounded-full bg-surface-container-low flex items-center justify-center text-on-surface-variant hover:bg-surface-container-high transition-colors relative" to={ROUTES.COMPANY_NOTIFICATIONS}>
               <span className="material-symbols-outlined">notifications</span>
               {unreadCount > 0 && <span className="absolute top-2 right-2 w-2 h-2 bg-error rounded-full border border-surface-container-lowest" />}

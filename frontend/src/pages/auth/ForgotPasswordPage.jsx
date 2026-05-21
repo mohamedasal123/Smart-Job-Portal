@@ -76,7 +76,7 @@ export default function ForgotPasswordPage() {
             )}
             {/* Primary Action */}
             <button
-              className={`w-full py-3 bg-[#2563EB] text-[#FFFFFF] rounded-lg font-label-sm text-label-sm flex justify-center items-center gap-stack-sm hover:opacity-90 transition-opacity ${loading ? 'opacity-60 cursor-not-allowed' : ''}`}
+              className={`w-full py-3 bg-secondary text-on-secondary rounded-lg font-label-sm text-label-sm flex justify-center items-center gap-stack-sm hover:opacity-90 transition-opacity ${loading ? 'opacity-60 cursor-not-allowed' : ''}`}
               type="button"
               disabled={loading}
               onClick={handleSubmit}

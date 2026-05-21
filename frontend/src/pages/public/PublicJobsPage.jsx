@@ -134,7 +134,7 @@ export default function PublicJobsPage() {
             </div>
             <div className="flex items-center gap-stack-md">
               <Link className="hidden md:flex items-center justify-center px-4 py-2 border border-outline text-on-surface font-body-md font-semibold rounded-lg hover:bg-surface-container-low transition-colors" to={ROUTES.LOGIN}>Sign In</Link>
-              <Link className="flex items-center justify-center px-4 py-2 bg-[#2563EB] text-on-primary font-body-md font-bold rounded-lg hover:bg-secondary-container transition-colors shadow-sm" to={ROUTES.POST_JOB}>Post a Job</Link>
+              <Link className="flex items-center justify-center px-4 py-2 bg-secondary text-on-secondary font-body-md font-bold rounded-lg hover:bg-secondary-container transition-colors shadow-sm" to={ROUTES.POST_JOB}>Post a Job</Link>
             </div>
           </div>
         </header>
@@ -169,7 +169,7 @@ export default function PublicJobsPage() {
                     onChange={(e) => setLocationQuery(e.target.value)}
                   />
                 </div>
-                <button type="submit" disabled={loading} className="px-8 py-3 bg-[#2563EB] text-on-primary font-body-md font-bold rounded-lg hover:bg-secondary-container transition-colors whitespace-nowrap disabled:opacity-70 flex items-center justify-center gap-2">
+                <button type="submit" disabled={loading} className="px-8 py-3 bg-secondary text-on-secondary font-body-md font-bold rounded-lg hover:bg-secondary-container transition-colors whitespace-nowrap disabled:opacity-70 flex items-center justify-center gap-2">
                   {loading ? <span className="material-symbols-outlined animate-spin text-[20px]">progress_activity</span> : 'Search'}
                 </button>
               </form>
@@ -285,7 +285,7 @@ export default function PublicJobsPage() {
                               {getCompanyLogo(job) ? (
                                 <img src={getCompanyLogo(job) || undefined} alt={getCompanyName(job)} className="w-10 h-10 rounded-lg object-cover border border-outline-variant" />
                               ) : (
-                                <div className="w-10 h-10 rounded-lg bg-[#dbe1ff] flex items-center justify-center font-h3 text-secondary font-bold">
+                                <div className="w-10 h-10 rounded-lg bg-secondary-fixed flex items-center justify-center font-h3 text-secondary font-bold">
                                   {getCompanyName(job).charAt(0) ?? '?'}
                                 </div>
                               )}
