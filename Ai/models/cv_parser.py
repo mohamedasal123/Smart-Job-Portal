@@ -2,8 +2,31 @@
 CV Parser — Extracts text and structured info from PDF, DOCX, TXT resumes.
 """
 
+import logging
 import re
 import os
+
+_logger = logging.getLogger("smart_job.ai.cv_parser")
+
+# Module-level spaCy singleton. Loading the model takes ~1.5–2 s on cold start;
+# previously we called spacy.load() inside extract_name_spacy and
+# extract_location_spacy, paying that cost twice per CV. We lazy-load once on
+# first use, then reuse — None means "tried and failed, don't retry."
+_NLP_SENTINEL = object()
+_nlp_singleton = _NLP_SENTINEL
+
+
+def _get_nlp():
+    """Return the cached spaCy English model, or None if loading failed."""
+    global _nlp_singleton
+    if _nlp_singleton is _NLP_SENTINEL:
+        try:
+            import spacy
+            _nlp_singleton = spacy.load("en_core_web_sm")
+        except Exception:
+            _logger.exception("Failed to load spaCy 'en_core_web_sm' model; NER features disabled.")
+            _nlp_singleton = None
+    return _nlp_singleton
 
 
 def extract_text_from_pdf(filepath):
@@ -134,9 +157,10 @@ def extract_name_regex(text):
 
 def extract_name_spacy(text):
     """Extract person name using spaCy NER."""
+    nlp = _get_nlp()
+    if nlp is None:
+        return None
     try:
-        import spacy
-        nlp = spacy.load("en_core_web_sm")
         # Only process the first few lines (name is usually at the top)
         first_lines = "\n".join(text.split("\n")[:10])
         doc = nlp(first_lines)
@@ -144,7 +168,7 @@ def extract_name_spacy(text):
             if ent.label_ == "PERSON":
                 return ent.text
     except Exception:
-        pass
+        _logger.exception("spaCy name extraction failed")
     return None
 
 
@@ -175,9 +199,10 @@ def extract_name(text):
 
 def extract_location_spacy(text):
     """Extract location using spaCy NER."""
+    nlp = _get_nlp()
+    if nlp is None:
+        return None
     try:
-        import spacy
-        nlp = spacy.load("en_core_web_sm")
         doc = nlp(text[:2000])  # Process first 2000 chars for efficiency
         locations = []
         for ent in doc.ents:
@@ -185,7 +210,7 @@ def extract_location_spacy(text):
                 locations.append(ent.text)
         return locations[0] if locations else None
     except Exception:
-        pass
+        _logger.exception("spaCy location extraction failed")
     return None
 
 

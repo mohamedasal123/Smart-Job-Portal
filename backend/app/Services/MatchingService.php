@@ -76,4 +76,40 @@ class MatchingService
     public function rankApplications(Collection $applications): Collection {
         return $applications->sortByDesc('ai_score')->values();
     }
+
+    /**
+     * Fast, in-process score for browsing/ranking use cases.
+     *
+     * Computes the same weighted mandatory/optional overlap that the AI
+     * service falls back to, but without a per-call HTTP request or a per-call
+     * skill-name lookup. Use this for recommendation listings where we score
+     * dozens of jobs and AI-level precision isn't worth the latency. Use
+     * {@see calculateScore()} when a single application needs the full AI run.
+     *
+     * @param  Collection<int>             $seekerSkillIds
+     * @param  Collection<JobRequiredSkill> $requiredSkills
+     */
+    public function calculateLocalScore(
+        Collection $seekerSkillIds,
+        Collection $requiredSkills
+    ): float {
+        $mandatory = $requiredSkills->where('is_mandatory', true);
+        $optional  = $requiredSkills->where('is_mandatory', false);
+
+        $matchedMandatory = $mandatory->whereIn('skill_id', $seekerSkillIds)->count();
+        $matchedOptional  = $optional->whereIn('skill_id', $seekerSkillIds)->count();
+
+        $mandatoryWeight = (float) config('matching.mandatory_weight', 70);
+        $optionalWeight  = (float) config('matching.optional_weight', 30);
+
+        $mandatoryScore = $mandatory->count() > 0
+            ? ($matchedMandatory / $mandatory->count()) * $mandatoryWeight
+            : $mandatoryWeight;
+
+        $optionalScore = $optional->count() > 0
+            ? ($matchedOptional / $optional->count()) * $optionalWeight
+            : $optionalWeight;
+
+        return round($mandatoryScore + $optionalScore, 2);
+    }
 }

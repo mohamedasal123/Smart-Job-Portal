@@ -20,10 +20,14 @@ class JobRecommendationController extends Controller
         $profile        = $request->user()->jobSeekerProfile;
         $seekerSkillIds = $profile->jobSeekerSkills()->pluck('skill_id');
 
+        // We deliberately use the fast local scorer here. Calling the AI
+        // service per-job would issue N HTTP requests with a 30s timeout
+        // each — unusable for a list endpoint. The full AI score is computed
+        // when the user actually applies (ApplicationController::store).
         $jobs = JobPost::active()->with(['jobRequiredSkills.skill', 'companyProfile'])->get();
 
         $recommended = $jobs->map(function ($job) use ($seekerSkillIds) {
-            $score = $this->matchingService->calculateScore($seekerSkillIds, $job->jobRequiredSkills);
+            $score = $this->matchingService->calculateLocalScore($seekerSkillIds, $job->jobRequiredSkills);
             $job->setAttribute('ai_score', $score);
             return $job;
         })
