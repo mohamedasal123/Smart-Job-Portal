@@ -1,8 +1,11 @@
-import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { useState, useEffect, useRef } from 'react';
+import { NavLink, Outlet, useNavigate, Link } from 'react-router-dom';
 import PageTransition from '../motion/PageTransition';
 import ThemeToggle from '../components/ThemeToggle';
 import { useAuth } from '../context/useAuth';
 import { ROUTES } from '../utils/constants';
+import { adminDataService } from '../services/adminDataService';
+import icon from '../assets/icon.png';
 
 const navItems = [
   { label: 'Dashboard', icon: 'dashboard', to: ROUTES.ADMIN_DASHBOARD },
@@ -10,6 +13,7 @@ const navItems = [
   { label: 'Jobs Management', icon: 'work', to: ROUTES.ADMIN_JOBS },
   { label: 'Activity Log', icon: 'history', to: ROUTES.ADMIN_ACTIVITY_LOG },
   { label: 'Settings', icon: 'settings', to: ROUTES.ADMIN_SETTINGS },
+  { label: 'View Public Site', icon: 'public', to: ROUTES.HOME },
 ];
 
 const navClass = ({ isActive }) =>
@@ -21,30 +25,72 @@ const navClass = ({ isActive }) =>
   ].join(' ');
 
 export default function AdminLayout() {
-  const { logout } = useAuth();
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
-  const settings = { name: 'Admin' };
-  const metrics = { pendingReports: 0 };
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [isNotifOpen, setIsNotifOpen] = useState(false);
+  const [recentActivities, setRecentActivities] = useState([]);
+  const profileRef = useRef(null);
+  const notifRef = useRef(null);
+
+  useEffect(() => {
+    // Fetch some data for the notification bell
+    let isMounted = true;
+    adminDataService.getActivityLog().then(res => {
+      if (isMounted) {
+        const dismissed = JSON.parse(localStorage.getItem('dismissed_notifications') || '[]');
+        setRecentActivities(res.filter(act => !dismissed.includes(act.id)).slice(0, 5));
+      }
+    }).catch(() => {});
+    return () => { isMounted = false; };
+  }, []);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (profileRef.current && !profileRef.current.contains(event.target)) setIsProfileOpen(false);
+      if (notifRef.current && !notifRef.current.contains(event.target)) setIsNotifOpen(false);
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const handleLogout = async () => {
     await logout?.();
     navigate(ROUTES.LOGIN);
   };
 
+  const dismissNotification = (index, e) => {
+    e.stopPropagation();
+    e.preventDefault();
+    setRecentActivities(prev => {
+      const act = prev[index];
+      if (act) {
+        const dismissed = JSON.parse(localStorage.getItem('dismissed_notifications') || '[]');
+        localStorage.setItem('dismissed_notifications', JSON.stringify([...dismissed, act.id]));
+      }
+      return prev.filter((_, i) => i !== index);
+    });
+  };
+
+  const displayName = user?.name || 'Admin';
+  const displayEmail = user?.email || 'admin@smartjobportal.local';
+  const initials = displayName.split(' ').map((part) => part[0]).join('').slice(0, 2).toUpperCase();
+  const unreadCount = recentActivities.length; // Just using recent length as a mock dynamic number
+
   return (
     <div className="stitch-page bg-background text-on-background font-body-md text-body-md flex h-screen overflow-hidden">
-      <aside className="hidden md:flex flex-col h-screen p-stack-md border-r border-outline-variant bg-surface-container-low w-sidebar-width shrink-0 overflow-y-auto">
-        <div className="mb-stack-lg flex items-center gap-stack-sm px-stack-sm">
-          <div className="w-9 h-9 rounded-lg bg-secondary flex items-center justify-center text-on-secondary">
-            <span className="material-symbols-outlined text-[20px]" style={{ fontVariationSettings: '"FILL" 1' }}>admin_panel_settings</span>
+      <aside className="hidden md:flex flex-col h-screen p-stack-md border-r border-outline-variant bg-surface-container-low w-sidebar-width shrink-0 overflow-hidden">
+        <Link to={ROUTES.ADMIN_DASHBOARD} className="mb-stack-lg flex items-center gap-stack-sm px-stack-sm shrink-0 hover:opacity-80 transition-opacity">
+          <div className="w-10 h-10 flex items-center justify-center shrink-0">
+            <img src={icon} alt="Smart Job Portal" className="w-full h-full object-contain" />
           </div>
           <div>
             <h1 className="font-h3 text-h3 font-bold text-primary">Smart Job Portal</h1>
             <p className="font-label-sm text-label-sm text-on-surface-variant">Admin Console</p>
           </div>
-        </div>
+        </Link>
 
-        <nav className="flex-1 flex flex-col gap-unit">
+        <nav className="flex-1 min-h-0 flex flex-col gap-unit overflow-y-auto pr-unit">
           {navItems.map((item) => (
             <NavLink className={navClass} end={item.to === ROUTES.ADMIN_DASHBOARD} key={item.to} to={item.to}>
               <span className="material-symbols-outlined">{item.icon}</span>
@@ -53,7 +99,7 @@ export default function AdminLayout() {
           ))}
         </nav>
 
-        <div className="mt-auto pt-stack-md border-t border-outline-variant flex flex-col gap-unit">
+        <div className="mt-auto pt-stack-md border-t border-outline-variant flex flex-col gap-unit shrink-0 bg-surface-container-low">
           <NavLink className="flex items-center gap-stack-md text-on-surface-variant hover:bg-surface-container-highest rounded-lg px-stack-md py-stack-sm transition-colors" to={ROUTES.CONTACT}>
             <span className="material-symbols-outlined">help</span>
             <span>Help</span>
@@ -66,38 +112,107 @@ export default function AdminLayout() {
       </aside>
 
       <main className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden bg-background">
-        <header className="h-20 bg-surface-container-lowest border-b border-outline-variant flex items-center justify-between px-gutter lg:px-margin-desktop shrink-0 z-10 shadow-ambient">
-          <div className="w-full max-w-md relative group">
-            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant z-10">search</span>
-            <input
-              className="w-full pl-10 pr-10 py-2.5 bg-surface-container-low border border-outline-variant rounded-lg font-body-md text-body-md focus:outline-none focus:border-secondary focus:ring-1 focus:ring-secondary/30 transition-all"
-              placeholder="Search users, jobs, or activity..."
-              type="search"
-            />
-            <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant">tune</span>
-          </div>
+        <header className="min-h-16 h-16 bg-surface-container-lowest border-b border-outline-variant flex items-center justify-between px-gutter lg:px-margin-desktop shrink-0 z-50 shadow-ambient">
+          {/* We removed the useless search bar */}
+          <div className="flex-1"></div>
 
           <div className="flex items-center gap-stack-md">
             <ThemeToggle compact />
-            <NavLink className="w-10 h-10 rounded-full bg-surface-container-low flex items-center justify-center text-on-surface-variant hover:bg-surface-container-high transition-colors relative" to={ROUTES.ADMIN_ACTIVITY_LOG}>
-              <span className="material-symbols-outlined">notifications</span>
-              {metrics.pendingReports > 0 && <span className="absolute top-2 right-2 w-2 h-2 bg-error rounded-full border border-surface-container-lowest" />}
-            </NavLink>
+            
+            {/* Notifications Dropdown */}
+            <div className="relative" ref={notifRef}>
+              <button 
+                onClick={() => setIsNotifOpen(!isNotifOpen)}
+                className="w-10 h-10 rounded-full bg-surface-container-low flex items-center justify-center text-on-surface-variant hover:bg-surface-container-high transition-colors relative"
+              >
+                <span className="material-symbols-outlined">notifications</span>
+                {unreadCount > 0 && (
+                  <span className="absolute top-0 right-0 w-4 h-4 bg-error text-on-error rounded-full border-2 border-surface-container-lowest text-[9px] flex items-center justify-center font-bold">
+                    {unreadCount}
+                  </span>
+                )}
+              </button>
+              
+              {isNotifOpen && (
+                <div className="absolute right-0 mt-2 w-80 bg-surface-container-lowest border border-outline-variant rounded-xl shadow-md overflow-hidden z-50">
+                  <div className="px-4 py-3 border-b border-outline-variant bg-surface-container-low flex justify-between items-center">
+                    <h3 className="font-h3 text-primary">Notifications</h3>
+                    <Link to={ROUTES.ADMIN_ACTIVITY_LOG} className="text-xs text-secondary hover:underline" onClick={() => setIsNotifOpen(false)}>View all</Link>
+                  </div>
+                  <div className="max-h-[300px] overflow-y-auto">
+                    {recentActivities.length > 0 ? recentActivities.map((act, i) => (
+                      <div key={i} className="px-4 py-3 border-b border-outline-variant last:border-0 hover:bg-surface-container-low transition-colors text-left text-sm relative group">
+                        <button onClick={(e) => dismissNotification(i, e)} className="absolute right-2 top-2 w-6 h-6 rounded-full bg-surface-container flex items-center justify-center text-on-surface-variant hover:text-error hover:bg-error-container opacity-0 group-hover:opacity-100 transition-all shadow-sm">
+                          <span className="material-symbols-outlined text-[14px]">close</span>
+                        </button>
+                        <p className="font-semibold text-primary pr-6">{act.action}</p>
+                        <p className="text-on-surface-variant text-xs mt-1 truncate pr-6">{act.targetType} - {act.targetName}</p>
+                        <p className="text-outline text-xs mt-1">{new Date(act.createdAt).toLocaleString()}</p>
+                      </div>
+                    )) : (
+                      <p className="p-4 text-center text-on-surface-variant text-sm">No new notifications.</p>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
             <div className="h-8 w-px bg-outline-variant" />
-            <NavLink className="flex items-center gap-stack-sm hover:opacity-80 transition-opacity" to={ROUTES.ADMIN_SETTINGS}>
-              <div className="w-10 h-10 rounded-full bg-secondary text-on-secondary flex items-center justify-center font-h3 text-h3">
-                {settings.name.split(' ').map((part) => part[0]).join('').slice(0, 2)}
-              </div>
-              <div className="text-left hidden lg:block">
-                <p className="font-body-md text-body-md font-semibold text-primary leading-tight">{settings.name}</p>
-                <p className="font-label-sm text-label-sm text-on-surface-variant leading-tight">Platform Admin</p>
-              </div>
-              <span className="material-symbols-outlined text-on-surface-variant">expand_more</span>
-            </NavLink>
+            
+            {/* User Profile Dropdown */}
+            <div className="relative" ref={profileRef}>
+              <button 
+                onClick={() => setIsProfileOpen(!isProfileOpen)}
+                className="flex items-center gap-stack-sm hover:opacity-80 transition-opacity"
+              >
+                <div className="w-10 h-10 rounded-full bg-secondary text-on-secondary flex items-center justify-center font-h3 text-h3">
+                  {initials}
+                </div>
+                <div className="text-left hidden lg:block">
+                  <p className="font-body-md text-body-md font-semibold text-primary leading-tight">{displayName}</p>
+                  <p className="font-label-sm text-label-sm text-on-surface-variant leading-tight max-w-[150px] truncate" title={displayEmail}>{displayEmail}</p>
+                </div>
+                <span className="material-symbols-outlined text-on-surface-variant">expand_more</span>
+              </button>
+
+              {isProfileOpen && (
+                <div className="absolute right-0 mt-2 w-56 bg-surface-container-lowest border border-outline-variant rounded-xl shadow-md overflow-hidden z-50 flex flex-col">
+                  <div className="px-4 py-3 border-b border-outline-variant bg-surface-container-low">
+                    <p className="font-semibold text-primary">{displayName}</p>
+                    <p className="text-xs text-on-surface-variant truncate" title={displayEmail}>{displayEmail}</p>
+                  </div>
+                  <Link 
+                    to={ROUTES.ADMIN_SETTINGS} 
+                    className="flex items-center gap-2 px-4 py-3 hover:bg-surface-container-low transition-colors text-on-surface font-body-md"
+                    onClick={() => setIsProfileOpen(false)}
+                  >
+                    <span className="material-symbols-outlined text-[20px]">manage_accounts</span>
+                    Account Settings
+                  </Link>
+                  <Link 
+                    to={ROUTES.HOME} 
+                    className="flex items-center gap-2 px-4 py-3 hover:bg-surface-container-low transition-colors text-on-surface font-body-md"
+                    onClick={() => setIsProfileOpen(false)}
+                  >
+                    <span className="material-symbols-outlined text-[20px]">public</span>
+                    View Public Site
+                  </Link>
+                  <div className="border-t border-outline-variant">
+                    <button 
+                      onClick={() => { setIsProfileOpen(false); handleLogout(); }}
+                      className="w-full flex items-center gap-2 px-4 py-3 hover:bg-error-container hover:text-error transition-colors text-error font-body-md"
+                    >
+                      <span className="material-symbols-outlined text-[20px]">logout</span>
+                      Logout
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </header>
 
-        <div className="flex-1 overflow-y-auto p-gutter lg:p-margin-desktop space-y-gutter pb-stack-lg">
+        <div className="flex-1 overflow-y-auto p-8 lg:p-12 space-y-8 pb-12">
           <PageTransition>
             <Outlet />
           </PageTransition>

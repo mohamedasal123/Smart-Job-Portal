@@ -5,24 +5,22 @@ import { SPRING_PRESS } from '../motion/variants';
 const ICONS = {
   light:  { icon: 'light_mode',         label: 'Light mode' },
   dark:   { icon: 'dark_mode',          label: 'Dark mode' },
-  system: { icon: 'desktop_windows',    label: 'System theme' },
 };
 
 const NEXT_LABEL = {
   light:  'Switch to dark mode',
-  dark:   'Switch to system theme',
-  system: 'Switch to light mode',
+  dark:   'Switch to light mode',
 };
 
 /**
- * Icon button that cycles light → dark → system. The icon crossfades on
+ * Icon button that toggles light ↔ dark. The icon crossfades on
  * change so the user gets a visual confirmation of what they switched to.
  * Pass `compact` for the smaller header variant.
  */
 export default function ThemeToggle({ compact = false, className = '' }) {
   const { theme, toggleTheme } = useTheme();
   const reduce = useReducedMotion();
-  const { icon, label } = ICONS[theme] || ICONS.system;
+  const { icon, label } = ICONS[theme] || ICONS.light;
 
   return (
     <motion.button

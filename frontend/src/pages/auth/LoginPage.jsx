@@ -1,13 +1,30 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { motion, useReducedMotion } from 'framer-motion';
-import { ROUTES, getRoleRedirect } from '../../utils/constants';
+import { ROUTES, getRoleRedirect, normalizeRole } from '../../utils/constants';
+import PublicNavBar from '../../components/PublicNavBar';
 import { useToast } from '../../components/useToast';
 import { useAuth } from '../../context/useAuth';
 import { normalizeApiError } from '../../utils/apiError';
 import Stagger from '../../motion/Stagger';
 import Reveal from '../../motion/Reveal';
 import { SPRING_PRESS, EASE } from '../../motion/variants';
+import icon from '../../assets/icon.png';
+
+const isRedirectAllowedForRole = (target, role) => {
+  if (!target || target === ROUTES.UNAUTHORIZED || target === '/403') return false;
+
+  const normalizedRole = normalizeRole(role);
+  if (target.startsWith('/admin')) return normalizedRole === 'admin';
+  if (target.startsWith('/company')) return normalizedRole === 'company';
+  if (target.startsWith('/seeker')) return normalizedRole === 'job_seeker';
+  return true;
+};
+
+const safePostLoginRedirect = (role, candidates) => {
+  const target = candidates.find((candidate) => isRedirectAllowedForRole(candidate, role));
+  return target || getRoleRedirect(role) || ROUTES.HOME;
+};
 
 export default function LoginPage() {
   const { login, user } = useAuth();
@@ -27,7 +44,10 @@ export default function LoginPage() {
       // Priority: explicit router state (ProtectedRoute) > sessionStorage
       // (axios 401 interceptor stash) > role default. The sessionStorage
       // entry is consumed once and then cleared.
-      const fromState = location.state?.from?.pathname;
+      const fromLocation = location.state?.from;
+      const fromState = fromLocation?.pathname
+        ? `${fromLocation.pathname}${fromLocation.search || ''}`
+        : null;
       let stashed = null;
       try {
         stashed = sessionStorage.getItem('postLoginRedirect');
@@ -35,7 +55,7 @@ export default function LoginPage() {
       } catch {
         // sessionStorage unavailable — fall through to defaults.
       }
-      const target = fromState || stashed || getRoleRedirect(user.role) || ROUTES.HOME;
+      const target = safePostLoginRedirect(user.role, [fromState, stashed]);
       navigate(target, { replace: true });
     }
   }, [user, navigate, location]);
@@ -83,120 +103,128 @@ export default function LoginPage() {
 
   return (
     <div className="stitch-page bg-background text-on-background font-body-md text-body-md antialiased min-h-screen flex flex-col">
-      <header className="w-full px-gutter md:px-margin-desktop py-stack-md flex items-center justify-between border-b border-outline-variant bg-surface-container-lowest">
-        <Link className="font-h2 text-h2 font-bold text-primary" to={ROUTES.HOME}>
-          Smart Job Portal
-        </Link>
-        <nav className="hidden md:flex items-center gap-stack-lg">
-          <Link className="text-on-surface-variant hover:text-secondary transition-colors" to={ROUTES.JOBS}>Browse Jobs</Link>
-          <Link className="text-on-surface-variant hover:text-secondary transition-colors" to={ROUTES.COMPANIES}>Companies</Link>
-          <Link className="text-on-surface-variant hover:text-secondary transition-colors" to={ROUTES.SALARY_GUIDE}>Salaries</Link>
-        </nav>
-      </header>
+      <PublicNavBar showAuthActions={false} />
 
       <main className="flex-1 grid lg:grid-cols-2 bg-background">
-        <Reveal as="section" className="hidden lg:flex flex-col justify-between p-margin-desktop bg-primary-container text-on-secondary-container relative overflow-hidden">
+        <Reveal as="section" className="hidden lg:flex flex-col justify-center items-center p-margin-desktop bg-surface-container-low relative overflow-hidden">
           <motion.div
             aria-hidden="true"
-            className="absolute -top-32 -right-32 w-[480px] h-[480px] rounded-full opacity-20 pointer-events-none"
-            style={{ background: 'radial-gradient(circle, #316bf3 0%, transparent 65%)' }}
+            className="absolute -top-32 -left-32 w-[480px] h-[480px] rounded-full opacity-10 pointer-events-none"
+            style={{ background: 'radial-gradient(circle, var(--secondary) 0%, transparent 65%)' }}
             animate={reduce ? undefined : { y: [0, -14, 0] }}
             transition={reduce ? undefined : { duration: 10, repeat: Infinity, ease: 'easeInOut' }}
           />
-          <Stagger className="relative z-10" delayChildren={0.1} staggerChildren={0.1}>
-            <Stagger.Item className="w-12 h-12 rounded-full bg-secondary flex items-center justify-center text-on-secondary font-bold mb-stack-lg">S</Stagger.Item>
-            <Stagger.Item as="h1" className="font-h1 text-h1 mb-stack-md">
-              <span>Find better matches, faster.</span>
+          <motion.div
+            aria-hidden="true"
+            className="absolute -bottom-32 -right-32 w-[480px] h-[480px] rounded-full opacity-10 pointer-events-none"
+            style={{ background: 'radial-gradient(circle, var(--primary) 0%, transparent 65%)' }}
+            animate={reduce ? undefined : { y: [0, 14, 0] }}
+            transition={reduce ? undefined : { duration: 12, repeat: Infinity, ease: 'easeInOut' }}
+          />
+          <Stagger className="relative z-10 text-center max-w-lg" delayChildren={0.1} staggerChildren={0.1}>
+            <Stagger.Item className="w-20 h-20 mx-auto rounded-2xl flex items-center justify-center mb-stack-lg">
+              <img src={icon} alt="Smart Job Portal" className="w-full h-full object-contain" />
             </Stagger.Item>
-            <Stagger.Item as="p" className="font-body-lg text-body-lg max-w-xl text-secondary-fixed">
-              <span>Sign in to manage applications, review recommendations, and keep your Smart Job Portal profile ready for the next opportunity.</span>
+            <Stagger.Item as="h1" className="font-h1 text-h1 text-primary mb-stack-md">
+              <span>Your next career move awaits.</span>
             </Stagger.Item>
-          </Stagger>
-          <Stagger className="grid grid-cols-3 gap-stack-md relative z-10" delayChildren={0.4} staggerChildren={0.08}>
-            <Stagger.Item className="rounded-xl border border-on-primary-fixed-variant/30 p-stack-md">
-              <p className="font-h2 text-h2">10k+</p>
-              <p className="font-label-sm text-label-sm text-secondary-fixed">Active Jobs</p>
-            </Stagger.Item>
-            <Stagger.Item className="rounded-xl border border-on-primary-fixed-variant/30 p-stack-md">
-              <p className="font-h2 text-h2">500+</p>
-              <p className="font-label-sm text-label-sm text-secondary-fixed">Companies</p>
-            </Stagger.Item>
-            <Stagger.Item className="rounded-xl border border-on-primary-fixed-variant/30 p-stack-md">
-              <p className="font-h2 text-h2">24h</p>
-              <p className="font-label-sm text-label-sm text-secondary-fixed">Avg. Response</p>
+            <Stagger.Item as="p" className="font-body-lg text-body-lg text-on-surface-variant">
+              <span>Log in to access personalized job matches, track your applications, and connect with top employers.</span>
             </Stagger.Item>
           </Stagger>
         </Reveal>
 
-        <section className="flex items-center justify-center px-gutter py-margin-desktop">
+        <section className="flex items-center justify-center px-gutter py-margin-desktop relative z-10">
           <motion.div
             className="w-full max-w-md bg-surface-container-lowest border border-outline-variant rounded-xl shadow-[0px_4px_20px_rgba(15,23,42,0.05)] p-stack-lg"
-            initial={reduce ? false : { opacity: 0, y: 24 }}
-            animate={reduce ? { opacity: 1 } : { opacity: 1, y: 0 }}
-            transition={{ duration: 0.45, ease: EASE }}
+            initial={reduce ? false : { opacity: 0, scale: 0.95 }}
+            animate={reduce ? { opacity: 1 } : { opacity: 1, scale: 1 }}
+            transition={{ duration: 0.4, ease: EASE }}
           >
-            <div className="mb-stack-lg">
-              <p className="font-label-sm text-label-sm uppercase text-secondary mb-unit">Welcome back</p>
-              <h2 className="font-h1 text-h1 text-primary">Log in to Smart Job Portal</h2>
-              <p className="font-body-lg text-body-lg text-on-surface-variant mt-stack-sm">
-                Use your account email and password to continue.
+            <div className="mb-stack-lg text-center">
+              <motion.div 
+                className="w-16 h-16 mx-auto bg-secondary/10 text-secondary rounded-full flex items-center justify-center mb-4 lg:hidden"
+                initial={{ rotate: -180, opacity: 0 }}
+                animate={{ rotate: 0, opacity: 1 }}
+                transition={{ duration: 0.6, ease: EASE }}
+              >
+                <img src={icon} alt="Logo" className="w-10 h-10 object-contain" />
+              </motion.div>
+              <h2 className="font-h1 text-h1 text-primary">Welcome Back!</h2>
+              <p className="font-body-lg text-body-lg text-on-surface-variant mt-2">
+                Log in to Smart Job Portal.
               </p>
             </div>
 
             {serverError && (
-              <div className="flex items-start gap-stack-sm p-stack-sm bg-error-container rounded-lg border border-error/20 mb-stack-md">
+              <motion.div 
+                initial={{ opacity: 0, y: -10 }} 
+                animate={{ opacity: 1, y: 0 }}
+                className="flex items-start gap-stack-sm p-stack-sm bg-error-container rounded-lg border border-error/20 mb-stack-md"
+              >
                 <span className="material-symbols-outlined text-error" style={{ fontVariationSettings: '"FILL" 1' }}>error</span>
                 <p className="font-body-md text-body-md text-on-error-container">{serverError}</p>
-              </div>
+              </motion.div>
             )}
 
             <form className="flex flex-col gap-stack-md" onSubmit={handleSubmit}>
-              <div>
-                <label className="font-label-sm text-label-sm text-on-surface" htmlFor="email">Email Address</label>
-                <input
-                  className={`mt-unit w-full rounded-lg border ${errors.email ? 'border-error bg-error-container/20' : 'border-outline-variant bg-surface-container-lowest'} px-stack-md py-stack-sm text-on-surface focus:border-secondary focus:ring-2 focus:ring-secondary/20 outline-none`}
-                  id="email"
-                  name="email"
-                  placeholder="you@example.com"
-                  type="email"
-                  value={form.email}
-                  onChange={handleChange}
-                />
-                {errors.email && <p className="mt-unit font-body-md text-body-md text-error text-sm">{errors.email}</p>}
-              </div>
+              <Stagger delayChildren={0.2} staggerChildren={0.05}>
+                <Stagger.Item>
+                  <label className="font-label-sm text-label-sm text-on-surface" htmlFor="email">Email Address</label>
+                  <input
+                    className={`mt-unit w-full rounded-lg border ${errors.email ? 'border-error bg-error-container/20' : 'border-outline-variant bg-surface-container-lowest'} px-stack-md py-stack-sm text-on-surface focus:border-secondary focus:ring-2 focus:ring-secondary/20 outline-none transition-all`}
+                    id="email"
+                    name="email"
+                    placeholder="you@example.com"
+                    type="email"
+                    value={form.email}
+                    onChange={handleChange}
+                  />
+                  {errors.email && <p className="mt-unit font-body-md text-body-md text-error text-sm">{errors.email}</p>}
+                </Stagger.Item>
 
-              <div>
-                <div className="flex items-center justify-between">
-                  <label className="font-label-sm text-label-sm text-on-surface" htmlFor="password">Password</label>
-                  <Link className="font-label-sm text-label-sm text-secondary hover:underline" to="/forgot-password">Forgot password?</Link>
-                </div>
-                <input
-                  className={`mt-unit w-full rounded-lg border ${errors.password ? 'border-error bg-error-container/20' : 'border-outline-variant bg-surface-container-lowest'} px-stack-md py-stack-sm text-on-surface focus:border-secondary focus:ring-2 focus:ring-secondary/20 outline-none`}
-                  id="password"
-                  name="password"
-                  placeholder="Enter your password"
-                  type="password"
-                  value={form.password}
-                  onChange={handleChange}
-                />
-                {errors.password && <p className="mt-unit font-body-md text-body-md text-error text-sm">{errors.password}</p>}
-              </div>
+                <Stagger.Item className="mt-4">
+                  <div className="flex items-center justify-between">
+                    <label className="font-label-sm text-label-sm text-on-surface" htmlFor="password">Password</label>
+                    <Link className="font-label-sm text-label-sm text-secondary hover:underline" to="/forgot-password">Forgot password?</Link>
+                  </div>
+                  <input
+                    className={`mt-unit w-full rounded-lg border ${errors.password ? 'border-error bg-error-container/20' : 'border-outline-variant bg-surface-container-lowest'} px-stack-md py-stack-sm text-on-surface focus:border-secondary focus:ring-2 focus:ring-secondary/20 outline-none transition-all`}
+                    id="password"
+                    name="password"
+                    placeholder="Enter your password"
+                    type="password"
+                    value={form.password}
+                    onChange={handleChange}
+                  />
+                  {errors.password && <p className="mt-unit font-body-md text-body-md text-error text-sm">{errors.password}</p>}
+                </Stagger.Item>
 
-              <motion.button
-                className={`w-full bg-secondary text-on-secondary font-h3 text-h3 py-3 rounded-lg hover:bg-secondary-container transition-colors flex items-center justify-center gap-2 ${loading ? 'opacity-60 cursor-not-allowed' : ''}`}
-                type="submit"
-                disabled={loading}
-                whileTap={reduce || loading ? undefined : { scale: 0.97, transition: SPRING_PRESS }}
-              >
-                {loading && <span className="material-symbols-outlined animate-spin text-[18px]" aria-hidden="true">progress_activity</span>}
-                {loading ? 'Signing in...' : 'Log In'}
-              </motion.button>
+                <Stagger.Item className="mt-8">
+                  <motion.button
+                    className={`w-full bg-secondary text-on-secondary font-h3 text-h3 py-3 rounded-lg hover:bg-secondary-container transition-all flex items-center justify-center gap-2 ${loading ? 'opacity-60 cursor-not-allowed' : 'shadow-md hover:shadow-lg hover:-translate-y-0.5'}`}
+                    type="submit"
+                    disabled={loading}
+                    whileTap={reduce || loading ? undefined : { scale: 0.97, transition: SPRING_PRESS }}
+                  >
+                    {loading && <span className="material-symbols-outlined animate-spin text-[18px]" aria-hidden="true">progress_activity</span>}
+                    {loading ? 'Signing in...' : 'Log In'}
+                  </motion.button>
+                </Stagger.Item>
+              </Stagger>
             </form>
 
-            <p className="font-body-md text-body-md text-on-surface-variant text-center mt-stack-lg">
-              New to Smart Job Portal?{' '}
-              <Link className="text-secondary font-semibold hover:underline" to={ROUTES.REGISTER}>Create an account</Link>
-            </p>
+            <motion.div 
+              initial={{ opacity: 0 }} 
+              animate={{ opacity: 1 }} 
+              transition={{ delay: 0.5 }}
+              className="mt-stack-lg text-center pt-6 border-t border-outline-variant"
+            >
+              <p className="font-body-md text-body-md text-on-surface-variant">
+                New to Smart Job Portal?{' '}
+                <Link className="text-secondary font-semibold hover:underline" to={ROUTES.REGISTER}>Create an account</Link>
+              </p>
+            </motion.div>
           </motion.div>
         </section>
       </main>

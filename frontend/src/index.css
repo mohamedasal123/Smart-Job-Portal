@@ -24,72 +24,73 @@
   --font-display: var(--font-sans);
 
   /* Surfaces */
-  --background:                  252 248 250;
-  --surface:                     252 248 250;
-  --surface-dim:                 220 217 219;
-  --surface-bright:              252 248 250;
-  --surface-container-lowest:    255 255 255;
-  --surface-container-low:       246 243 245;
-  --surface-container:           240 237 239;
-  --surface-container-high:      234 231 233;
-  --surface-container-highest:   228 226 228;
-  --surface-variant:             228 226 228;
-  --surface-tint:                 86  94 116;
-  --inverse-surface:              48  48  50;
-  --inverse-on-surface:          243 240 242;
+  --background: 248 250 252;
+  --surface: 255 255 255;
+  --surface-dim: 241 245 249;
+  --surface-bright: 255 255 255;
+  --surface-container-lowest: 255 255 255;
+  --surface-container-low: 241 245 249;
+  --surface-container: 226 232 240;
+  --surface-container-high: 203 213 225;
+  --surface-container-highest: 148 163 184;
+  --surface-variant: 226 232 240;
+  --surface-tint: 100 116 139;
+  --inverse-surface: 15 23 42;
+  --inverse-on-surface: 248 250 252;
 
   /* Foreground */
-  --on-surface:                   27  27  29;
-  --on-surface-variant:           69  70  77;
-  --on-background:                27  27  29;
+  --on-surface: 15 23 42;
+  --on-surface-variant: 71 85 105;
+  --on-background: 15 23 42;
 
-  /* Primary (navy) */
-  --primary:                      27  34  64;
-  --on-primary:                  255 255 255;
-  --primary-container:            19  27  46;
-  --on-primary-container:        124 131 155;
-  --primary-fixed:               218 226 253;
-  --primary-fixed-dim:           190 198 224;
-  --on-primary-fixed:             19  27  46;
-  --on-primary-fixed-variant:     63  70  92;
-  --inverse-primary:             190 198 224;
+  /* Primary (Navy) */
+  --primary: 15 23 42;
+  --on-primary: 255 255 255;
+  --primary-container: 30 41 59;
+  --on-primary-container: 248 250 252;
+  --primary-fixed: 148 163 184;
+  --primary-fixed-dim: 100 116 139;
+  --on-primary-fixed: 15 23 42;
+  --on-primary-fixed-variant: 71 85 105;
+  --inverse-primary: 248 250 252;
 
-  /* Secondary (blue) */
-  --secondary:                     0  81 213;
-  --on-secondary:                255 255 255;
-  --secondary-container:          49 107 243;
-  --on-secondary-container:      254 252 255;
-  --secondary-fixed:             219 225 255;
-  --secondary-fixed-dim:         180 197 255;
-  --on-secondary-fixed:            0  23  75;
-  --on-secondary-fixed-variant:    0  62 168;
+  /* Secondary (Action Blue) */
+  --secondary: 37 99 235;
+  --on-secondary: 255 255 255;
+  --secondary-container: 29 78 216;
+  --on-secondary-container: 255 255 255;
+  --secondary-fixed: 96 165 250;
+  --secondary-fixed-dim: 59 130 246;
+  --on-secondary-fixed: 15 23 42;
+  --on-secondary-fixed-variant: 29 78 216;
 
-  /* Tertiary (amber) */
-  --tertiary:                     87  68  37;
-  --on-tertiary:                 255 255 255;
-  --tertiary-container:           39  25   1;
-  --on-tertiary-container:       152 128  93;
-  --tertiary-fixed:              252 222 181;
-  --tertiary-fixed-dim:          222 194 154;
-  --on-tertiary-fixed:            39  25   1;
-  --on-tertiary-fixed-variant:    87  68  37;
+  /* Tertiary (Accent / AI) */
+  --tertiary: 20 184 166;
+  --on-tertiary: 255 255 255;
+  --tertiary-container: 15 118 110;
+  --on-tertiary-container: 240 253 250;
+  --tertiary-fixed: 153 246 228;
+  --tertiary-fixed-dim: 94 234 212;
+  --on-tertiary-fixed: 4 47 46;
+  --on-tertiary-fixed-variant: 15 118 110;
 
   /* Error */
-  --error:                       186  26  26;
-  --on-error:                    255 255 255;
-  --error-container:             255 218 214;
-  --on-error-container:          147   0  10;
+  --error: 239 68 68;
+  --on-error: 255 255 255;
+  --error-container: 254 226 226;
+  --on-error-container: 153 27 27;
 
   /* Outlines */
-  --outline:                     118 119 125;
-  --outline-variant:             198 198 205;
+  --outline: 148 163 184;
+  --outline-variant: 226 232 240;
 
   /* Accents */
-  --professional-blue:            37  99 235;
-  --match-green:                  34 197  94;
-  --info-blue:                    59 130 246;
-  --success:                      34 197  94;
-  --success-container:           187 247 208;
+  --professional-blue: 37 99 235;
+  --match-green: 20 184 166;
+  --info-blue: 59 130 246;
+  --success: 34 197 94;
+  --success-container: 187 247 208;
+  --warning: 245 158 11;
 
   /* Shadows / radii — not color, no dark override needed */
   --shadow-sm: 0px 4px 20px rgba(15, 23, 42, 0.05);
@@ -98,71 +99,92 @@
   --radius-sm: 0.25rem;
   --radius-md: 0.75rem;
   --radius-full: 9999px;
+
+  /* Legacy aliases */
+  --color-white: #ffffff;
+  --surface-page: rgb(var(--background));
+  --surface-raised: rgb(var(--surface-container-lowest));
+  --surface-muted: rgb(var(--surface-container-low));
+  --border-subtle: rgb(var(--outline-variant));
+  --text-strong: rgb(var(--primary));
+  --text-muted: rgb(var(--on-surface-variant));
+  --brand-primary: rgb(var(--secondary));
+  --brand-primary-hover: rgb(var(--secondary-container));
+  --brand-soft: rgb(var(--secondary-fixed));
+  --success-soft: rgb(var(--success-container));
+  --danger: rgb(var(--error));
+  --danger-soft: rgb(var(--error-container));
 }
 
 .dark {
   color-scheme: dark;
 
-  --background:                   17  18  22;
-  --surface:                      17  18  22;
-  --surface-dim:                   17  18  22;
-  --surface-bright:                40  41  47;
-  --surface-container-lowest:     12  13  16;
-  --surface-container-low:         24  25  29;
-  --surface-container:             29  30  34;
-  --surface-container-high:        37  38  43;
-  --surface-container-highest:     47  48  53;
-  --surface-variant:               73  69  78;
-  --surface-tint:                 190 198 224;
-  --inverse-surface:              230 225 229;
-  --inverse-on-surface:            48  48  50;
+  --background: 2 6 23;
+  --surface: 15 23 42;
+  --surface-dim: 2 6 23;
+  --surface-bright: 30 41 59;
+  --surface-container-lowest: 15 23 42;
+  --surface-container-low: 30 41 59;
+  --surface-container: 51 65 85;
+  --surface-container-high: 71 85 105;
+  --surface-container-highest: 100 116 139;
+  --surface-variant: 51 65 85;
+  --surface-tint: 148 163 184;
+  --inverse-surface: 248 250 252;
+  --inverse-on-surface: 15 23 42;
 
-  --on-surface:                   230 225 229;
-  --on-surface-variant:           200 195 199;
-  --on-background:                230 225 229;
+  --on-surface: 248 250 252;
+  --on-surface-variant: 203 213 225;
+  --on-background: 248 250 252;
 
-  /* Primary swaps so light brand stays readable on dark surfaces. */
-  --primary:                      190 198 224;
-  --on-primary:                    39  47  73;
-  --primary-container:             63  70  92;
-  --on-primary-container:         218 226 253;
-  --primary-fixed:                218 226 253;
-  --primary-fixed-dim:            190 198 224;
-  --on-primary-fixed:              19  27  46;
-  --on-primary-fixed-variant:      63  70  92;
-  --inverse-primary:               27  34  64;
+  /* Primary */
+  --primary: 248 250 252;
+  --on-primary: 15 23 42;
+  --primary-container: 71 85 105;
+  --on-primary-container: 248 250 252;
+  --primary-fixed: 148 163 184;
+  --primary-fixed-dim: 100 116 139;
+  --on-primary-fixed: 15 23 42;
+  --on-primary-fixed-variant: 203 213 225;
+  --inverse-primary: 15 23 42;
 
-  --secondary:                    180 197 255;
-  --on-secondary:                   0  35 102;
-  --secondary-container:            0  62 168;
-  --on-secondary-container:       219 225 255;
-  --secondary-fixed:              219 225 255;
-  --secondary-fixed-dim:          180 197 255;
-  --on-secondary-fixed:             0  23  75;
-  --on-secondary-fixed-variant:     0  62 168;
+  /* Secondary */
+  --secondary: 37 99 235;
+  --on-secondary: 255 255 255;
+  --secondary-container: 29 78 216;
+  --on-secondary-container: 255 255 255;
+  --secondary-fixed: 59 130 246;
+  --secondary-fixed-dim: 37 99 235;
+  --on-secondary-fixed: 255 255 255;
+  --on-secondary-fixed-variant: 29 78 216;
 
-  --tertiary:                     222 194 154;
-  --on-tertiary:                   39  25   1;
-  --tertiary-container:            87  68  37;
-  --on-tertiary-container:        252 222 181;
-  --tertiary-fixed:               252 222 181;
-  --tertiary-fixed-dim:           222 194 154;
-  --on-tertiary-fixed:             39  25   1;
-  --on-tertiary-fixed-variant:     87  68  37;
+  /* Tertiary */
+  --tertiary: 20 184 166;
+  --on-tertiary: 255 255 255;
+  --tertiary-container: 15 118 110;
+  --on-tertiary-container: 204 251 241;
+  --tertiary-fixed: 94 234 212;
+  --tertiary-fixed-dim: 45 212 196;
+  --on-tertiary-fixed: 4 47 46;
+  --on-tertiary-fixed-variant: 15 118 110;
 
-  --error:                        255 180 171;
-  --on-error:                     105   0   5;
-  --error-container:              147   0  10;
-  --on-error-container:           255 218 214;
+  /* Error */
+  --error: 239 68 68;
+  --on-error: 127 29 29;
+  --error-container: 153 27 27;
+  --on-error-container: 254 226 226;
 
-  --outline:                      144 144 150;
-  --outline-variant:               71  71  76;
+  /* Outlines */
+  --outline: 100 116 139;
+  --outline-variant: 51 65 85;
 
-  --professional-blue:             96 165 250;
-  --match-green:                   74 222 128;
-  --info-blue:                     96 165 250;
-  --success:                       74 222 128;
-  --success-container:             20  83  45;
+  /* Accents */
+  --professional-blue: 59 130 246;
+  --match-green: 20 184 166;
+  --info-blue: 59 130 246;
+  --success: 34 197 94;
+  --success-container: 21 128 61;
+  --warning: 245 158 11;
 
   --shadow-sm: 0px 4px 20px rgba(0, 0, 0, 0.30);
   --shadow-md: 0px 10px 30px rgba(0, 0, 0, 0.45);
@@ -185,6 +207,7 @@ body {
   color: rgb(var(--on-background));
   font-family: var(--font-sans);
   overflow-x: hidden;
+  overflow-y: scroll;
   transition: background-color 200ms ease, color 200ms ease;
 }
 
@@ -281,18 +304,37 @@ h6 {
 
 /* Legacy CSS animations used by ConfirmModal — keep matching the Tailwind keyframe names. */
 @keyframes slideInRight {
-  from { transform: translateX(100%); opacity: 0; }
-  to   { transform: translateX(0);    opacity: 1; }
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to   { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes scaleIn {
-  from { transform: scale(0.95); opacity: 0; }
-  to   { transform: scale(1);    opacity: 1; }
+  from {
+    transform: scale(0.95);
+    opacity: 0;
+  }
+
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 
 .animate-slide-in-right {
@@ -308,6 +350,7 @@ h6 {
 }
 
 @media (prefers-reduced-motion: reduce) {
+
   .animate-slide-in-right,
   .animate-fade-in,
   .animate-scale-in {

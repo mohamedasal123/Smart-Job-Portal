@@ -15,6 +15,7 @@ class StoreJobRequest extends FormRequest
     {
         return [
             'title'              => 'required|string|max:255',
+            'category'           => 'required|string|max:255',
             'description'        => 'required|string|min:10',
             'responsibilities'   => 'nullable|string',
             'location'           => 'nullable|string|max:255',
@@ -31,6 +32,7 @@ class StoreJobRequest extends FormRequest
         // Sanitize
         $this->merge([
             'title' => strip_tags($this->title),
+            'category' => strip_tags($this->category),
             'description' => strip_tags($this->description),
             'responsibilities' => strip_tags($this->responsibilities),
             'location' => strip_tags($this->location),

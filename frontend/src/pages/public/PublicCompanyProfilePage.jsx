@@ -1,29 +1,37 @@
 import { useState, useEffect } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { ROUTES } from '../../utils/constants';
+import PublicNavBar from '../../components/PublicNavBar';
 import { getPublicCompanyById, getPublicJobs } from '../../services/publicDataService';
+import { useAuth } from '../../context/useAuth';
+
+import PublicFooter from '../../components/PublicFooter';
 
 export default function PublicCompanyProfilePage() {
   const { id } = useParams();
   const [company, setCompany] = useState(null);
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(true);
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'admin';
 
   useEffect(() => {
     const fetchCompanyAndJobs = async () => {
       try {
         const data = await getPublicCompanyById(id);
-        setCompany(data);
-        
-        // Fetch jobs for this company if possible
-        // The backend might support filtering by company_id, so we try:
-        try {
-          const jobsData = await getPublicJobs({ company_id: id });
-          // If the backend doesn't filter, we'll manually filter them
-          const companyJobs = jobsData.filter(j => String(j.companyId) === String(id) || String(j.company) === String(data.name));
-          setJobs(companyJobs);
-        } catch (e) {
-          console.error("Failed to fetch company jobs", e);
+        if (data && data.company) {
+          setCompany(data.company);
+          setJobs(data.activeJobs || []);
+        } else {
+          setCompany(data);
+          
+          try {
+            const jobsData = await getPublicJobs({ company_id: id });
+            const companyJobs = jobsData.filter(j => String(j.companyId) === String(id) || String(j.company) === String(data.name));
+            setJobs(companyJobs);
+          } catch (e) {
+            console.error("Failed to fetch company jobs", e);
+          }
         }
       } catch (err) { 
         console.error(err); 
@@ -54,22 +62,21 @@ export default function PublicCompanyProfilePage() {
 
   return (
     <div className="stitch-page bg-background text-on-background font-body-md flex flex-col min-h-screen">
-      <header className="bg-surface-container-lowest border-b border-outline-variant sticky top-0 z-30">
-        <div className="max-w-container mx-auto px-gutter h-20 flex items-center justify-between">
-          <Link className="font-h2 text-h2 font-bold text-primary flex items-center gap-2" to={ROUTES.HOME}>
-            <span className="material-symbols-outlined text-secondary" style={{ fontVariationSettings: '"FILL" 1' }}>work</span>
-            Smart Job Portal
-          </Link>
-          <nav className="hidden md:flex items-center gap-gutter">
-            <Link className="font-h3 text-h3 font-semibold text-on-surface-variant hover:text-secondary transition-colors" to={ROUTES.JOBS}>Browse Jobs</Link>
-            <Link className="font-h3 text-h3 font-semibold text-secondary border-b-2 border-secondary pb-1" to={ROUTES.COMPANIES}>Companies</Link>
-            <Link className="font-h3 text-h3 font-semibold text-on-surface-variant hover:text-secondary transition-colors" to={ROUTES.SALARIES}>Salaries</Link>
-          </nav>
-          <Link className="hidden md:inline-flex items-center justify-center font-body-md font-bold bg-secondary text-on-secondary px-stack-md py-stack-sm rounded-lg shadow-sm hover:opacity-90 transition-opacity" to={ROUTES.LOGIN}>
-            Sign In
-          </Link>
+      <PublicNavBar />
+      
+      {isAdmin && (
+        <div className="bg-error-container text-on-error-container w-full py-2 px-4 flex items-center justify-between shadow-sm z-40">
+          <div className="flex items-center gap-2 font-bold font-body-sm">
+            <span className="material-symbols-outlined text-[18px]">admin_panel_settings</span>
+            Admin Controls
+          </div>
+          <div className="flex gap-2">
+            <Link to={`/admin/users/${id}`} className="bg-surface text-primary px-3 py-1 rounded-md text-xs font-bold hover:bg-surface-container transition-colors border border-outline-variant">
+              View Company in Dashboard
+            </Link>
+          </div>
         </div>
-      </header>
+      )}
 
       <main className="max-w-container mx-auto px-gutter py-margin-desktop space-y-gutter flex-grow w-full">
         <nav className="flex items-center gap-2 text-on-surface-variant font-body-md mb-6">
@@ -169,15 +176,7 @@ export default function PublicCompanyProfilePage() {
           </div>
         </div>
       </main>
-
-      <footer className="bg-surface-container-highest dark:bg-surface-dim border-t border-outline-variant w-full py-stack-lg px-margin-desktop mt-auto">
-        <div className="flex justify-between items-center max-w-container-max-width mx-auto flex-col md:flex-row gap-4">
-          <div className="font-h3 text-h3 font-bold text-primary dark:text-primary-fixed">Smart Job Portal</div>
-          <div className="font-label-sm text-label-sm uppercase tracking-wider text-on-surface-variant dark:text-outline-variant text-center md:text-left">
-            © 2024 Smart Job Portal. Intelligence in Recruitment.
-          </div>
-        </div>
-      </footer>
+      <PublicFooter />
     </div>
   );
 }

@@ -56,6 +56,7 @@ import AdminJobDetailsPage from './pages/admin/AdminJobDetailsPage.jsx';
 import AdminJobsPage from './pages/admin/AdminJobsPage.jsx';
 import AdminSettingsPage from './pages/admin/AdminSettingsPage.jsx';
 import AdminUserDetailsPage from './pages/admin/AdminUserDetailsPage.jsx';
+import AdminUserProfilePage from './pages/admin/AdminUserProfilePage.jsx';
 import AdminUsersPage from './pages/admin/AdminUsersPage.jsx';
 import UnauthorizedPage from './pages/errors/UnauthorizedPage.jsx';
 import ForbiddenPage from './pages/errors/ForbiddenPage.jsx';
@@ -116,6 +117,7 @@ export const appRoutes = [
       { path: 'jobs/:jobId/edit', element: <CompanyEditJobPostPage /> },
       { path: 'jobs/:jobId/preview', element: <CompanyJobPostPreviewPage /> },
       { path: 'jobs/:id/applicants', element: <CompanyApplicantsPage /> },
+      { path: 'applicants', element: <CompanyApplicantsPage /> },
       { path: 'jobs/:jobId', element: <CompanyJobDetailsPage /> },
       { path: 'jobs', element: <CompanyManageJobsPage /> },
       { path: 'applicants/:id/cv', element: <CompanyApplicantCvViewerPage /> },
@@ -129,6 +131,7 @@ export const appRoutes = [
     roles: ['admin'],
     children: [
       { path: 'dashboard', element: <AdminDashboardPage /> },
+      { path: 'users/:userId/profile', element: <AdminUserProfilePage /> },
       { path: 'users/:userId', element: <AdminUserDetailsPage /> },
       { path: 'users', element: <AdminUsersPage /> },
       { path: 'jobs/:jobId', element: <AdminJobDetailsPage /> },

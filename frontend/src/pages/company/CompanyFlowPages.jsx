@@ -188,30 +188,32 @@ function JobForm({ initialJob, mode }) {
   const { addToast } = useToast();
   const { errors, serverError, handleApiError, clearErrors, setErrors } = useValidationErrors();
   const [saving, setSaving] = useState(false);
-  const [form, setForm] = useState({
-    title: initialJob?.title || '',
-    location: initialJob?.location || '',
-    workMode: initialJob?.workMode || 'Hybrid',
-    type: initialJob?.type || '',
-    salaryMin: initialJob?.salaryMin || 90000,
-    salaryMax: initialJob?.salaryMax || 130000,
-    description: initialJob?.description || '',
-    responsibilities: toText(initialJob?.responsibilities),
-    requiredSkills: toText(initialJob?.requiredSkills),
-    experienceLevel: initialJob?.experienceLevel || '',
-    education: initialJob?.education || '',
-  });
+    const [form, setForm] = useState({
+      title: initialJob?.title || '',
+      category: initialJob?.category || '',
+      location: initialJob?.location || '',
+      workMode: initialJob?.workMode || 'Hybrid',
+      type: initialJob?.type || '',
+      salaryMin: initialJob?.salaryMin || 90000,
+      salaryMax: initialJob?.salaryMax || 130000,
+      description: initialJob?.description || '',
+      responsibilities: toText(initialJob?.responsibilities),
+      requiredSkills: toText(initialJob?.requiredSkills),
+      experienceLevel: initialJob?.experienceLevel || '',
+      education: initialJob?.education || '',
+    });
 
   const update = (key, value) => setForm((prev) => ({ ...prev, [key]: value }));
 
-  const validate = () => {
-    clearErrors();
-    const nextErrors = {};
-    if (!form.title.trim()) nextErrors.title = 'Job title is required.';
-    if (!form.location.trim()) nextErrors.location = 'Location is required.';
-    if (!form.type.trim()) nextErrors.type = 'Job type is required.';
-    if (!form.description.trim()) nextErrors.description = 'Description is required.';
-    if (!toList(form.requiredSkills).length) nextErrors.requiredSkills = 'Add at least one required skill.';
+    const validate = () => {
+      clearErrors();
+      const nextErrors = {};
+      if (!form.title.trim()) nextErrors.title = 'Job title is required.';
+      if (!form.category.trim()) nextErrors.category = 'Category is required.';
+      if (!form.location.trim()) nextErrors.location = 'Location is required.';
+      if (!form.type.trim()) nextErrors.type = 'Job type is required.';
+      if (!form.description.trim()) nextErrors.description = 'Description is required.';
+      if (!toList(form.requiredSkills).length) nextErrors.requiredSkills = 'Add at least one required skill.';
     
     if (Object.keys(nextErrors).length) {
       setErrors(nextErrors);
@@ -256,10 +258,25 @@ function JobForm({ initialJob, mode }) {
           <p>{serverError}</p>
         </div>
       )}
-      <Section title="Basic info">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-stack-md">
-          <Field error={errors.title} label="Job title"><TextInput disabled={saving} onChange={(event) => update('title', event.target.value)} value={form.title} /></Field>
-          <Field error={errors.type} label="Job type">
+        <Section title="Basic info">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-stack-md">
+            <Field error={errors.title} label="Job title"><TextInput disabled={saving} onChange={(event) => 
+update('title', event.target.value)} value={form.title} /></Field>
+            <Field error={errors.category} label="Category">
+              <SelectInput disabled={saving} onChange={(event) => update('category', event.target.value)} value={form.category}>
+                <option value="">Select category</option>
+                <option value="Engineering">Engineering</option>
+                <option value="Design">Design</option>
+                <option value="Marketing">Marketing</option>
+                <option value="Data Science">Data Science</option>
+                <option value="Finance">Finance</option>
+                <option value="Customer Success">Customer Success</option>
+                <option value="Operations">Operations</option>
+                <option value="Human Resources">Human Resources</option>
+                <option value="Other">Other</option>
+              </SelectInput>
+            </Field>
+            <Field error={errors.type} label="Job type">
             <SelectInput disabled={saving} onChange={(event) => update('type', event.target.value)} value={form.type}>
               <option value="">Select type</option>
               <option value="full_time">Full time</option>
@@ -869,18 +886,18 @@ export function CompanyApplicants() {
   const refresh = useCallback(async () => {
     setLoading(true);
     try {
-      if (jobId) {
-        const [j, a] = await Promise.all([
-          companyDataService.getCompanyJobById(jobId),
-          companyDataService.getApplicantsByJob(jobId, { ...filters, page })
-        ]);
-        setJob(j);
-        setApplicants(a);
-      } else {
-        // Global applicants not fully supported yet by backend without job ID
-        setJob({ title: 'All Jobs' });
-        setApplicants([]); 
-      }
+        if (jobId) {
+          const [j, a] = await Promise.all([
+            companyDataService.getCompanyJobById(jobId),
+            companyDataService.getApplicantsByJob(jobId, { ...filters, page })
+          ]);
+          setJob(j);
+          setApplicants(a);
+        } else {
+          const a = await companyDataService.getApplicants({ ...filters, page });
+          setJob({ title: 'All Jobs' });
+          setApplicants(a);
+        }
     } catch(e) {
       console.error(e);
     } finally {
@@ -1059,27 +1076,31 @@ export function CompanyNotifications() {
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  const refresh = useCallback((nextFilter = filter) => {
+  const refresh = useCallback(() => {
     setLoading(true);
-    api.get('/notifications', { params: { type: nextFilter } })
+    api.get('/notifications')
       .then(res => {
          setNotifications(getListItems(res));
       })
       .catch(e => console.error(e))
       .finally(() => setLoading(false));
-  }, [filter]);
+  }, []);
 
   useEffect(() => { refresh(); }, [refresh]);
+
+  const visibleNotifications = filter === 'unread'
+    ? notifications.filter((notification) => !notification.read_at)
+    : notifications;
 
   return (
     <>
       <CompanyPageHeader actions={<button className={buttonSecondary} onClick={async () => { await api.post('/notifications/read-all'); refresh(); }}>Mark all as read</button>} eyebrow="Notifications" title="Company notifications" description="Monitor applicant, job, and system updates." />
-      <div className="flex flex-wrap gap-unit">{['all', 'unread'].map((item) => <button className={`${filter === item ? 'bg-secondary text-on-secondary' : 'bg-surface-container-low text-on-surface-variant'} px-stack-md py-stack-sm rounded-lg font-label-md text-label-md`} key={item} onClick={() => { setFilter(item); refresh(item); }}>{item.replace('_', ' ')}</button>)}</div>
+      <div className="flex flex-wrap gap-unit">{['all', 'unread'].map((item) => <button className={`${filter === item ? 'bg-secondary text-on-secondary' : 'bg-surface-container-low text-on-surface-variant'} px-stack-md py-stack-sm rounded-lg font-label-md text-label-md`} key={item} onClick={() => setFilter(item)}>{item.replace('_', ' ')}</button>)}</div>
       <Section title="Updates">
-        {loading ? <FullPageSpinner /> : (!notifications.length ? <CompanyEmptyState title="No notifications" message="No notifications match this filter." /> : notifications.map((notification) => (
+        {loading ? <FullPageSpinner /> : (!visibleNotifications.length ? <CompanyEmptyState title="No notifications" message="No notifications match this filter." /> : visibleNotifications.map((notification) => (
           <div className="flex items-start gap-stack-md border-b border-outline-variant py-stack-md last:border-b-0 cursor-pointer hover:bg-surface-container-low transition-colors" key={notification.id} onClick={async () => { if (!notification.read_at) { await api.patch(`/notifications/${notification.id}/read`); refresh(); } }}>
             <span className={`w-2.5 h-2.5 rounded-full mt-2 ${notification.read_at ? 'bg-outline-variant' : 'bg-error'}`} />
-            <div><p className="font-h3 text-h3 text-primary">{notification.title || notification.data?.title}</p><p className="text-on-surface-variant">{notification.message || notification.data?.message}</p></div>
+            <div><p className="font-h3 text-h3 text-primary">{notification.title || notification.data?.title || 'Notification'}</p><p className="text-on-surface-variant">{notification.message || notification.data?.message}</p></div>
           </div>
         )))}
       </Section>
@@ -1088,24 +1109,174 @@ export function CompanyNotifications() {
 }
 
 export function CompanyMessages() {
+  const [conversations, setConversations] = useState([]);
+  const [activeId, setActiveId] = useState(null);
+  const [messages, setMessages] = useState([]);
+  const [newMessage, setNewMessage] = useState('');
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    companyDataService.getCompanyMessages().then(data => {
+      setConversations(data);
+      if (data.length > 0) {
+        setActiveId(data[0].id);
+      }
+      setLoading(false);
+    });
+  }, []);
+
+  useEffect(() => {
+    if (activeId) {
+      const conv = conversations.find(c => c.id === activeId);
+      if (conv) {
+        companyDataService.getCompanyConversation(conv.other_user_id, conv.job_id).then(msgs => {
+          setMessages(msgs);
+        });
+        if (conv.unread) {
+          companyDataService.markMessagesAsRead(conv.other_user_id).then(() => {
+            setConversations(prev => prev.map(c => c.id === activeId ? { ...c, unread: false } : c));
+          });
+        }
+      }
+    }
+  }, [activeId, conversations]);
+
+  const handleSend = async () => {
+    if (!newMessage.trim() || !activeId) return;
+    const conv = conversations.find(c => c.id === activeId);
+    if (!conv) return;
+
+    try {
+      const sent = await companyDataService.sendCompanyMessage(conv.other_user_id, newMessage, conv.job_id);
+      setMessages(prev => [...prev, { id: sent.id, from: 'You', text: sent.content, created_at: sent.created_at }]);
+      setNewMessage('');
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const active = conversations.find((item) => item.id === activeId);
+
   return (
     <>
       <CompanyPageHeader eyebrow="Messages" title="Candidate conversations" description="Search and review recruiter conversations." />
-      <div className="bg-surface-container-low p-stack-lg rounded-xl border border-secondary text-center mb-stack-lg">
-        <h3 className="font-h2 text-h2 text-secondary">Messaging feature coming soon</h3>
-        <p className="text-on-surface-variant mt-unit">We're working hard to bring real-time messaging right into your dashboard.</p>
+      <div className="grid grid-cols-1 xl:grid-cols-[360px_1fr] gap-gutter">
+        <Section title="Inbox">
+          <div className="divide-y divide-outline-variant">
+            {loading ? <FullPageSpinner /> : (
+              conversations.length === 0 ? <CompanyEmptyState title="No messages" message="You have no messages yet." /> :
+              conversations.map((item) => (
+                <button
+                  className={`w-full py-stack-md text-left transition-colors hover:bg-surface-container-low rounded-lg px-stack-sm ${active?.id === item.id ? 'bg-secondary-container/15' : ''}`}
+                  key={item.id}
+                  onClick={() => setActiveId(item.id)}
+                  type="button"
+                >
+                  <div className="flex items-start justify-between gap-stack-sm">
+                    <div>
+                      <p className="font-h3 text-h3 text-primary">{item.candidate}</p>
+                      <p className="text-on-surface-variant">{item.role}</p>
+                    </div>
+                    {item.unread && <span className="h-2.5 w-2.5 rounded-full bg-secondary mt-2" />}
+                  </div>
+                  <p className="mt-unit text-body-sm text-secondary">{item.status}</p>
+                  <p className="mt-unit text-body-sm text-on-surface-variant">{item.time}</p>
+                </button>
+              ))
+            )}
+          </div>
+        </Section>
+
+        <Section title={active ? `${active.candidate} - ${active.role}` : "Select a conversation"}>
+          {active ? (
+            <>
+              <div className="space-y-stack-md rounded-xl bg-surface-container-low p-stack-md flex-1 overflow-y-auto max-h-[500px]">
+                {messages.length === 0 ? <p className="text-on-surface-variant text-center">No messages yet.</p> :
+                  messages.map((message, index) => {
+                    const mine = message.from === 'You';
+                    return (
+                      <div className={`flex ${mine ? 'justify-end' : 'justify-start'}`} key={`${active.id}-${message.id || index}`}>
+                        <div className={`max-w-[75%] rounded-xl px-stack-md py-stack-sm ${mine ? 'bg-secondary text-on-secondary' : 'bg-surface-container-lowest border border-outline-variant'}`}>
+                          <p className="font-label-sm text-label-sm mb-unit opacity-80">{message.from}</p>
+                          <p>{message.text}</p>
+                        </div>
+                      </div>
+                    );
+                  })
+                }
+              </div>
+              <div className="flex gap-stack-sm mt-stack-md">
+                <input 
+                  className="flex-1 rounded-lg border border-outline-variant bg-surface-container-low px-stack-md py-stack-sm outline-none focus:border-secondary focus:ring-1 focus:ring-secondary/30" 
+                  placeholder="Type your message..." 
+                  value={newMessage}
+                  onChange={(e) => setNewMessage(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleSend()}
+                />
+                <button className={buttonPrimary} onClick={handleSend} disabled={!newMessage.trim()}>Send</button>
+              </div>
+            </>
+          ) : (
+             <div className="flex flex-1 items-center justify-center p-stack-lg text-on-surface-variant">Select a conversation from the left to start messaging.</div>
+          )}
+        </Section>
       </div>
     </>
   );
 }
 
 export function CompanySettings() {
+  const { addToast } = useToast();
+  const [settings, setSettings] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem('companySettings') || '{}');
+    } catch {
+      return {};
+    }
+  });
+
+  const update = (key, value) => setSettings((prev) => ({ ...prev, [key]: value }));
+  const save = () => {
+    localStorage.setItem('companySettings', JSON.stringify(settings));
+    addToast({ title: 'Settings saved', message: 'Company preferences were saved locally.', type: 'success' });
+  };
+
   return (
     <>
       <CompanyPageHeader eyebrow="Settings" title="Company settings" description="Manage recruiter preferences, notifications, and account security." />
-      <div className="bg-surface-container-low p-stack-lg rounded-xl border border-outline-variant text-center mb-stack-lg">
-        <h3 className="font-h2 text-h2 text-primary">Settings coming soon</h3>
-        <p className="text-on-surface-variant mt-unit">Account deletion and preference changes will be supported when backend settings are implemented.</p>
+      <div className="grid grid-cols-1 xl:grid-cols-[1fr_0.8fr] gap-gutter">
+        <Section title="Recruiter preferences">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-stack-md">
+            <Field label="Default applicant sort">
+              <SelectInput value={settings.sort || 'match'} onChange={(e) => update('sort', e.target.value)}>
+                <option value="match">Highest AI match</option>
+                <option value="newest">Newest first</option>
+                <option value="status">Application status</option>
+              </SelectInput>
+            </Field>
+            <Field label="Weekly digest">
+              <SelectInput value={settings.digest || 'enabled'} onChange={(e) => update('digest', e.target.value)}>
+                <option value="enabled">Enabled</option>
+                <option value="disabled">Disabled</option>
+              </SelectInput>
+            </Field>
+          </div>
+          <label className="flex items-start gap-stack-md rounded-lg border border-outline-variant p-stack-md">
+            <input checked={settings.autoArchive ?? false} className="mt-1 h-5 w-5 accent-secondary" onChange={(e) => update('autoArchive', e.target.checked)} type="checkbox" />
+            <span>
+              <span className="block font-h3 text-h3 text-primary">Auto-archive rejected applicants</span>
+              <span className="text-on-surface-variant">Keep the ATS focused on active candidates during demos.</span>
+            </span>
+          </label>
+          <div className="flex justify-end">
+            <button className={buttonPrimary} onClick={save}>Save Preferences</button>
+          </div>
+        </Section>
+
+        <Section title="Account safety">
+          <p className="text-on-surface-variant">Password changes and account deletion need dedicated backend endpoints. They are intentionally disabled for seeded demo users.</p>
+          <button className={buttonDanger} onClick={() => addToast({ title: 'Disabled in demo', message: 'Company account deletion is disabled for local demo users.', type: 'info' })}>Delete Company Account</button>
+        </Section>
       </div>
     </>
   );

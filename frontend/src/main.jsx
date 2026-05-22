@@ -7,6 +7,7 @@ import App from './App.jsx';
 import { AuthProvider } from './context/AuthContext.jsx';
 import { ThemeProvider } from './context/ThemeContext.jsx';
 import { ToastProvider } from './components/ToastProvider.jsx';
+import ScrollToTop from './components/ScrollToTop.jsx';
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
@@ -14,6 +15,7 @@ createRoot(document.getElementById('root')).render(
       <ThemeProvider>
         <AuthProvider>
           <ToastProvider>
+            <ScrollToTop />
             <App />
           </ToastProvider>
         </AuthProvider>

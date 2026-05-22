@@ -22,6 +22,22 @@ class TestAccountsSeeder extends Seeder
         ]);
         $admin->jobSeekerProfile()->delete();
         $admin->companyProfile()->delete();
+        $this->seedDemoNotifications($admin, [
+            [
+                'type' => 'demo_platform',
+                'title' => 'Demo environment ready',
+                'message' => 'Admin dashboard, users, jobs, and activity views are ready for local testing.',
+                'icon' => 'admin_panel_settings',
+                'read' => false,
+            ],
+            [
+                'type' => 'demo_security',
+                'title' => 'Security check passed',
+                'message' => 'Seeded accounts are verified and active.',
+                'icon' => 'verified_user',
+                'read' => true,
+            ],
+        ]);
 
         $company = $this->upsertUser([
             'name' => 'Test Company',
@@ -41,6 +57,22 @@ class TestAccountsSeeder extends Seeder
                 'location' => 'Localhost',
             ]
         );
+        $this->seedDemoNotifications($company, [
+            [
+                'type' => 'demo_candidate',
+                'title' => 'New candidate activity',
+                'message' => 'Review recent applicants from the Smart ATS workspace.',
+                'icon' => 'group',
+                'read' => false,
+            ],
+            [
+                'type' => 'demo_job',
+                'title' => 'Company profile reminder',
+                'message' => 'Keep your company profile complete so candidates trust your job posts.',
+                'icon' => 'domain',
+                'read' => true,
+            ],
+        ]);
 
         $jobseeker = $this->upsertUser([
             'name' => 'Test Jobseeker',
@@ -66,6 +98,41 @@ class TestAccountsSeeder extends Seeder
                 ]),
             ]
         );
+        $this->seedDemoNotifications($jobseeker, [
+            [
+                'type' => 'demo_job_alert',
+                'title' => 'Recommended jobs are ready',
+                'message' => 'Upload your CV to unlock AI recommendations and one-click apply.',
+                'icon' => 'auto_awesome',
+                'read' => false,
+            ],
+            [
+                'type' => 'demo_application_update',
+                'title' => 'Track every application',
+                'message' => 'Application status updates will appear here as companies review your profile.',
+                'icon' => 'work_history',
+                'read' => true,
+            ],
+        ]);
+
+    }
+
+    private function seedDemoNotifications(User $user, array $notifications): void
+    {
+        $user->notifications()->where('type', 'like', 'demo_%')->delete();
+
+        foreach ($notifications as $index => $notification) {
+            $user->notifications()->create([
+                'type' => $notification['type'],
+                'data' => [
+                    'title' => $notification['title'],
+                    'message' => $notification['message'],
+                    'icon' => $notification['icon'],
+                ],
+                'read_at' => $notification['read'] ? now()->subMinutes(($index + 1) * 10) : null,
+                'created_at' => now()->subMinutes(($index + 1) * 15),
+            ]);
+        }
     }
 
     private function upsertUser(array $attributes): User

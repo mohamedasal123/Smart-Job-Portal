@@ -4,6 +4,7 @@ import { useAuth } from '../context/useAuth';
 import { ROUTES } from '../utils/constants';
 import PageTransition from '../motion/PageTransition';
 import ThemeToggle from '../components/ThemeToggle';
+import icon from '../assets/icon.png';
 
 export default function JobSeekerLayout({ children }) {
   const { user, logout } = useAuth();
@@ -34,8 +35,9 @@ export default function JobSeekerLayout({ children }) {
     <div className="min-h-screen bg-background flex flex-col md:flex-row font-body-md text-on-background">
       {/* Mobile Header (visible only on small screens) */}
       <div className="md:hidden flex items-center justify-between p-4 bg-surface-container-lowest border-b border-outline-variant">
-        <Link className="font-h2 text-h2 font-bold text-primary" to={ROUTES.HOME}>
-          Smart Job Portal
+        <Link className="flex items-center gap-2 font-h2 text-h2 font-bold text-primary" to={ROUTES.HOME}>
+          <img src={icon} alt="Smart Job Portal" className="h-6 w-auto object-contain" />
+          <span>Smart Job Portal</span>
         </Link>
         <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="text-on-surface">
           <span className="material-symbols-outlined">{isMobileMenuOpen ? 'close' : 'menu'}</span>
@@ -46,14 +48,15 @@ export default function JobSeekerLayout({ children }) {
       <aside
         className={`${
           isMobileMenuOpen ? 'block' : 'hidden'
-        } md:block w-full md:w-64 bg-surface-container-lowest border-r border-outline-variant flex-shrink-0 flex flex-col h-auto md:h-screen sticky top-0`}
+        } md:block w-full md:w-64 bg-surface-container-lowest border-r border-outline-variant flex-shrink-0 flex flex-col h-auto md:h-screen md:sticky md:top-0 overflow-hidden`}
       >
-        <div className="hidden md:flex p-6 items-center">
-          <Link className="font-h2 text-h2 font-bold text-primary" to={ROUTES.HOME}>
-            Smart Job Portal
+        <div className="hidden md:flex p-6 items-center shrink-0">
+          <Link className="flex items-center gap-2 font-h2 text-h2 font-bold text-primary" to={ROUTES.HOME}>
+            <img src={icon} alt="Smart Job Portal" className="h-8 w-auto object-contain" />
+            <span className="hidden lg:inline">Smart Job Portal</span>
           </Link>
         </div>
-        <nav className="flex-1 px-4 py-4 space-y-2 overflow-y-auto">
+        <nav className="flex-1 min-h-0 px-4 py-4 space-y-2 overflow-y-auto">
           {navItems.map((item) => (
             <NavLink
               key={item.to}
@@ -72,7 +75,7 @@ export default function JobSeekerLayout({ children }) {
             </NavLink>
           ))}
         </nav>
-        <div className="p-4 border-t border-outline-variant">
+        <div className="p-4 border-t border-outline-variant shrink-0 bg-surface-container-lowest">
           <button
             onClick={handleLogout}
             className="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-label-md text-error hover:bg-error-container/20 transition-colors"

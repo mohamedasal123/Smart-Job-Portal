@@ -1,13 +1,20 @@
 import { useState, useEffect } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
+import PublicNavBar from '../../components/PublicNavBar';
 import { ROUTES } from '../../utils/constants';
 import { getPublicJobById } from '../../services/publicDataService';
+import { adminApi } from '../../api/adminApi';
+import { useAuth } from '../../context/useAuth';
+
+import PublicFooter from '../../components/PublicFooter';
 
 export default function PublicJobDetailsPage() {
   const { jobId } = useParams();
   const navigate = useNavigate();
   const [job, setJob] = useState(null);
   const [loading, setLoading] = useState(true);
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'admin';
 
   useEffect(() => {
     const fetchJob = async () => {
@@ -26,6 +33,17 @@ export default function PublicJobDetailsPage() {
   const handleApplyClick = () => {
     // Login-to-apply flow
     navigate(ROUTES.LOGIN, { state: { from: { pathname: `/seeker/jobs/${jobId}` } } });
+  };
+
+  const handleForceDelete = async () => {
+    if (!window.confirm(`Force delete ${job.title}? This marks the job as permanently deleted.`)) return;
+    try {
+      await adminApi.forceDeleteJob(job.id);
+      alert('Job force deleted successfully');
+      navigate(ROUTES.JOBS);
+    } catch (err) {
+      alert('Failed to force delete job');
+    }
   };
 
   if (loading) return (
@@ -48,22 +66,24 @@ export default function PublicJobDetailsPage() {
 
   return (
     <div className="stitch-page bg-background text-on-background font-body-md flex flex-col min-h-screen">
-      <header className="bg-surface-container-lowest dark:bg-surface-dim sticky top-0 z-50 w-full shadow-sm shadow-[0px_4px_20px_rgba(15,23,42,0.05)]">
-        <div className="flex justify-between items-center w-full px-margin-desktop py-stack-md max-w-container-max-width mx-auto">
-          <div className="flex items-center gap-stack-lg">
-            <Link className="font-h2 text-h2 font-bold text-primary dark:text-primary-fixed" to={ROUTES.HOME}>Smart Job Portal</Link>
-            <nav className="hidden md:flex gap-stack-lg ml-stack-lg">
-              <Link className="text-secondary font-h3 text-h3 font-semibold px-3 py-2 rounded-lg bg-surface-container-low" to={ROUTES.JOBS}>Browse Jobs</Link>
-              <Link className="text-on-surface-variant hover:text-secondary transition-colors font-h3 text-h3 font-semibold hover:bg-surface-container-low duration-200 px-3 py-2 rounded-lg" to={ROUTES.COMPANIES}>Companies</Link>
-              <Link className="text-on-surface-variant hover:text-secondary transition-colors font-h3 text-h3 font-semibold hover:bg-surface-container-low duration-200 px-3 py-2 rounded-lg" to={ROUTES.SALARY_GUIDE}>Salaries</Link>
-            </nav>
+      <PublicNavBar />
+      
+      {isAdmin && (
+        <div className="bg-error-container text-on-error-container w-full py-2 px-4 flex items-center justify-between shadow-sm z-40">
+          <div className="flex items-center gap-2 font-bold font-body-sm">
+            <span className="material-symbols-outlined text-[18px]">admin_panel_settings</span>
+            Admin Controls
           </div>
-          <div className="flex items-center gap-stack-md">
-            <Link className="hidden md:flex items-center justify-center px-4 py-2 border border-outline text-on-surface font-body-md font-semibold rounded-lg hover:bg-surface-container-low transition-colors" to={ROUTES.LOGIN}>Sign In</Link>
-            <Link className="flex items-center justify-center px-4 py-2 bg-secondary text-on-secondary font-body-md font-bold rounded-lg hover:bg-secondary-container transition-colors shadow-sm" to={ROUTES.POST_JOB}>Post a Job</Link>
+          <div className="flex gap-2">
+            <button onClick={handleForceDelete} className="bg-error text-on-error px-3 py-1 rounded-md text-xs font-bold hover:opacity-90 transition-opacity">
+              Force Delete Job
+            </button>
+            <Link to={`/admin/jobs/${job.id}`} className="bg-surface text-primary px-3 py-1 rounded-md text-xs font-bold hover:bg-surface-container transition-colors border border-outline-variant">
+              View in Dashboard
+            </Link>
           </div>
         </div>
-      </header>
+      )}
 
       <main className="flex-grow w-full max-w-5xl mx-auto px-margin-desktop py-12 flex flex-col gap-8">
         <nav className="flex items-center gap-2 text-on-surface-variant font-body-md">
@@ -160,15 +180,7 @@ export default function PublicJobDetailsPage() {
           </div>
         </div>
       </main>
-
-      <footer className="bg-surface-container-highest dark:bg-surface-dim border-t border-outline-variant w-full py-stack-lg px-margin-desktop mt-auto">
-        <div className="flex justify-between items-center max-w-container-max-width mx-auto flex-col md:flex-row gap-4">
-          <div className="font-h3 text-h3 font-bold text-primary dark:text-primary-fixed">Smart Job Portal</div>
-          <div className="font-label-sm text-label-sm uppercase tracking-wider text-on-surface-variant dark:text-outline-variant text-center md:text-left">
-            © 2024 Smart Job Portal. Intelligence in Recruitment.
-          </div>
-        </div>
-      </footer>
+      <PublicFooter />
     </div>
   );
 }

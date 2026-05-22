@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { ROUTES } from '../../utils/constants';
+import PublicNavBar from '../../components/PublicNavBar';
+import PublicFooter from '../../components/PublicFooter';
 import { getPublicCompanies } from '../../services/publicDataService';
 
 export default function CompaniesPage() {
@@ -33,22 +34,7 @@ export default function CompaniesPage() {
   });
   return (
     <div className="stitch-page bg-background text-on-background font-body-md text-body-md min-h-screen">
-      <header className="bg-surface-container-lowest border-b border-outline-variant sticky top-0 z-30">
-        <div className="max-w-container mx-auto px-gutter h-20 flex items-center justify-between">
-          <Link className="font-h2 text-h2 font-bold text-primary flex items-center gap-2" to={ROUTES.HOME}>
-            <span className="material-symbols-outlined text-secondary" style={{ fontVariationSettings: '"FILL" 1' }}>work</span>
-            Smart Job Portal
-          </Link>
-          <nav className="hidden md:flex items-center gap-gutter">
-            <Link className="font-h3 text-h3 font-semibold text-on-surface-variant hover:text-secondary transition-colors" to={ROUTES.JOBS}>Browse Jobs</Link>
-            <Link className="font-h3 text-h3 font-semibold text-secondary border-b-2 border-secondary pb-1" to={ROUTES.COMPANIES}>Companies</Link>
-            <Link className="font-h3 text-h3 font-semibold text-on-surface-variant hover:text-secondary transition-colors" to={ROUTES.SALARIES}>Salaries</Link>
-          </nav>
-          <Link className="hidden md:inline-flex items-center justify-center font-body-md font-bold bg-secondary text-on-secondary px-stack-md py-stack-sm rounded-lg shadow-sm hover:opacity-90 transition-opacity" to={ROUTES.LOGIN}>
-            Sign In
-          </Link>
-        </div>
-      </header>
+      <PublicNavBar />
 
       <main className="max-w-container mx-auto px-gutter py-margin-desktop space-y-gutter">
         <section className="bg-surface-container-lowest rounded-xl p-stack-lg shadow-ambient border border-outline-variant">
@@ -124,6 +110,7 @@ export default function CompaniesPage() {
         )}
         
       </main>
+      <PublicFooter />
     </div>
   );
 }

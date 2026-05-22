@@ -15,6 +15,7 @@ class UpdateJobRequest extends FormRequest
     {
         return [
             'title'              => 'sometimes|required|string|max:255',
+            'category'           => 'sometimes|required|string|max:255',
             'description'        => 'sometimes|required|string|min:50',
             'responsibilities'   => 'nullable|string',
             'location'           => 'nullable|string|max:255',
@@ -30,6 +31,7 @@ class UpdateJobRequest extends FormRequest
     {
         $this->merge([
             'title'           => $this->has('title') ? strip_tags($this->title) : $this->title,
+            'category'        => $this->has('category') ? strip_tags($this->category) : $this->category,
             'description'     => $this->has('description') ? strip_tags($this->description) : $this->description,
             'responsibilities' => $this->has('responsibilities') ? strip_tags($this->responsibilities) : $this->responsibilities,
             'location'        => $this->has('location') ? strip_tags($this->location) : $this->location,

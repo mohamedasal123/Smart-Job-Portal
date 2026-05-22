@@ -114,7 +114,14 @@ class AdminController extends Controller
         }
 
         if ($request->filled('search')) {
-            $query->where('title', 'like', "%{$request->search}%");
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('title', 'like', "%{$search}%")
+                  ->orWhere('location', 'like', "%{$search}%")
+                  ->orWhereHas('companyProfile', function ($q2) use ($search) {
+                      $q2->where('company_name', 'like', "%{$search}%");
+                  });
+            });
         }
 
         if ($request->filled('is_active')) {
@@ -135,5 +142,52 @@ class AdminController extends Controller
     {
         $user->update(['email_verified_at' => now()]);
         return $this->success(null, 'User verified successfully.');
+    }
+
+    public function verifyPassword(Request $request): JsonResponse
+    {
+        $request->validate(['password' => 'required|string']);
+        if (\Hash::check($request->password, $request->user()->password)) {
+            return $this->success(null, 'Password verified.');
+        }
+        return $this->error('Incorrect password.', 403);
+    }
+
+    public function updateSettings(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        
+        $validated = $request->validate([
+            'name' => 'sometimes|string|max:255',
+            'email' => 'sometimes|email|unique:users,email,'.$user->id,
+            'currentPassword' => 'sometimes|nullable|string',
+            'newPassword' => 'sometimes|nullable|string|min:8',
+        ]);
+
+        if (isset($validated['name'])) {
+            $user->name = $validated['name'];
+        }
+        
+        // If email or password is being changed, require current password
+        $changingEmail = isset($validated['email']) && $validated['email'] !== $user->email;
+        $changingPassword = !empty($validated['newPassword']);
+
+        if ($changingEmail || $changingPassword) {
+            if (empty($validated['currentPassword']) || !\Hash::check($validated['currentPassword'], $user->password)) {
+                return $this->error('Your current password is required and must be correct to change your email or password.', 403);
+            }
+            
+            if ($changingEmail) {
+                $user->email = $validated['email'];
+            }
+            
+            if ($changingPassword) {
+                $user->password = \Hash::make($validated['newPassword']);
+            }
+        }
+        
+        $user->save();
+        
+        return $this->success($user, 'Settings updated successfully.');
     }
 }

@@ -1,62 +1,144 @@
-import { Link } from 'react-router-dom';
-import { ROUTES } from '../../utils/constants';
-
-const salaryCards = [
-  { role: 'Product Designer', range: '$92k - $138k', trend: '+8%' },
-  { role: 'Frontend Engineer', range: '$105k - $162k', trend: '+11%' },
-  { role: 'Data Analyst', range: '$78k - $119k', trend: '+6%' },
-];
+import { useState, useEffect, useMemo } from 'react';
+import PublicNavBar from '../../components/PublicNavBar';
+import PublicFooter from '../../components/PublicFooter';
+import { getPublicJobs } from '../../services/publicDataService';
 
 export default function SalariesPage() {
+  const [jobs, setJobs] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [locationQuery, setLocationQuery] = useState('');
+
+  useEffect(() => {
+    getPublicJobs().then(data => {
+      setJobs(data || []);
+      setLoading(false);
+    }).catch(err => {
+      console.error(err);
+      setLoading(false);
+    });
+  }, []);
+
+  const salaryData = useMemo(() => {
+    // 1. Filter jobs
+    const filtered = jobs.filter(job => {
+      if (searchQuery) {
+        const s = searchQuery.toLowerCase();
+        const matchesTitle = job.title?.toLowerCase().includes(s);
+        const matchesSkill = job.requiredSkills?.some(skill => skill.toLowerCase().includes(s));
+        if (!matchesTitle && !matchesSkill) return false;
+      }
+      if (locationQuery) {
+        const l = locationQuery.toLowerCase();
+        if (!job.location?.toLowerCase().includes(l)) return false;
+      }
+      return true;
+    });
+
+    // 2. Extract and group by normalized job title
+    const groups = {};
+    filtered.forEach(job => {
+      if (!job.salaryMin && !job.salaryMax) return;
+      
+      const role = job.title?.trim() || 'Other';
+      const roleKey = role.toLowerCase();
+      
+      if (!groups[roleKey]) {
+        groups[roleKey] = { role, minSum: 0, maxSum: 0, count: 0 };
+      }
+      
+      const min = job.salaryMin || job.salaryMax;
+      const max = job.salaryMax || job.salaryMin;
+      
+      groups[roleKey].minSum += min;
+      groups[roleKey].maxSum += max;
+      groups[roleKey].count += 1;
+    });
+
+    // 3. Map to card format and sort
+    const result = Object.values(groups).map(g => {
+      const avgMin = Math.round(g.minSum / g.count);
+      const avgMax = Math.round(g.maxSum / g.count);
+      
+      const formatNum = (num) => {
+        if (num >= 1000) return `$${(num / 1000).toFixed(0)}k`;
+        return `$${num}`;
+      };
+
+      return {
+        role: g.role,
+        range: `${formatNum(avgMin)} - ${formatNum(avgMax)}`,
+        trend: g.count > 2 ? 'High Demand' : (g.count === 1 ? 'New' : 'Stable'),
+        count: g.count
+      };
+    });
+
+    // Sort by count descending, then alphabetically
+    return result.sort((a, b) => b.count - a.count || a.role.localeCompare(b.role));
+  }, [jobs, searchQuery, locationQuery]);
+
   return (
     <div className="stitch-page bg-background text-on-background font-body-md text-body-md min-h-screen">
-      <header className="bg-surface-container-lowest border-b border-outline-variant sticky top-0 z-30">
-        <div className="max-w-container mx-auto px-gutter h-20 flex items-center justify-between">
-          <Link className="font-h2 text-h2 font-bold text-primary flex items-center gap-2" to={ROUTES.HOME}>
-            <span className="material-symbols-outlined text-secondary" style={{ fontVariationSettings: '"FILL" 1' }}>work</span>
-            Smart Job Portal
-          </Link>
-          <nav className="hidden md:flex items-center gap-gutter">
-            <Link className="font-h3 text-h3 font-semibold text-on-surface-variant hover:text-secondary transition-colors" to={ROUTES.JOBS}>Browse Jobs</Link>
-            <Link className="font-h3 text-h3 font-semibold text-on-surface-variant hover:text-secondary transition-colors" to={ROUTES.COMPANIES}>Companies</Link>
-            <Link className="font-h3 text-h3 font-semibold text-secondary border-b-2 border-secondary pb-1" to={ROUTES.SALARIES}>Salaries</Link>
-          </nav>
-          <Link className="hidden md:inline-flex items-center justify-center font-body-md font-bold bg-secondary text-on-secondary px-stack-md py-stack-sm rounded-lg shadow-sm hover:opacity-90 transition-opacity" to={ROUTES.LOGIN}>
-            Sign In
-          </Link>
-        </div>
-      </header>
+      <PublicNavBar />
 
       <main className="max-w-container mx-auto px-gutter py-margin-desktop space-y-gutter">
         <section className="bg-surface-container-lowest rounded-xl p-stack-lg shadow-ambient border border-outline-variant">
           <p className="font-label-sm text-label-sm uppercase tracking-wider text-secondary mb-stack-sm">Salary Guide</p>
           <h1 className="font-display text-display text-primary mb-stack-sm">Compare pay by role and market</h1>
           <p className="font-body-lg text-body-lg text-on-surface-variant max-w-3xl">
-            Explore compensation benchmarks so candidates and hiring teams can make clearer decisions.
+            Explore compensation benchmarks based on active job listings.
           </p>
-          <div className="mt-gutter grid grid-cols-1 md:grid-cols-[1fr_220px_auto] gap-stack-md">
-            <input className="bg-surface-container-low border border-outline-variant rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-secondary/30 focus:border-secondary" placeholder="Job title or skill" type="search" />
-            <input className="bg-surface-container-low border border-outline-variant rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-secondary/30 focus:border-secondary" placeholder="Location" type="search" />
-            <button className="bg-secondary text-on-secondary font-h3 text-h3 px-gutter py-stack-sm rounded-lg shadow-sm hover:opacity-90 transition-opacity">
-              Search
-            </button>
+          <div className="mt-gutter grid grid-cols-1 md:grid-cols-[1fr_220px] gap-stack-md">
+            <label className="relative">
+              <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant">search</span>
+              <input 
+                className="w-full bg-surface-container-low border border-outline-variant rounded-lg pl-12 pr-4 py-3 focus:outline-none focus:ring-2 focus:ring-secondary/30 focus:border-secondary" 
+                placeholder="Job title or skill" 
+                type="search"
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+              />
+            </label>
+            <label className="relative">
+              <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant">location_on</span>
+              <input 
+                className="w-full bg-surface-container-low border border-outline-variant rounded-lg pl-12 pr-4 py-3 focus:outline-none focus:ring-2 focus:ring-secondary/30 focus:border-secondary" 
+                placeholder="Location" 
+                type="search"
+                value={locationQuery}
+                onChange={e => setLocationQuery(e.target.value)}
+              />
+            </label>
           </div>
         </section>
 
-        <section className="grid grid-cols-1 md:grid-cols-3 gap-gutter">
-          {salaryCards.map((item) => (
-            <article className="bg-surface-container-lowest rounded-xl p-stack-lg border border-outline-variant shadow-ambient" key={item.role}>
-              <div className="flex items-center justify-between mb-stack-md">
-                <span className="material-symbols-outlined text-secondary">payments</span>
-                <span className="font-label-md text-label-md text-secondary bg-secondary-container px-stack-sm py-unit rounded-full">{item.trend}</span>
-              </div>
-              <h2 className="font-h2 text-h2 text-primary">{item.role}</h2>
-              <p className="font-display text-[32px] leading-tight text-primary mt-stack-md">{item.range}</p>
-              <p className="font-body-sm text-body-sm text-on-surface-variant mt-unit">Estimated annual base salary</p>
-            </article>
-          ))}
-        </section>
+        {loading ? (
+          <div className="flex justify-center items-center py-12">
+            <span className="material-symbols-outlined animate-spin text-[48px] text-secondary">progress_activity</span>
+          </div>
+        ) : salaryData.length === 0 ? (
+          <div className="text-center py-16">
+            <span className="material-symbols-outlined text-outline text-[48px] mb-4">analytics</span>
+            <h3 className="font-h3 text-h3 text-primary mb-2">No salary data found</h3>
+            <p className="text-on-surface-variant">Try adjusting your search criteria or check back later.</p>
+          </div>
+        ) : (
+          <section className="grid grid-cols-1 md:grid-cols-3 gap-gutter">
+            {salaryData.map((item, index) => (
+              <article className="bg-surface-container-lowest rounded-xl p-stack-lg border border-outline-variant shadow-ambient hover:shadow-hover hover:-translate-y-1 transition-all" key={index}>
+                <div className="flex items-center justify-between mb-stack-md">
+                  <span className="material-symbols-outlined text-secondary">payments</span>
+                  <span className="font-label-md text-label-md text-white bg-secondary-container px-stack-sm py-unit rounded-full">{item.trend}</span>
+                </div>
+                <h2 className="font-h2 text-h2 text-primary">{item.role}</h2>
+                <p className="font-display text-[32px] leading-tight text-primary mt-stack-md">{item.range}</p>
+                <p className="font-body-sm text-body-sm text-on-surface-variant mt-unit">Based on {item.count} {item.count === 1 ? 'job' : 'jobs'}</p>
+              </article>
+            ))}
+          </section>
+        )}
       </main>
+      <PublicFooter />
     </div>
   );
 }

@@ -180,8 +180,9 @@ async updateCompanyProfile(payload) {
     return normalizeJob(await companyApi.toggleCompanyJob(id));
   },
 
-  async getApplicantsByJob(jobId, params = {}) {
-    const envelope = await companyApi.getApplicantsByJob(jobId, params);
+  async getApplicants(params = {}) {
+    const { apiRequest } = await import('../api/httpClient');
+    const envelope = await apiRequest('/company/applicants', { params });
     const items = Array.isArray(envelope) ? envelope : (Array.isArray(envelope?.data) ? envelope.data : envelope);
     return items.map(normalizeApplicant);
   },
@@ -201,7 +202,13 @@ async updateCompanyProfile(payload) {
   async getCompanyNotifications() {
     const { apiRequest } = await import('../api/httpClient');
     const envelope = await apiRequest('/notifications');
-    const items = Array.isArray(envelope) ? envelope : (Array.isArray(envelope?.data) ? envelope.data : []);
+    const items = Array.isArray(envelope)
+      ? envelope
+      : Array.isArray(envelope?.data?.data)
+      ? envelope.data.data
+      : Array.isArray(envelope?.data)
+      ? envelope.data
+      : [];
     return items.map(n => ({
       id: n.id,
       title: n.data?.title || 'Notification',
@@ -217,6 +224,29 @@ async updateCompanyProfile(payload) {
   },
 
   async getCompanyMessages() {
-    return [];
+    const { apiRequest } = await import('../api/httpClient');
+    const res = await apiRequest('/messages');
+    return Array.isArray(res?.data) ? res.data : [];
+  },
+
+  async getCompanyConversation(userId, jobId) {
+    const { apiRequest } = await import('../api/httpClient');
+    const query = jobId ? `?job_id=${jobId}` : '';
+    const res = await apiRequest(`/messages/${userId}${query}`);
+    return Array.isArray(res?.data) ? res.data : [];
+  },
+
+  async markMessagesAsRead(userId) {
+    const { apiRequest } = await import('../api/httpClient');
+    await apiRequest(`/messages/${userId}/read`, { method: 'PATCH' });
+  },
+
+  async sendCompanyMessage(receiverId, content, jobId) {
+    const { apiRequest } = await import('../api/httpClient');
+    const res = await apiRequest('/messages', {
+      method: 'POST',
+      body: { receiver_id: receiverId, content, job_id: jobId },
+    });
+    return res?.data;
   }
 };

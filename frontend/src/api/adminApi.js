@@ -30,4 +30,12 @@ export const adminApi = {
 
   verifyUser: (id) =>
     api.patch(`/admin/users/${encodeURIComponent(id)}/verify`).then(unwrap),
+
+  verifyPassword(password) {
+    return api.post('/admin/verify-password', { password }).then(unwrap);
+  },
+
+  updateSettings(payload) {
+    return api.put('/admin/settings', payload).then(unwrap);
+  },
 };

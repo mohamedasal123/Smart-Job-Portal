@@ -1,21 +1,33 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
+import PublicNavBar from '../../components/PublicNavBar';
 import { ROUTES } from '../../utils/constants';
 import { jobsApi } from '../../api/jobsApi';
+import { adminApi } from '../../api/adminApi';
 import { normalizeApiError } from '../../utils/apiError';
+import { useAuth } from '../../context/useAuth';
+
+import PublicFooter from '../../components/PublicFooter';
 
 export default function PublicJobsPage() {
+  const location = useLocation();
+  const queryParams = new URLSearchParams(location.search);
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'admin';
+  
   const [data, setData] = useState([]);
   const [meta, setMeta] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const [searchQuery, setSearchQuery] = useState('');
-  const [locationQuery, setLocationQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState(queryParams.get('search') || '');
+  const [locationQuery, setLocationQuery] = useState(queryParams.get('location') || '');
+  const [categoryQuery, setCategoryQuery] = useState(queryParams.get('category') || '');
   const [selectedType, setSelectedType] = useState('');
   const [selectedExperienceLevels, setSelectedExperienceLevels] = useState([]);
   const [selectedSalary, setSelectedSalary] = useState('');
   const [page, setPage] = useState(1);
+  const [showFilters, setShowFilters] = useState(false);
 
   const fetchJobs = useCallback(async () => {
     let isMounted = true;
@@ -34,6 +46,7 @@ export default function PublicJobsPage() {
         page,
         keyword: searchQuery,
         location: locationQuery,
+        category: categoryQuery || undefined,
         job_type: backendType || undefined
       });
 
@@ -50,7 +63,7 @@ export default function PublicJobsPage() {
         setLoading(false);
       }
     }
-  }, [page, searchQuery, locationQuery, selectedType]);
+  }, [page, searchQuery, locationQuery, categoryQuery, selectedType]);
 
   useEffect(() => {
     let isMounted = true;
@@ -89,6 +102,7 @@ export default function PublicJobsPage() {
   const clearFilters = () => {
     setSearchQuery('');
     setLocationQuery('');
+    setCategoryQuery('');
     setSelectedType('');
     setSelectedExperienceLevels([]);
     setSelectedSalary('');
@@ -98,6 +112,7 @@ export default function PublicJobsPage() {
   const hasActiveFilters =
     searchQuery ||
     locationQuery ||
+    categoryQuery ||
     selectedType ||
     selectedExperienceLevels.length > 0 ||
     selectedSalary;
@@ -118,73 +133,101 @@ export default function PublicJobsPage() {
     return job.company_profile?.logo_url;
   };
 
+  const handleForceDelete = async (e, jobId, jobTitle) => {
+    e.preventDefault(); // Prevent navigating to job details
+    if (!window.confirm(`Force delete ${jobTitle}? This marks the job as permanently deleted.`)) return;
+    try {
+      await adminApi.forceDeleteJob(jobId);
+      setData(prev => prev.filter(j => j.id !== jobId));
+      alert('Job force deleted successfully');
+    } catch (err) {
+      alert('Failed to force delete job');
+    }
+  };
+
   return (
     <div className="stitch-page bg-background text-on-background font-body-md flex flex-col min-h-screen">
       <div>
-        {/* TopNavBar */}
-        <header className="bg-surface-container-lowest dark:bg-surface-dim sticky top-0 z-50 w-full shadow-sm shadow-[0px_4px_20px_rgba(15,23,42,0.05)]">
-          <div className="flex justify-between items-center w-full px-margin-desktop py-stack-md max-w-container-max-width mx-auto">
-            <div className="flex items-center gap-stack-lg">
-              <Link className="font-h2 text-h2 font-bold text-primary dark:text-primary-fixed" to={ROUTES.HOME}>Smart Job Portal</Link>
-              <nav className="hidden md:flex gap-stack-lg ml-stack-lg">
-                <Link className="text-secondary font-h3 text-h3 font-semibold px-3 py-2 rounded-lg bg-surface-container-low" to={ROUTES.JOBS}>Browse Jobs</Link>
-                <Link className="text-on-surface-variant hover:text-secondary transition-colors font-h3 text-h3 font-semibold hover:bg-surface-container-low duration-200 px-3 py-2 rounded-lg" to={ROUTES.COMPANIES}>Companies</Link>
-                <Link className="text-on-surface-variant hover:text-secondary transition-colors font-h3 text-h3 font-semibold hover:bg-surface-container-low duration-200 px-3 py-2 rounded-lg" to={ROUTES.SALARY_GUIDE}>Salaries</Link>
-              </nav>
-            </div>
-            <div className="flex items-center gap-stack-md">
-              <Link className="hidden md:flex items-center justify-center px-4 py-2 border border-outline text-on-surface font-body-md font-semibold rounded-lg hover:bg-surface-container-low transition-colors" to={ROUTES.LOGIN}>Sign In</Link>
-              <Link className="flex items-center justify-center px-4 py-2 bg-secondary text-on-secondary font-body-md font-bold rounded-lg hover:bg-secondary-container transition-colors shadow-sm" to={ROUTES.POST_JOB}>Post a Job</Link>
-            </div>
-          </div>
-        </header>
+        <PublicNavBar />
 
-        <main className="flex-grow flex flex-col items-center w-full">
+        <main className="flex-grow w-full max-w-container mx-auto px-gutter py-margin-desktop space-y-gutter">
           {/* Search Header */}
-          <section className="w-full bg-surface-container-lowest py-10 px-margin-desktop border-b border-surface-container-high">
-            <div className="max-w-container-max-width mx-auto">
-              <h1 className="font-h1 text-h1 text-primary mb-2">Browse Jobs</h1>
-              <p className="font-body-lg text-body-lg text-on-surface-variant mb-6">
+          <section className="bg-surface-container-lowest rounded-xl p-stack-lg shadow-ambient border border-outline-variant">
+              <p className="font-label-sm text-label-sm uppercase tracking-wider text-secondary mb-stack-sm">Job Search</p>
+              <h1 className="font-display text-display text-primary mb-stack-sm">Browse jobs that match your goals</h1>
+              <p className="font-body-lg text-body-lg text-on-surface-variant max-w-3xl mb-gutter">
                 Discover {total.toLocaleString()}+ open positions from leading companies.
               </p>
 
-              <form className="flex flex-col md:flex-row gap-3" onSubmit={handleSearchSubmit}>
-                <div className="flex-1 relative">
-                  <span className="material-symbols-outlined text-outline absolute left-3 top-1/2 -translate-y-1/2 text-[20px]">search</span>
+              <form className="mt-gutter grid grid-cols-1 md:grid-cols-[1fr_1fr_auto] gap-stack-md" onSubmit={handleSearchSubmit}>
+                <label className="relative">
+                  <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant">search</span>
                   <input
-                    className="w-full pl-10 pr-4 py-3 bg-surface-container-low border border-outline-variant rounded-lg font-body-lg text-on-surface placeholder-on-surface-variant focus:outline-none focus:border-secondary focus:ring-2 focus:ring-secondary/20"
+                    className="w-full bg-surface-container-low border border-outline-variant rounded-lg pl-12 pr-4 py-3 focus:outline-none focus:ring-2 focus:ring-secondary/30 focus:border-secondary"
                     placeholder="Job title, keywords, or company"
-                    type="text"
+                    type="search"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                   />
-                </div>
-                <div className="flex-1 relative">
-                  <span className="material-symbols-outlined text-outline absolute left-3 top-1/2 -translate-y-1/2 text-[20px]">location_on</span>
+                </label>
+                <label className="relative">
+                  <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant">location_on</span>
                   <input
-                    className="w-full pl-10 pr-4 py-3 bg-surface-container-low border border-outline-variant rounded-lg font-body-lg text-on-surface placeholder-on-surface-variant focus:outline-none focus:border-secondary focus:ring-2 focus:ring-secondary/20"
+                    className="w-full bg-surface-container-low border border-outline-variant rounded-lg pl-12 pr-4 py-3 focus:outline-none focus:ring-2 focus:ring-secondary/30 focus:border-secondary"
                     placeholder="City, state, or remote"
-                    type="text"
+                    type="search"
                     value={locationQuery}
                     onChange={(e) => setLocationQuery(e.target.value)}
                   />
-                </div>
-                <button type="submit" disabled={loading} className="px-8 py-3 bg-secondary text-on-secondary font-body-md font-bold rounded-lg hover:bg-secondary-container transition-colors whitespace-nowrap disabled:opacity-70 flex items-center justify-center gap-2">
-                  {loading ? <span className="material-symbols-outlined animate-spin text-[20px]">progress_activity</span> : 'Search'}
+                </label>
+                <button type="submit" disabled={loading} className="bg-secondary text-on-secondary font-h3 text-h3 px-gutter py-stack-sm rounded-lg shadow-sm hover:opacity-90 transition-opacity whitespace-nowrap disabled:opacity-70 flex items-center justify-center gap-2">
+                  {loading ? <span className="material-symbols-outlined animate-spin text-[20px]">progress_activity</span> : 'Search Jobs'}
                 </button>
               </form>
-            </div>
           </section>
 
           {/* Filters + Results */}
-          <section className="w-full max-w-container-max-width mx-auto px-margin-desktop py-8 flex flex-col md:flex-row gap-gutter">
+          <section className="w-full flex flex-col md:flex-row gap-gutter">
+            
+            {/* Mobile Filters Toggle */}
+            <div className="md:hidden mb-4">
+              <button 
+                className="w-full flex items-center justify-center gap-2 py-3 bg-surface-container-lowest border border-outline-variant rounded-xl font-h3 text-primary shadow-sm"
+                onClick={() => setShowFilters(!showFilters)}
+              >
+                <span className="material-symbols-outlined text-[20px]">{showFilters ? 'close' : 'tune'}</span>
+                {showFilters ? 'Hide Filters' : 'Show Filters'}
+              </button>
+            </div>
+
             {/* Sidebar Filters */}
-            <aside className="w-full md:w-[280px] shrink-0">
+            <aside className={`w-full md:w-[280px] shrink-0 ${showFilters ? 'block' : 'hidden md:block'}`}>
               <div className="sticky top-[100px] bg-surface-container-lowest rounded-xl p-stack-md shadow-[0px_4px_20px_rgba(15,23,42,0.05)] border border-surface-container-high">
                 <h3 className="font-h3 text-h3 text-primary mb-stack-md flex items-center gap-2">
                   <span className="material-symbols-outlined text-[20px]">tune</span>
                   Filters
                 </h3>
+
+                {/* Category */}
+                <div className="mb-stack-md">
+                  <h4 className="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-widest mb-stack-sm">Category</h4>
+                  <div className="flex flex-col gap-2">
+                    {['Engineering', 'Design', 'Marketing', 'Data Science', 'Finance', 'Customer Success', 'Operations', 'Human Resources', 'Other'].map((cat) => (
+                      <label key={cat} className="flex items-center gap-2 font-body-md text-on-surface cursor-pointer hover:text-secondary transition-colors">
+                        <input 
+                          type="checkbox" 
+                          className="accent-[#2563EB] w-4 h-4 rounded" 
+                          checked={categoryQuery === cat} 
+                          onChange={() => {
+                            setCategoryQuery(prev => prev === cat ? '' : cat);
+                            setPage(1);
+                          }} 
+                        />
+                        {cat}
+                      </label>
+                    ))}
+                  </div>
+                </div>
 
                 {/* Job Type */}
                 <div className="mb-stack-md">
@@ -235,9 +278,19 @@ export default function PublicJobsPage() {
             {/* Job Listings */}
             <div className="flex-grow">
               <div className="flex items-center justify-between mb-6">
-                <p className="font-body-md text-on-surface-variant">
-                  Showing <span className="font-semibold text-primary">{data.length}</span> of {total} results
-                </p>
+                <div className="flex flex-col gap-2">
+                  <p className="font-body-md text-on-surface-variant">
+                    Showing <span className="font-semibold text-primary">{data.length}</span> of {total} results
+                  </p>
+                  {categoryQuery && (
+                    <div className="flex items-center gap-2">
+                      <span className="px-3 py-1 bg-secondary-container text-on-secondary-container rounded-full font-label-sm flex items-center gap-1">
+                        Category: {categoryQuery}
+                        <button onClick={() => setCategoryQuery('')} className="material-symbols-outlined text-[14px] hover:text-error transition-colors">close</button>
+                      </span>
+                    </div>
+                  )}
+                </div>
               </div>
 
               <div className="flex flex-col gap-4">
@@ -285,7 +338,7 @@ export default function PublicJobsPage() {
                               {getCompanyLogo(job) ? (
                                 <img src={getCompanyLogo(job) || undefined} alt={getCompanyName(job)} className="w-10 h-10 rounded-lg object-cover border border-outline-variant" />
                               ) : (
-                                <div className="w-10 h-10 rounded-lg bg-secondary-fixed flex items-center justify-center font-h3 text-secondary font-bold">
+                                <div className="w-10 h-10 rounded-lg bg-secondary/10 flex items-center justify-center font-h3 text-secondary font-bold">
                                   {getCompanyName(job).charAt(0) ?? '?'}
                                 </div>
                               )}
@@ -335,6 +388,18 @@ export default function PublicJobsPage() {
                               <span className="font-label-sm text-label-sm text-outline mt-1">Match</span>
                             </div>
                           )}
+                          
+                          {isAdmin && (
+                            <div className="shrink-0 flex flex-col items-end gap-2 ml-4 border-l border-outline-variant pl-4">
+                              <button 
+                                onClick={(e) => handleForceDelete(e, job.id, job.title)}
+                                className="bg-error-container text-on-error-container px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-error hover:text-on-error transition-colors flex items-center gap-1"
+                              >
+                                <span className="material-symbols-outlined text-[16px]">delete_forever</span>
+                                Force Delete
+                              </button>
+                            </div>
+                          )}
                         </div>
                       </Link>
                     ))}
@@ -367,22 +432,7 @@ export default function PublicJobsPage() {
             </div>
           </section>
         </main>
-
-        {/* Footer */}
-        <footer className="bg-surface-container-highest dark:bg-surface-dim border-t border-outline-variant w-full py-stack-lg px-margin-desktop">
-          <div className="flex justify-between items-center max-w-container-max-width mx-auto flex-col md:flex-row gap-4">
-            <div className="font-h3 text-h3 font-bold text-primary dark:text-primary-fixed">Smart Job Portal</div>
-            <div className="font-label-sm text-label-sm uppercase tracking-wider text-on-surface-variant dark:text-outline-variant text-center md:text-left">
-              © 2024 Smart Job Portal. Intelligence in Recruitment.
-            </div>
-            <nav className="flex gap-6">
-              <Link className="font-label-sm text-label-sm uppercase tracking-wider text-on-surface-variant hover:text-secondary hover:underline decoration-secondary transition-all hover:opacity-80" to={ROUTES.PRIVACY || '#'}>Privacy</Link>
-              <Link className="font-label-sm text-label-sm uppercase tracking-wider text-on-surface-variant hover:text-secondary hover:underline decoration-secondary transition-all hover:opacity-80" to={ROUTES.TERMS || '#'}>Terms</Link>
-              <Link className="font-label-sm text-label-sm uppercase tracking-wider text-on-surface-variant hover:text-secondary hover:underline decoration-secondary transition-all hover:opacity-80" to={ROUTES.HOME}>API</Link>
-              <Link className="font-label-sm text-label-sm uppercase tracking-wider text-on-surface-variant hover:text-secondary hover:underline decoration-secondary transition-all hover:opacity-80" to={ROUTES.CONTACT || '#'}>Support</Link>
-            </nav>
-          </div>
-        </footer>
+        <PublicFooter />
       </div>
     </div>
   );

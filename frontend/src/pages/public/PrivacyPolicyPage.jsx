@@ -1,27 +1,43 @@
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { ROUTES } from '../../utils/constants';
+import PublicNavBar from '../../components/PublicNavBar';
+import PublicFooter from '../../components/PublicFooter';
 
 export default function PrivacyPolicyPage() {
+  const [activeSection, setActiveSection] = useState('collection');
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const sections = ['collection', 'usage', 'sharing', 'security', 'rights', 'cookies'];
+      const scrollPosition = window.scrollY + 200;
+      
+      for (let i = sections.length - 1; i >= 0; i--) {
+        const element = document.getElementById(sections[i]);
+        if (element && element.offsetTop <= scrollPosition) {
+          setActiveSection(sections[i]);
+          break;
+        }
+      }
+    };
+    
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  const getLinkClass = (sectionId) => {
+    const isActive = activeSection === sectionId;
+    return `flex items-center justify-between px-3 py-2 font-body-md rounded-lg transition-colors border-l-4 ${
+      isActive 
+        ? 'bg-surface-container-low text-primary font-semibold border-[#2563EB]' 
+        : 'text-on-surface-variant hover:bg-surface-container-low hover:text-primary border-transparent'
+    }`;
+  };
+
   return (
     <div className={"stitch-page bg-background text-on-background font-body-md flex flex-col min-h-screen"}>
       <div>
-        {/* TopNavBar */}
-        <header className="bg-surface-container-lowest dark:bg-surface-dim sticky top-0 z-50 w-full shadow-sm dark:shadow-none shadow-[0px_4px_20px_rgba(15,23,42,0.05)]">
-          <div className="flex justify-between items-center w-full px-margin-desktop py-stack-md max-w-container-max-width mx-auto">
-            <div className="flex items-center gap-stack-lg">
-              <Link className="font-h2 text-h2 font-bold text-primary dark:text-primary-fixed" to={ROUTES.HOME}>Smart Job Portal</Link>
-              <nav className="hidden md:flex gap-stack-lg ml-stack-lg">
-                <Link className="text-on-surface-variant hover:text-secondary transition-colors font-h3 text-h3 font-semibold hover:bg-surface-container-low dark:hover:bg-inverse-surface duration-200 px-3 py-2 rounded-lg" to={ROUTES.JOBS}>Browse Jobs</Link>
-                <Link className="text-on-surface-variant hover:text-secondary transition-colors font-h3 text-h3 font-semibold hover:bg-surface-container-low dark:hover:bg-inverse-surface duration-200 px-3 py-2 rounded-lg" to={ROUTES.COMPANIES}>Companies</Link>
-                <Link className="text-on-surface-variant hover:text-secondary transition-colors font-h3 text-h3 font-semibold hover:bg-surface-container-low dark:hover:bg-inverse-surface duration-200 px-3 py-2 rounded-lg" to={ROUTES.SALARY_GUIDE}>Salaries</Link>
-              </nav>
-            </div>
-            <div className="flex items-center gap-stack-md">
-              <Link className="hidden md:flex items-center justify-center px-4 py-2 border border-outline text-on-surface font-body-md font-semibold rounded-lg hover:bg-surface-container-low transition-colors" to={ROUTES.LOGIN}>Sign In</Link>
-              <Link className="flex items-center justify-center px-4 py-2 bg-secondary text-on-secondary font-body-md font-bold rounded-lg hover:bg-secondary-container transition-colors shadow-sm" to={ROUTES.LOGIN}>Post a Job</Link>
-            </div>
-          </div>
-        </header>
+        <PublicNavBar />
         <main className="flex-grow flex flex-col items-center w-full">
           {/* Hero Section */}
           <section className="w-full bg-surface-container-lowest py-[80px] px-margin-desktop flex flex-col items-center justify-center border-b border-surface-container-high relative overflow-hidden">
@@ -42,22 +58,22 @@ export default function PrivacyPolicyPage() {
                 <h3 className="font-label-sm text-label-sm text-on-surface-variant mb-stack-sm px-3 tracking-widest uppercase">
                   Sections</h3>
                 <nav className="flex flex-col gap-1">
-                  <a className="flex items-center justify-between px-3 py-2 bg-surface-container-low text-primary font-body-md font-semibold rounded-lg transition-colors border-l-4 border-[#2563EB]" href="#collection">
+                  <a className={getLinkClass('collection')} href="#collection" onClick={() => setActiveSection('collection')}>
                     Information We Collect
                   </a>
-                  <a className="flex items-center justify-between px-3 py-2 text-on-surface-variant hover:bg-surface-container-low hover:text-primary font-body-md rounded-lg transition-colors border-l-4 border-transparent" href="#usage">
+                  <a className={getLinkClass('usage')} href="#usage" onClick={() => setActiveSection('usage')}>
                     How We Use It
                   </a>
-                  <a className="flex items-center justify-between px-3 py-2 text-on-surface-variant hover:bg-surface-container-low hover:text-primary font-body-md rounded-lg transition-colors border-l-4 border-transparent" href="#sharing">
+                  <a className={getLinkClass('sharing')} href="#sharing" onClick={() => setActiveSection('sharing')}>
                     Data Sharing
                   </a>
-                  <a className="flex items-center justify-between px-3 py-2 text-on-surface-variant hover:bg-surface-container-low hover:text-primary font-body-md rounded-lg transition-colors border-l-4 border-transparent" href="#security">
+                  <a className={getLinkClass('security')} href="#security" onClick={() => setActiveSection('security')}>
                     Data Security
                   </a>
-                  <a className="flex items-center justify-between px-3 py-2 text-on-surface-variant hover:bg-surface-container-low hover:text-primary font-body-md rounded-lg transition-colors border-l-4 border-transparent" href="#rights">
+                  <a className={getLinkClass('rights')} href="#rights" onClick={() => setActiveSection('rights')}>
                     Your Rights
                   </a>
-                  <a className="flex items-center justify-between px-3 py-2 text-on-surface-variant hover:bg-surface-container-low hover:text-primary font-body-md rounded-lg transition-colors border-l-4 border-transparent" href="#cookies">
+                  <a className={getLinkClass('cookies')} href="#cookies" onClick={() => setActiveSection('cookies')}>
                     Cookies
                   </a>
                 </nav>
@@ -167,22 +183,7 @@ export default function PrivacyPolicyPage() {
             </div>
           </section>
         </main>
-        {/* Footer */}
-        <footer className="bg-surface-container-highest dark:bg-surface-dim border-t border-outline-variant w-full py-stack-lg px-margin-desktop">
-          <div className="flex justify-between items-center max-w-container-max-width mx-auto flex-col md:flex-row gap-4">
-            <div className="font-h3 text-h3 font-bold text-primary dark:text-primary-fixed">
-              Smart Job Portal
-            </div>
-            <div className="font-label-sm text-label-sm uppercase tracking-wider text-on-surface-variant dark:text-outline-variant text-center md:text-left">
-              © 2024 Smart Job Portal. Intelligence in Recruitment.
-            </div>
-            <nav className="flex gap-6">
-              <Link className="font-label-sm text-label-sm uppercase tracking-wider text-on-surface-variant hover:text-secondary hover:underline decoration-secondary transition-all hover:opacity-80" to={ROUTES.PRIVACY}>Privacy</Link>
-              <Link className="font-label-sm text-label-sm uppercase tracking-wider text-on-surface-variant hover:text-secondary hover:underline decoration-secondary transition-all hover:opacity-80" to={ROUTES.TERMS}>Terms</Link>
-              <Link className="font-label-sm text-label-sm uppercase tracking-wider text-on-surface-variant hover:text-secondary hover:underline decoration-secondary transition-all hover:opacity-80" to={ROUTES.CONTACT}>Support</Link>
-            </nav>
-          </div>
-        </footer>
+        <PublicFooter />
       </div>
     </div>
   );

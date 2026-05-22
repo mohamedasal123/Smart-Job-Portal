@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom';
 import { ROUTES } from '../../utils/constants';
 import { isValidEmail } from '../../utils/validation';
 import { useToast } from '../../components/useToast';
+import PublicNavBar from '../../components/PublicNavBar';
+import PublicFooter from '../../components/PublicFooter';
 
 export default function ContactPage() {
   const { addToast } = useToast();
@@ -56,21 +58,7 @@ export default function ContactPage() {
   return (
     <div className="stitch-page bg-background text-on-background font-body-md text-body-md min-h-screen flex flex-col">
       <div>
-        {/* TopNavBar */}
-        <header className="bg-surface-container-lowest dark:bg-surface-dim shadow-[0px_4px_20px_rgba(15,23,42,0.05)] shadow-sm dark:shadow-none sticky top-0 z-50">
-          <div className="flex justify-between items-center w-full px-margin-desktop py-stack-md max-w-container-max-width mx-auto">
-            <div className="font-h2 text-h2 font-bold text-primary dark:text-primary-fixed">Smart Job Portal</div>
-            <nav className="hidden md:flex gap-gutter items-center">
-              <Link className="font-h3 text-h3 font-semibold text-on-surface-variant hover:text-secondary transition-colors hover:bg-surface-container-low dark:hover:bg-inverse-surface duration-200 px-stack-sm py-unit rounded-DEFAULT" to={ROUTES.JOBS}>Browse Jobs</Link>
-              <Link className="font-h3 text-h3 font-semibold text-on-surface-variant hover:text-secondary transition-colors hover:bg-surface-container-low dark:hover:bg-inverse-surface duration-200 px-stack-sm py-unit rounded-DEFAULT" to={ROUTES.COMPANIES}>Companies</Link>
-              <Link className="font-h3 text-h3 font-semibold text-on-surface-variant hover:text-secondary transition-colors hover:bg-surface-container-low dark:hover:bg-inverse-surface duration-200 px-stack-sm py-unit rounded-DEFAULT" to={ROUTES.SALARY_GUIDE}>Salaries</Link>
-            </nav>
-            <div className="flex items-center gap-stack-md">
-              <Link className="font-h3 text-h3 font-semibold text-on-surface-variant hover:text-secondary transition-colors hover:bg-surface-container-low dark:hover:bg-inverse-surface duration-200 px-stack-md py-stack-sm rounded-DEFAULT border border-transparent" to={ROUTES.LOGIN}>Sign In</Link>
-              <Link className="font-h3 text-h3 font-semibold bg-secondary text-on-secondary px-stack-md py-stack-sm rounded-lg shadow-sm hover:opacity-90 transition-opacity" to={ROUTES.POST_JOB}>Post a Job</Link>
-            </div>
-          </div>
-        </header>
+        <PublicNavBar />
         {/* Main Content */}
         <main className="flex-grow w-full max-w-container-max-width mx-auto px-margin-desktop py-stack-lg flex flex-col gap-stack-lg">
           {/* Hero Section */}
@@ -173,19 +161,7 @@ export default function ContactPage() {
             </section>
           </div>
         </main>
-        {/* Footer */}
-        <footer className="bg-surface-container-highest dark:bg-surface-dim border-t border-outline-variant mt-auto">
-          <div className="w-full py-stack-lg px-margin-desktop flex justify-between items-center max-w-container-max-width mx-auto">
-            <div className="font-h3 text-h3 font-bold text-primary dark:text-primary-fixed">Smart Job Portal</div>
-            <nav className="flex gap-stack-md">
-              <Link className="font-label-sm text-label-sm uppercase tracking-wider text-on-surface-variant hover:text-secondary hover:underline decoration-secondary transition-all" to={ROUTES.PRIVACY}>Privacy</Link>
-              <Link className="font-label-sm text-label-sm uppercase tracking-wider text-on-surface-variant hover:text-secondary hover:underline decoration-secondary transition-all" to={ROUTES.TERMS}>Terms</Link>
-              <Link className="font-label-sm text-label-sm uppercase tracking-wider text-on-surface-variant hover:text-secondary hover:underline decoration-secondary transition-all" to={ROUTES.HOME}>API</Link>
-              <Link className="font-label-sm text-label-sm uppercase tracking-wider text-on-surface-variant hover:text-secondary hover:underline decoration-secondary transition-all" to={ROUTES.CONTACT}>Support</Link>
-            </nav>
-            <div className="font-label-sm text-label-sm uppercase tracking-wider text-on-surface-variant dark:text-outline-variant">© 2024 Smart Job Portal. Intelligence in Recruitment.</div>
-          </div>
-        </footer>
+        <PublicFooter />
       </div>
     </div>
   );

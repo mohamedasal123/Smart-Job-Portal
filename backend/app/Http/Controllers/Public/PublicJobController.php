@@ -28,6 +28,9 @@ class PublicJobController extends Controller
             ->when($request->job_type, fn ($q, $t) =>
                 $q->where('job_type', $t)
             )
+            ->when($request->category, fn ($q, $c) =>
+                $q->where('category', $c)
+            )
             ->latest()
             ->paginate(15);
 

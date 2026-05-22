@@ -33,11 +33,7 @@ export const ROUTES = {
   COMPANY_DASHBOARD: '/company/dashboard',
   COMPANY_JOBS: '/company/jobs',
   COMPANY_CREATE_JOB: '/company/jobs/create',
-  // There is no global "all applicants" page — applicants live per-job. Sidebar
-  // and dashboard CTAs that point at "applicants" route the user to the manage-
-  // jobs page so they can pick a job and drill in. Use buildCompanyApplicantsPath
-  // when you have a real jobId.
-  COMPANY_APPLICANTS: '/company/jobs',
+  COMPANY_APPLICANTS: '/company/applicants',
   COMPANY_APPLICANTS_TEMPLATE: '/company/jobs/:jobId/applicants',
   COMPANY_MESSAGES: '/company/messages',
   COMPANY_PROFILE: '/company/profile',

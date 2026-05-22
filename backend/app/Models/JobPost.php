@@ -16,6 +16,7 @@ class JobPost extends Model
     protected $fillable = [
         'company_id',
         'title',
+        'category',
         'description',
         'responsibilities',
         'location',

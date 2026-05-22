@@ -25,6 +25,7 @@ export const normalizePublicJob = (job = {}) => {
   return {
     id: job.id,
     title: job.title || 'Untitled job',
+    category: job.category || 'Other',
     company: company.company_name || company.name || 'Company',
     companyId: company.id || null,
     companyLogo: company.logo_url || company.logo || '',
@@ -87,5 +88,11 @@ export const getPublicCompanies = async (filters = {}) => {
 
 export const getPublicCompanyById = async (id) => {
   const data = await companyService.getPublicCompany(id);
-  return normalizePublicCompany(data);
+  if (data?.company) {
+    return {
+      company: normalizePublicCompany(data.company),
+      activeJobs: (data.active_jobs || []).map(normalizePublicJob)
+    };
+  }
+  return { company: normalizePublicCompany(data), activeJobs: [] };
 };

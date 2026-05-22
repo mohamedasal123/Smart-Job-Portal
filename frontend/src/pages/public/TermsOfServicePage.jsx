@@ -1,23 +1,13 @@
 import { Link } from 'react-router-dom';
 import { ROUTES } from '../../utils/constants';
+import PublicNavBar from '../../components/PublicNavBar';
+import PublicFooter from '../../components/PublicFooter';
 
 export default function TermsOfServicePage() {
   return (
-    <div className={"stitch-page bg-background text-on-surface font-body-lg text-body-lg antialiased"}>
+    <div className={"stitch-page bg-background text-on-surface font-body-lg text-body-lg antialiased flex flex-col min-h-screen"}>
       <div>
-        {/* TopNavBar (Nav suppressed due to page intent: linear/document view, prioritize content canvas) */}
-        <header className="bg-surface-container-lowest dark:bg-surface-dim shadow-[0px_4px_20px_rgba(15,23,42,0.05)] shadow-sm dark:shadow-none w-full relative z-10">
-          <div className="flex justify-between items-center w-full px-margin-desktop py-stack-md max-w-container-max-width mx-auto">
-            <Link className="font-h2 text-h2 font-bold text-primary dark:text-primary-fixed tracking-tight flex items-center gap-2" to={ROUTES.HOME}>
-              <span className="material-symbols-outlined text-secondary" data-icon="work" data-weight="fill" style={{fontVariationSettings: '"FILL" 1'}}>work</span>
-              Smart Job Portal
-            </Link>
-            <div className="hidden md:flex items-center gap-stack-md">
-              <button className="font-label-sm text-label-sm text-secondary bg-transparent border border-outline-variant px-4 py-2 rounded-lg hover:bg-surface-container-low transition-colors">Sign
-                In</button>
-            </div>
-          </div>
-        </header>
+        <PublicNavBar />
         <main className="max-w-4xl mx-auto px-gutter py-margin-desktop bg-surface-container-lowest mt-stack-lg mb-stack-lg rounded-xl shadow-[0px_4px_20px_rgba(15,23,42,0.05)]">
           <header className="mb-margin-desktop border-b border-outline-variant pb-stack-lg">
             <h1 className="font-h1 text-h1 text-primary mb-stack-sm">Terms of Service</h1>
@@ -83,23 +73,7 @@ export default function TermsOfServicePage() {
             </div>
           </section>
         </main>
-        {/* Footer */}
-        <footer className="bg-surface-container-highest dark:bg-surface-dim border-t border-outline-variant w-full mt-auto">
-          <div className="w-full py-stack-lg px-margin-desktop flex flex-col md:flex-row justify-between items-center max-w-container-max-width mx-auto gap-stack-md">
-            <div className="font-h3 text-h3 font-bold text-primary dark:text-primary-fixed">
-              Smart Job Portal
-            </div>
-            <div className="font-label-sm text-label-sm text-on-surface-variant dark:text-outline-variant tracking-wider">
-              © 2024 Smart Job Portal. Intelligence in Recruitment.
-            </div>
-            <nav className="flex gap-stack-lg font-label-sm text-label-sm uppercase tracking-wider text-on-surface-variant dark:text-outline-variant">
-              <Link className="text-primary font-bold hover:underline decoration-secondary transition-all hover:opacity-80" to={ROUTES.PRIVACY}>Privacy</Link>
-              <Link className="text-primary font-bold hover:underline decoration-secondary transition-all hover:opacity-80" to={ROUTES.TERMS}>Terms</Link>
-              <Link className="hover:text-secondary hover:underline decoration-secondary transition-all hover:opacity-80" to={ROUTES.HOME}>API</Link>
-              <Link className="hover:text-secondary hover:underline decoration-secondary transition-all hover:opacity-80" to={ROUTES.CONTACT}>Support</Link>
-            </nav>
-          </div>
-        </footer>
+        <PublicFooter />
       </div>
       
     </div>

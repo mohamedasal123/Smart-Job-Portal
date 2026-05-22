@@ -17,6 +17,7 @@ use App\Http\Controllers\Public\PublicCompanyController;
 use App\Http\Controllers\Public\PublicJobController;
 use App\Http\Controllers\Seeker\SavedJobController;
 use App\Http\Controllers\Skill\SkillController;
+use App\Http\Controllers\MessageController;
 use Illuminate\Support\Facades\Route;
 
 // ── PUBLIC (no auth required) ─────────────────────────────
@@ -54,6 +55,12 @@ Route::middleware(['auth:sanctum', 'verified', 'ban.check'])->group(function () 
     Route::get('notifications',              [NotificationController::class, 'index']);
     Route::patch('notifications/{id}/read',  [NotificationController::class, 'markRead']);
     Route::post('notifications/read-all',    [NotificationController::class, 'markAllRead']);
+
+    // Messages (seeker + company)
+    Route::get('messages',                   [MessageController::class, 'conversations']);
+    Route::get('messages/{user_id}',         [MessageController::class, 'show']);
+    Route::post('messages',                  [MessageController::class, 'store']);
+    Route::patch('messages/{user_id}/read',  [MessageController::class, 'markRead']);
 
     // ── JOB SEEKER ──────────────────────────────────────
     Route::middleware('role:job_seeker')->group(function () {
@@ -101,6 +108,7 @@ Route::middleware(['auth:sanctum', 'verified', 'ban.check'])->group(function () 
         Route::patch('jobs/{job}/toggle', [CompanyJobController::class, 'toggle']);
 
         Route::get('jobs/{job}/applicants',             [ATSController::class, 'applicants']);
+        Route::get('applicants',                        [ATSController::class, 'index']);
         Route::get('applicants/{application}',          [ATSController::class, 'show']);
         Route::get('applicants/{application}/cv',       [ATSController::class, 'downloadCV']);
         Route::patch('applicants/{application}/status', [ApplicationController::class, 'updateStatus']);
@@ -115,5 +123,7 @@ Route::middleware(['auth:sanctum', 'verified', 'ban.check'])->group(function () 
         Route::get('jobs',               [AdminController::class, 'jobs']);
         Route::delete('jobs/{job}',      [AdminController::class, 'forceDeleteJob']);
         Route::patch('users/{user}/verify', [AdminController::class, 'verifyUser']);
+        Route::post('verify-password',   [AdminController::class, 'verifyPassword']);
+        Route::put('settings',           [AdminController::class, 'updateSettings']);
     });
 });

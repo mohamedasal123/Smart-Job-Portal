@@ -18,6 +18,33 @@ class ATSController extends Controller
 
     public function __construct(private MatchingService $matchingService) {}
 
+    public function index(Request $request)
+    {
+        $companyProfile = $request->user()->companyProfile;
+        
+        $applications = Application::whereHas('jobPost', function ($query) use ($companyProfile) {
+            $query->where('company_id', $companyProfile->id);
+        })
+        ->with(['jobPost', 'jobSeekerProfile.user', 'jobSeekerProfile.skills'])
+        ->orderBy('created_at', 'desc')
+        ->get();
+
+        $ranked = $this->matchingService->rankApplications($applications);
+
+        // Manual pagination for ranked collection
+        $page      = $request->get('page', 1);
+        $perPage   = 15;
+        $paginated = new \Illuminate\Pagination\LengthAwarePaginator(
+            $ranked->forPage($page, $perPage)->values(),
+            $ranked->count(),
+            $perPage,
+            $page,
+            ['path' => $request->url(), 'query' => $request->query()]
+        );
+
+        return $this->success(ApplicationResource::collection($paginated));
+    }
+
     public function applicants(Request $request, JobPost $job)
     {
         if ($request->user()->cannot('viewApplicants', $job)) {

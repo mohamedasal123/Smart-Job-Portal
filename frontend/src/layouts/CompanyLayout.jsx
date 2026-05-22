@@ -5,37 +5,40 @@ import { ROUTES } from '../utils/constants';
 import { useState, useEffect } from 'react';
 import PageTransition from '../motion/PageTransition';
 import ThemeToggle from '../components/ThemeToggle';
+import icon from '../assets/icon.png';
 
 const navItems = [
-  { label: 'Dashboard', icon: 'dashboard', to: ROUTES.COMPANY_DASHBOARD },
-  { label: 'Company Profile', icon: 'domain', to: ROUTES.COMPANY_PROFILE },
-  { label: 'Manage Jobs', icon: 'work', to: ROUTES.COMPANY_JOBS },
-  { label: 'Create Job', icon: 'add_circle', to: ROUTES.COMPANY_CREATE_JOB },
-  { label: 'Applicants / Smart ATS', icon: 'group', to: ROUTES.COMPANY_APPLICANTS },
-  { label: 'Messages', icon: 'chat', to: ROUTES.COMPANY_MESSAGES },
-  { label: 'Notifications', icon: 'notifications', to: ROUTES.COMPANY_NOTIFICATIONS },
-  { label: 'Settings', icon: 'settings', to: ROUTES.COMPANY_SETTINGS },
+  { key: 'dashboard', label: 'Dashboard', icon: 'dashboard', to: ROUTES.COMPANY_DASHBOARD },
+  { key: 'profile', label: 'Company Profile', icon: 'domain', to: ROUTES.COMPANY_PROFILE },
+  { key: 'jobs', label: 'Manage Jobs', icon: 'work', to: ROUTES.COMPANY_JOBS },
+  { key: 'create-job', label: 'Create Job', icon: 'add_circle', to: ROUTES.COMPANY_CREATE_JOB },
+  { key: 'applicants', label: 'Applicants / Smart ATS', icon: 'group', to: ROUTES.COMPANY_APPLICANTS },
+  { key: 'messages', label: 'Messages', icon: 'chat', to: ROUTES.COMPANY_MESSAGES },
+  { key: 'notifications', label: 'Notifications', icon: 'notifications', to: ROUTES.COMPANY_NOTIFICATIONS },
+  { key: 'settings', label: 'Settings', icon: 'settings', to: ROUTES.COMPANY_SETTINGS },
 ];
 
 const ROUTE_PATH_KEY = 'path' + 'name';
 
-const isCompanyNavActive = (itemTo, routePath) => {
-  if (routePath === itemTo) return true;
+const isCompanyNavActive = (item, routePath) => {
+  const itemTo = item.to;
 
-  if (itemTo === ROUTES.COMPANY_JOBS) {
+  if (item.key === 'applicants') {
+    return routePath.includes('/applicants') || routePath.startsWith('/company/applicants');
+  }
+
+  if (item.key === 'jobs') {
     const isJobRoute = routePath.startsWith('/company/jobs');
     const isApplicantsRoute = routePath.includes('/applicants');
     const isCreateRoute = routePath === '/company/jobs/create';
     return isJobRoute && !isApplicantsRoute && !isCreateRoute;
   }
 
-  if (itemTo === ROUTES.COMPANY_CREATE_JOB) {
+  if (item.key === 'create-job') {
     return routePath === '/company/jobs/create';
   }
 
-  if (itemTo === ROUTES.COMPANY_APPLICANTS || itemTo.includes('/applicants')) {
-    return routePath.includes('/applicants') || routePath.startsWith('/company/applicants');
-  }
+  if (routePath === itemTo) return true;
 
   if (itemTo === ROUTES.COMPANY_DASHBOARD) {
     return routePath === ROUTES.COMPANY_DASHBOARD;
@@ -74,10 +77,10 @@ export default function CompanyLayout() {
 
   return (
     <div className="stitch-page bg-surface text-on-surface font-body-md text-body-md flex h-screen overflow-hidden">
-      <aside className="hidden md:flex flex-col h-screen p-stack-md border-r border-outline-variant bg-surface-container-low w-sidebar-width shrink-0 overflow-y-auto">
-        <div className="mb-stack-lg flex items-center gap-stack-sm px-stack-sm">
-          <div className="w-9 h-9 rounded-lg bg-secondary flex items-center justify-center text-on-secondary">
-            <span className="material-symbols-outlined text-[20px]" style={{ fontVariationSettings: '"FILL" 1' }}>work</span>
+      <aside className="hidden md:flex flex-col h-screen p-stack-md border-r border-outline-variant bg-surface-container-low w-sidebar-width shrink-0 overflow-hidden">
+        <div className="mb-stack-lg flex items-center gap-stack-sm px-stack-sm shrink-0">
+          <div className="w-10 h-10 flex items-center justify-center shrink-0">
+            <img src={icon} alt="Smart Job Portal" className="w-full h-full object-contain" />
           </div>
           <div>
             <h1 className="font-h3 text-h3 font-bold text-primary">Smart Job Portal</h1>
@@ -85,9 +88,9 @@ export default function CompanyLayout() {
           </div>
         </div>
 
-        <nav className="flex-1 flex flex-col gap-unit">
+        <nav className="flex-1 min-h-0 flex flex-col gap-unit overflow-y-auto pr-unit">
           {navItems.map((item) => {
-            const isActive = isCompanyNavActive(item.to, routePath);
+            const isActive = isCompanyNavActive(item, routePath);
             return (
               <NavLink
                 className={() => navClass(isActive)}
@@ -101,7 +104,7 @@ export default function CompanyLayout() {
           })}
         </nav>
 
-        <div className="mt-auto pt-stack-md border-t border-outline-variant flex flex-col gap-unit">
+        <div className="mt-auto pt-stack-md border-t border-outline-variant flex flex-col gap-unit shrink-0 bg-surface-container-low">
           <NavLink className="flex items-center gap-stack-md text-on-surface-variant hover:bg-surface-container-highest rounded-lg px-stack-md py-stack-sm transition-colors" to={ROUTES.CONTACT}>
             <span className="material-symbols-outlined">help</span>
             <span>Help</span>

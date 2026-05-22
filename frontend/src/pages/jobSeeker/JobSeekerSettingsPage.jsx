@@ -1,29 +1,34 @@
 import { useState } from 'react';
 import SeekerPageHeader from '../../components/jobSeeker/SeekerPageHeader';
 import { useToast } from '../../components/useToast';
-import { updateSettings } from '../../services/jobSeekerDataService';
+import { useAuth } from '../../context/useAuth';
 
-/**
- * Settings Page — LOCAL STATE ONLY
- * Settings persistence requires backend endpoint confirmation.
- * TODO: Replace with PUT /api/seeker/settings when backend supports it.
- * NOTE: If no backend endpoint exists, this page remains frontend-only / pending.
- */
+const STORAGE_KEY = 'jobSeekerSettings';
+
+const readStoredSettings = () => {
+  if (typeof window === 'undefined') return {};
+  try {
+    return JSON.parse(window.localStorage.getItem(STORAGE_KEY) || '{}');
+  } catch {
+    return {};
+  }
+};
 
 export default function JobSeekerSettingsPage() {
   const { addToast } = useToast();
+  const { user } = useAuth();
+  const stored = readStoredSettings();
   const [activeTab, setActiveTab] = useState('account');
   const [saving, setSaving] = useState(false);
 
-  // Form states
-  const [email, setEmail] = useState('alex.johnson@example.com');
-  const [notifications, setNotifications] = useState({
+  const [email, setEmail] = useState(stored.email || user?.email || 'jobseeker@test.com');
+  const [notifications, setNotifications] = useState(stored.notifications || {
     jobAlerts: true,
     applicationUpdates: true,
     messages: true,
     marketing: false
   });
-  const [privacy, setPrivacy] = useState({
+  const [privacy, setPrivacy] = useState(stored.privacy || {
     profileVisible: true,
     showSalary: false
   });
@@ -44,8 +49,7 @@ export default function JobSeekerSettingsPage() {
     }
     setSaving(true);
     try {
-      // TODO: Replace with PUT /api/seeker/settings
-      await updateSettings({ email, notifications, privacy });
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ email, notifications, privacy }));
       addToast({ title: 'Settings saved', message: 'Your preferences have been updated successfully.', type: 'success' });
       setNewPassword('');
       setConfirmPassword('');
@@ -96,6 +100,9 @@ export default function JobSeekerSettingsPage() {
                 <div>
                   <h3 className="font-h3 text-h3 text-primary mb-1">Account Information</h3>
                   <p className="text-body-md text-on-surface-variant mb-4">Update your basic account credentials.</p>
+                  <div className="rounded-lg border border-secondary/30 bg-secondary-container/10 p-stack-sm text-body-sm text-on-surface-variant">
+                    Demo mode: preferences are saved locally in this browser. Account email and password changes require backend account settings endpoints.
+                  </div>
                 </div>
                 
                 <div className="space-y-4">
@@ -139,7 +146,11 @@ export default function JobSeekerSettingsPage() {
                 <div className="pt-4 border-t border-outline-variant">
                   <h4 className="font-bold text-error mb-2">Danger Zone</h4>
                   <p className="text-body-md text-on-surface-variant mb-4">Once you delete your account, there is no going back. Please be certain.</p>
-                  <button type="button" className="px-4 py-2 bg-error-container text-on-error-container hover:bg-error hover:text-on-error rounded-lg transition-colors font-label-md">
+                  <button
+                    type="button"
+                    className="px-4 py-2 bg-error-container text-on-error-container hover:bg-error hover:text-on-error rounded-lg transition-colors font-label-md"
+                    onClick={() => addToast({ title: 'Disabled in demo', message: 'Account deletion is intentionally disabled for local demo users.', type: 'info' })}
+                  >
                     Delete Account
                   </button>
                 </div>

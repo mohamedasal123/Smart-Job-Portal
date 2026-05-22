@@ -28,7 +28,7 @@ export default {
           'error', 'on-error', 'error-container', 'on-error-container',
           'outline', 'outline-variant',
           'professional-blue', 'match-green', 'info-blue',
-          'success', 'success-container',
+          'success', 'success-container', 'warning',
         ];
         return Object.fromEntries(tokens.map((name) => [name, v(name)]));
       })(),

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams, useLocation } from 'react-router-dom';
 import AdminActivityItem from '../../components/admin/AdminActivityItem';
 import AdminConfirmModal from '../../components/admin/AdminConfirmModal';
 import AdminEmptyState from '../../components/admin/AdminEmptyState';
@@ -12,7 +12,9 @@ import AdminUserTable from '../../components/admin/AdminUserTable';
 import CompanySkillTag from '../../components/company/CompanySkillTag';
 import { useToast } from '../../components/useToast';
 import { adminDataService } from '../../services/adminDataService';
+import { profileService } from '../../api/profileService';
 import { adminApi } from '../../api/adminApi';
+import { useAuth } from '../../context/useAuth';
 import { ROUTES } from '../../utils/constants';
 
 const buttonPrimary = 'inline-flex items-center justify-center gap-unit bg-secondary text-on-secondary px-stack-md py-stack-sm rounded-lg font-h3 text-h3 shadow-sm hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed';
@@ -33,7 +35,17 @@ function TextInput(props) {
 }
 
 function SelectInput(props) {
-  return <select className="w-full bg-surface-container-low border border-outline-variant rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-secondary/30 focus:border-secondary disabled:opacity-50" {...props} />;
+  return (
+    <div className="relative">
+      <select 
+        className="w-full bg-surface-container-low border border-outline-variant rounded-lg pl-4 pr-10 py-3 focus:outline-none focus:ring-2 focus:ring-secondary/30 focus:border-secondary disabled:opacity-50 appearance-none cursor-pointer" 
+        {...props} 
+      />
+      <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none">
+        expand_more
+      </span>
+    </div>
+  );
 }
 
 function Field({ label, error, children }) {
@@ -48,7 +60,7 @@ function Field({ label, error, children }) {
 
 function Section({ title, children }) {
   return (
-    <section className="bg-surface-container-lowest rounded-xl border border-outline-variant shadow-ambient p-stack-lg space-y-stack-md">
+    <section className="bg-surface-container-lowest rounded-xl border border-outline-variant shadow-ambient p-8 space-y-6">
       <h2 className="font-h2 text-h2 text-primary">{title}</h2>
       {children}
     </section>
@@ -126,6 +138,72 @@ function NotFoundState({ title = 'Record not found', message = 'This admin recor
   return <AdminEmptyState title={title} message={message} />;
 }
 
+function CVParsedDataDisplay({ data }) {
+  if (!data || typeof data !== 'object') return <p>No valid data</p>;
+  
+  const renderValue = (val) => {
+    if (typeof val === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/.test(val)) {
+      return <span className="text-primary">{new Date(val).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short', hour12: true })}</span>;
+    }
+
+    if (Array.isArray(val)) {
+      if (val.every(item => typeof item !== 'object' && item !== null)) {
+        return (
+          <div className="flex flex-wrap gap-2 mt-2">
+            {val.map((item, i) => (
+              <span key={i} className="px-3 py-1 bg-surface-container-low text-on-surface-variant rounded-full font-label-sm border border-outline-variant">
+                {String(item)}
+              </span>
+            ))}
+          </div>
+        );
+      }
+      return (
+        <ul className="list-disc pl-5 mt-1 space-y-1">
+          {val.map((item, i) => (
+            <li key={i}>{typeof item === 'object' ? renderValue(item) : item}</li>
+          ))}
+        </ul>
+      );
+    }
+    if (typeof val === 'object' && val !== null) {
+      return (
+        <div className="pl-4 mt-2 border-l-2 border-outline-variant space-y-2">
+          {Object.entries(val).map(([k, v]) => {
+            if (!v || (Array.isArray(v) && v.length === 0)) return null;
+            return (
+              <div key={k}>
+                <span className="font-semibold capitalize text-on-surface-variant text-sm block">{k.replace(/_/g, ' ')}:</span>
+                <div className="text-primary mt-0.5">{renderValue(v)}</div>
+              </div>
+            );
+          })}
+        </div>
+      );
+    }
+    return <span className="text-primary">{String(val)}</span>;
+  };
+
+  return (
+    <div className="grid gap-4">
+      {Object.entries(data).map(([key, value]) => {
+        if (!value || (Array.isArray(value) && value.length === 0) || (typeof value === 'object' && Object.keys(value).length === 0)) return null;
+        return (
+          <div key={key} className="bg-surface-container-lowest border border-outline-variant rounded-lg p-4 shadow-sm">
+            <h4 className="font-h3 text-primary capitalize mb-3 flex items-center gap-2 border-b border-outline-variant pb-2">
+              <span className="material-symbols-outlined text-[18px] text-secondary">
+                {key === 'skills' ? 'psychology' : key === 'experience' ? 'work' : key === 'education' ? 'school' : 'info'}
+              </span>
+              {key.replace(/_/g, ' ')}
+            </h4>
+            <div className="font-body-md leading-relaxed">{renderValue(value)}</div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 export function AdminDashboard() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -147,7 +225,7 @@ export function AdminDashboard() {
         title="Platform overview"
         description="Monitor users, jobs, reports, and administrative activity across Smart Job Portal."
       />
-      <div className="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-6 gap-gutter">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8 mb-8">
         <AdminStatsCard icon="group" label="Total users" to={ROUTES.ADMIN_USERS} value={data.metrics?.totalUsers ?? 0} />
         <AdminStatsCard icon="person_search" label="Job seekers" to={ROUTES.ADMIN_USERS} value={data.metrics?.jobSeekers ?? 0} />
         <AdminStatsCard icon="domain" label="Companies" to={ROUTES.ADMIN_USERS} value={data.metrics?.companies ?? 0} />
@@ -156,7 +234,7 @@ export function AdminDashboard() {
         <AdminStatsCard icon="block" label="Banned users" to={ROUTES.ADMIN_USERS} value={data.metrics?.bannedUsers ?? 0} />
       </div>
 
-      <section className="grid grid-cols-1 xl:grid-cols-[1fr_1fr] gap-gutter">
+      <section className="grid grid-cols-1 xl:grid-cols-2 gap-8 mb-8">
         <Section title="Recent users">
           {data.recentUsers?.map((user) => (
             <Link className="flex items-center justify-between border-b border-outline-variant py-stack-md last:border-b-0 hover:bg-surface-container-low rounded-lg px-stack-sm transition-colors" key={user.id} to={`/admin/users/${user.id}`}>
@@ -183,17 +261,10 @@ export function AdminDashboard() {
         </Section>
       </section>
 
-      <section className="grid grid-cols-1 xl:grid-cols-[1.4fr_0.6fr] gap-gutter">
+      <section className="grid grid-cols-1 gap-8 mb-8">
         <Section title="Recent activity">
           {data.recentActivity?.map((item) => <AdminActivityItem item={item} key={item.id} />)}
-          {!data.recentActivity?.length && <p className="text-on-surface-variant p-4">Activity log feature coming soon.</p>}
-        </Section>
-        <Section title="Quick actions">
-          <div className="grid gap-stack-sm">
-            <Link className={buttonPrimary} to={ROUTES.ADMIN_USERS}>Manage Users</Link>
-            <Link className={buttonSecondary} to={ROUTES.ADMIN_JOBS}>Manage Jobs</Link>
-            <Link className={buttonSecondary} to={ROUTES.ADMIN_ACTIVITY_LOG}>View Activity Log</Link>
-          </div>
+          {!data.recentActivity?.length && <p className="text-on-surface-variant p-4">No activity has been recorded yet.</p>}
         </Section>
       </section>
     </>
@@ -201,7 +272,7 @@ export function AdminDashboard() {
 }
 
 export function AdminUsersManagement() {
-  const [filters, setFilters] = useState({ query: '', filter: 'all', sort: 'newest' });
+  const [filters, setFilters] = useState({ query: '', filter: 'all', sort: 'newest', verification: 'all' });
   const [page, setPage] = useState(1);
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -232,15 +303,20 @@ export function AdminUsersManagement() {
         title="Users"
         description="Search, filter, inspect, ban, and unban platform accounts."
       />
-      <div className="bg-surface-container-lowest rounded-xl border border-outline-variant shadow-ambient p-stack-md grid grid-cols-1 md:grid-cols-[1fr_190px_170px] gap-stack-md">
+      <div className="bg-surface-container-lowest rounded-xl border border-outline-variant shadow-ambient p-6 grid grid-cols-1 md:grid-cols-[1fr_160px_160px_160px] gap-6 mb-8">
         <TextInput onChange={(e) => updateFilter('query', e.target.value)} placeholder="Search name, email, role, or status" value={filters.query} />
         <SelectInput onChange={(e) => updateFilter('filter', e.target.value)} value={filters.filter}>
-          <option value="all">All</option>
+          <option value="all">All Roles</option>
           <option value="job_seekers">Job Seekers</option>
           <option value="companies">Companies</option>
           <option value="admins">Admins</option>
           <option value="active">Active</option>
           <option value="banned">Banned</option>
+        </SelectInput>
+        <SelectInput onChange={(e) => updateFilter('verification', e.target.value)} value={filters.verification}>
+          <option value="all">All Verification</option>
+          <option value="verified">Verified</option>
+          <option value="unverified">Unverified</option>
         </SelectInput>
         <SelectInput onChange={(e) => updateFilter('sort', e.target.value)} value={filters.sort}>
           <option value="newest">Newest</option>
@@ -308,6 +384,12 @@ export function AdminUserDetails() {
         actions={
           <>
             <Link className={buttonSecondary} to={ROUTES.ADMIN_USERS}>Back to Users</Link>
+            {user.role === 'company' && (
+              <Link className={buttonSecondary} to={`/companies/${user.id}`} target="_blank">
+                <span className="material-symbols-outlined text-[18px]">open_in_new</span>
+                View Public Profile
+              </Link>
+            )}
             {!isVerified && (
               <button
                 className={buttonSuccess}
@@ -331,9 +413,9 @@ export function AdminUserDetails() {
         description={user.email}
       />
 
-      <div className="grid grid-cols-1 xl:grid-cols-[1fr_320px] gap-gutter">
+      <div className="grid grid-cols-1 xl:grid-cols-[1fr_360px] gap-8">
         <Section title="Account details">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-stack-md">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {[
               ['Role', <AdminRoleBadge role={user.role} key="role" />],
               ['Email Verified', (
@@ -346,45 +428,94 @@ export function AdminUserDetails() {
               ['Created date', new Date(user.created_at).toLocaleDateString()],
               ['Email', user.email],
             ].map(([label, value]) => (
-              <div className="bg-surface-container-low rounded-lg p-stack-md" key={label}>
-                <p className="font-label-sm text-label-sm uppercase tracking-wider text-on-surface-variant">{label}</p>
-                <div className="font-h3 text-h3 text-primary mt-unit">{value}</div>
+              <div className="bg-surface-container-low rounded-xl p-6 border border-outline-variant shadow-sm flex flex-col justify-center" key={label}>
+                <p className="font-label-sm text-label-sm uppercase tracking-wider text-on-surface-variant mb-2">{label}</p>
+                <div className="font-h3 text-h3 text-primary break-all">{value}</div>
               </div>
             ))}
           </div>
         </Section>
 
         <Section title="Profile summary">
-          {user.role === 'job_seeker' && user.profile && (
-            <>
-              <p className="font-h3 text-primary mb-2">Job Seeker Skills</p>
-              <div className="flex flex-wrap gap-unit">
-                {user.profile.job_seeker_skills?.map((s) => (
-                  <CompanySkillTag key={s.id}>{s.skill?.name}</CompanySkillTag>
-                ))}
-                {!user.profile.job_seeker_skills?.length && (
-                  <p className="text-sm text-on-surface-variant">No skills listed.</p>
+          <div className="flex flex-col gap-6">
+            {user.role === 'job_seeker' && user.profile && (
+              <div className="bg-surface-container-low rounded-xl p-6 border border-outline-variant shadow-sm">
+                <p className="font-h3 text-primary mb-4 flex items-center gap-2">
+                  <span className="material-symbols-outlined text-secondary">psychology</span>
+                  Job Seeker Skills
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {user.profile.job_seeker_skills?.map((s) => (
+                    <CompanySkillTag key={s.id}>{s.skill?.name}</CompanySkillTag>
+                  ))}
+                  {!user.profile.job_seeker_skills?.length && (
+                    <p className="text-sm text-on-surface-variant italic">No skills listed.</p>
+                  )}
+                </div>
+                {user.profile.cv_parsed_data && (
+                  <div className="mt-6 pt-4 border-t border-outline-variant flex items-center justify-between">
+                    <p className="font-h3 text-primary flex items-center gap-2">
+                      <span className="material-symbols-outlined text-success text-[20px]">check_circle</span>
+                      CV Data Available
+                    </p>
+                    <Link to={`/admin/users/${user.id}/profile`} className="text-secondary font-semibold hover:underline flex items-center gap-1 bg-secondary-container/20 px-4 py-2 rounded-lg transition-colors">
+                      View Profile
+                      <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
+                    </Link>
+                  </div>
                 )}
               </div>
-            </>
-          )}
-          {user.role === 'company' && user.profile && (
-            <>
-              <p className="font-h3 text-primary mb-2">Company Info</p>
-              <p className="text-on-surface-variant">
-                Posted jobs: <span className="font-bold text-primary">{user.profile.job_posts_count || 0}</span>
-              </p>
-              <p className="text-on-surface-variant">
-                Website:{' '}
-                <a href={user.profile.website} target="_blank" rel="noreferrer" className="text-secondary hover:underline">
-                  {user.profile.website || 'N/A'}
-                </a>
-              </p>
-            </>
-          )}
-          {user.role === 'admin' && (
-            <p className="text-on-surface-variant">Administrator account with platform management permissions.</p>
-          )}
+            )}
+            {user.role === 'company' && user.profile && (
+              <div className="bg-surface-container-low rounded-xl p-6 border border-outline-variant shadow-sm flex flex-col gap-4">
+                <p className="font-h3 text-primary flex items-center gap-2 border-b border-outline-variant pb-4 mb-2">
+                  <span className="material-symbols-outlined text-secondary">domain</span>
+                  Company Info
+                </p>
+                <div className="flex flex-col gap-3">
+                  <p className="text-on-surface-variant flex items-center justify-between">
+                    <span>Posted jobs:</span>
+                    <Link to={`/admin/jobs?query=${encodeURIComponent(user.name)}`} className="font-bold text-secondary flex items-center gap-1 hover:underline bg-surface-container-highest/10 px-3 py-1.5 rounded-lg border border-outline-variant/50 transition-colors">
+                      {user.profile.job_posts_count || 0}
+                      <span className="material-symbols-outlined text-[16px]">link</span>
+                    </Link>
+                  </p>
+                  <p className="text-on-surface-variant flex items-center justify-between">
+                    <span>Industry:</span>
+                    <span className="font-bold text-primary">{user.profile.industry || 'N/A'}</span>
+                  </p>
+                  <p className="text-on-surface-variant flex items-center justify-between">
+                    <span>Location:</span>
+                    <span className="font-bold text-primary text-right break-words max-w-[200px]">{user.profile.location || 'N/A'}</span>
+                  </p>
+                  <p className="text-on-surface-variant flex items-center justify-between">
+                    <span>Employees:</span>
+                    <span className="font-bold text-primary">{user.profile.employees || 'N/A'}</span>
+                  </p>
+                  <p className="text-on-surface-variant flex flex-col gap-1 mt-2">
+                    <span>Website:</span>
+                    <a href={user.profile.website} target="_blank" rel="noreferrer" className="text-secondary hover:underline font-medium break-all">
+                      {user.profile.website || 'N/A'}
+                    </a>
+                  </p>
+                  <div className="mt-2 pt-4 border-t border-outline-variant">
+                    <span className="text-on-surface-variant mb-1 block">Description:</span>
+                    <p className="text-primary font-body-sm leading-relaxed max-h-40 overflow-auto">
+                      {user.profile.description || 'No description available.'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+            {user.role === 'admin' && (
+              <div className="bg-surface-container-low rounded-xl p-6 border border-outline-variant shadow-sm">
+                <p className="text-on-surface-variant flex items-center gap-3">
+                  <span className="material-symbols-outlined text-secondary text-[32px]">admin_panel_settings</span>
+                  <span>Administrator account with platform management permissions.</span>
+                </p>
+              </div>
+            )}
+          </div>
         </Section>
       </div>
 
@@ -397,8 +528,107 @@ export function AdminUserDetails() {
   );
 }
 
+export function AdminUserProfile() {
+  const { userId, id } = useParams();
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  const fetchUser = useCallback(() => {
+    setLoading(true);
+    adminApi.getUserById(userId || id)
+      .then(res => setUser(res))
+      .catch(err => console.error(err))
+      .finally(() => setLoading(false));
+  }, [userId, id]);
+
+  useEffect(() => { fetchUser(); }, [fetchUser]);
+
+  if (loading) return <FullPageSpinner />;
+  if (!user || user.role !== 'job_seeker') return <NotFoundState title="Profile not found" message="This profile is either missing or the user is not a job seeker." />;
+
+  return (
+    <>
+      <AdminPageHeader
+        actions={
+          <Link className={buttonSecondary} to={`/admin/users/${user.id}`}>
+            <span className="material-symbols-outlined text-[18px]">arrow_back</span>
+            Back to Details
+          </Link>
+        }
+        eyebrow="Job Seeker Profile"
+        title="Candidate Profile"
+      />
+
+      <div className="flex flex-col gap-8">
+        {/* Profile Header (LinkedIn Style) */}
+        <div className="bg-surface-container-lowest rounded-xl shadow-sm border border-outline-variant overflow-hidden">
+          <div className="h-32 bg-secondary/10 relative overflow-hidden">
+            <div className="absolute top-0 right-0 p-8 opacity-10 transform translate-x-1/4 -translate-y-1/4">
+              <span className="material-symbols-outlined text-[150px] text-secondary">person</span>
+            </div>
+          </div>
+          <div className="px-8 pb-8 relative">
+            <div className="w-24 h-24 rounded-full bg-surface border-4 border-surface-container-lowest flex items-center justify-center font-display text-h1 text-primary shadow-sm -mt-12 mb-4">
+              {user.name?.charAt(0).toUpperCase()}
+            </div>
+            <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
+              <div>
+                <h1 className="font-display text-h2 text-primary">{user.name}</h1>
+                <p className="font-body-lg text-on-surface-variant mt-1 flex items-center gap-2">
+                  <span className="material-symbols-outlined text-[18px]">email</span>
+                  {user.email}
+                </p>
+                {user.profile?.location && (
+                  <p className="font-body-md text-on-surface-variant mt-1 flex items-center gap-2">
+                    <span className="material-symbols-outlined text-[18px]">location_on</span>
+                    {user.profile.location}
+                  </p>
+                )}
+              </div>
+              <div className="flex flex-col gap-2">
+                <span className={`inline-flex items-center gap-1 font-label-sm px-3 py-1.5 rounded-full ${user.email_verified_at ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
+                  <span className="material-symbols-outlined text-[16px]">{user.email_verified_at ? 'check_circle' : 'pending'}</span>
+                  {user.email_verified_at ? 'Verified Account' : 'Unverified Account'}
+                </span>
+                <span className={`inline-flex items-center gap-1 font-label-sm px-3 py-1.5 rounded-full ${!user.is_banned ? 'bg-surface-container text-primary' : 'bg-error-container text-error'}`}>
+                  <span className="material-symbols-outlined text-[16px]">{!user.is_banned ? 'verified_user' : 'block'}</span>
+                  {!user.is_banned ? 'Active Status' : 'Banned'}
+                </span>
+              </div>
+            </div>
+
+            {user.profile?.job_seeker_skills?.length > 0 && (
+              <div className="mt-6 pt-6 border-t border-outline-variant">
+                <h3 className="font-h3 text-primary mb-3">Top Skills</h3>
+                <div className="flex flex-wrap gap-2">
+                  {user.profile.job_seeker_skills.map((s) => (
+                    <CompanySkillTag key={s.id}>{s.skill?.name}</CompanySkillTag>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Extracted CV Data */}
+        <Section title="CV Extracted Information">
+          {user.profile?.cv_parsed_data ? (
+            <CVParsedDataDisplay data={user.profile.cv_parsed_data} />
+          ) : (
+            <AdminEmptyState title="No CV Data" message="This user has not uploaded a CV to extract data from." />
+          )}
+        </Section>
+      </div>
+    </>
+  );
+}
+
 export function AdminJobsManagement() {
-  const [filters, setFilters] = useState({ query: '', filter: 'all', sort: 'newest' });
+  const location = useLocation();
+  const [filters, setFilters] = useState(() => {
+    const params = new URLSearchParams(location.search);
+    return { query: params.get('query') || '', filter: 'all', sort: 'newest' };
+  });
   const [page, setPage] = useState(1);
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -429,8 +659,8 @@ export function AdminJobsManagement() {
         title="Jobs"
         description="Review platform job posts, reports, and force-delete problematic listings."
       />
-      <div className="bg-surface-container-lowest rounded-xl border border-outline-variant shadow-ambient p-stack-md grid grid-cols-1 md:grid-cols-[1fr_180px_190px] gap-stack-md">
-        <TextInput onChange={(e) => updateFilter('query', e.target.value)} placeholder="Search title, company, location, skill, or status" value={filters.query} />
+      <div className="bg-surface-container-lowest rounded-xl border border-outline-variant shadow-ambient p-6 grid grid-cols-1 md:grid-cols-[1fr_180px_190px] gap-6 mb-8">
+        <TextInput onChange={(e) => updateFilter('query', e.target.value)} placeholder="Search by Job title, Company name, or Location..." value={filters.query} />
         <SelectInput onChange={(e) => updateFilter('filter', e.target.value)} value={filters.filter}>
           <option value="all">All</option>
           <option value="active">Active</option>
@@ -496,31 +726,71 @@ export function AdminJobDetails() {
         title={job.title}
         description={`${job.company} · ${job.location}`}
       />
-      <div className="bg-error-container border border-error/20 text-error rounded-xl p-stack-lg">
-        <p className="font-h3 text-h3">Force delete is permanent on the backend.</p>
-        <p className="font-body-md text-body-md mt-unit">This action will physically remove the job post and cannot be undone.</p>
-      </div>
-      <Section title="Job information">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-stack-md">
-          {[
-            ['Status', <AdminStatusBadge status={job.status} />],
-            ['Posted date', job.postedAt],
-            ['Applicants', job.applicantsCount],
-            ['Views', job.views],
-            ['Reports', job.reportsCount || 0],
-            ['Company ID', job.companyId],
-          ].map(([label, value]) => (
-            <div className="bg-surface-container-low rounded-lg p-stack-md" key={label}>
-              <p className="font-label-sm text-label-sm uppercase tracking-wider text-on-surface-variant">{label}</p>
-              <div className="font-h3 text-h3 text-primary mt-unit">{value}</div>
+      
+      <div className="flex flex-col gap-8">
+        <div className="bg-error-container border border-error/20 text-error rounded-xl p-6 shadow-sm flex items-start gap-4">
+          <span className="material-symbols-outlined text-[32px] shrink-0 mt-1">warning</span>
+          <div>
+            <p className="font-h3 text-h3">Force delete is permanent on the backend.</p>
+            <p className="font-body-md text-body-md mt-1">This action will physically remove the job post and cannot be undone.</p>
+          </div>
+        </div>
+
+        <Section title="Job information">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {[
+              ['Status', <AdminStatusBadge status={job.status} key="status" />],
+              ['Category', job.category],
+              ['Type', job.type?.replace('_', ' ')],
+              ['Salary', job.salary],
+              ['Posted date', job.postedAt],
+              ['Applicants', job.applicantsCount],
+              ['Reports', job.reportsCount || 0],
+              ['Company ID', job.companyId],
+            ].map(([label, value]) => (
+              <div className="bg-surface-container-low rounded-xl p-6 border border-outline-variant shadow-sm flex flex-col justify-center" key={label}>
+                <p className="font-label-sm text-label-sm uppercase tracking-wider text-on-surface-variant mb-2">{label}</p>
+                <div className="font-h3 text-h3 text-primary break-all capitalize">{value}</div>
+              </div>
+            ))}
+          </div>
+          
+          <div className="bg-surface-container-low rounded-xl p-6 border border-outline-variant shadow-sm mt-6">
+            <h3 className="font-h3 text-h3 text-primary mb-4">Job Description</h3>
+            <p className="font-body-lg text-body-lg text-on-surface-variant whitespace-pre-wrap leading-relaxed">{job.description || 'No description provided.'}</p>
+          </div>
+          
+          {job.responsibilities?.length > 0 && (
+            <div className="bg-surface-container-low rounded-xl p-6 border border-outline-variant shadow-sm mt-6">
+              <h3 className="font-h3 text-h3 text-primary mb-4">Responsibilities</h3>
+              <ul className="list-disc pl-5 text-on-surface-variant flex flex-col gap-2 font-body-lg">
+                {job.responsibilities.map((r, i) => <li key={i}>{r}</li>)}
+              </ul>
             </div>
-          ))}
-        </div>
-        <p className="font-body-lg text-body-lg text-on-surface-variant">{job.description}</p>
-        <div className="flex flex-wrap gap-unit">
-          {job.requiredSkills?.map((skill) => <CompanySkillTag key={skill}>{skill}</CompanySkillTag>)}
-        </div>
-      </Section>
+          )}
+
+          {job.requirements?.length > 0 && (
+            <div className="bg-surface-container-low rounded-xl p-6 border border-outline-variant shadow-sm mt-6">
+              <h3 className="font-h3 text-h3 text-primary mb-4">Requirements</h3>
+              <ul className="list-disc pl-5 text-on-surface-variant flex flex-col gap-2 font-body-lg">
+                {job.requirements.map((r, i) => <li key={i}>{r}</li>)}
+              </ul>
+            </div>
+          )}
+
+          {job.requiredSkills?.length > 0 && (
+            <div className="bg-surface-container-low rounded-xl p-6 border border-outline-variant shadow-sm mt-6">
+              <h3 className="font-h3 text-h3 text-primary mb-4 flex items-center gap-2">
+                <span className="material-symbols-outlined text-secondary">psychology</span>
+                Required Skills
+              </h3>
+              <div className="flex flex-wrap gap-2">
+                {job.requiredSkills.map((skill) => <CompanySkillTag key={skill}>{skill}</CompanySkillTag>)}
+              </div>
+            </div>
+          )}
+        </Section>
+      </div>
       <JobDeleteModal
         onCancel={() => setTarget(null)}
         onComplete={() => { setTarget(null); navigate(ROUTES.ADMIN_JOBS); }}
@@ -531,6 +801,34 @@ export function AdminJobDetails() {
 }
 
 export function AdminActivityLog() {
+  const [items, setItems] = useState([]);
+  const [filter, setFilter] = useState('all');
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    adminDataService.getActivityLog()
+      .then((activity) => {
+        if (!cancelled) setItems(activity);
+      })
+      .catch((error) => {
+        if (!cancelled) console.error(error);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => { cancelled = true; };
+  }, []);
+
+  const filteredItems = filter === 'all'
+    ? items
+    : filter === 'admin'
+      ? items.filter((item) => item.performedBy === 'Admin' || item.performedBy === 'System')
+      : filter === 'company'
+        ? items.filter((item) => item.targetType === 'Job' && item.performedBy !== 'Admin')
+        : items.filter((item) => item.targetType.toLowerCase() === filter);
+
   return (
     <>
       <AdminPageHeader
@@ -538,9 +836,103 @@ export function AdminActivityLog() {
         title="Administrative activity"
         description="Audit user, job, admin, and security events."
       />
-      <div className="bg-surface-container-low p-stack-lg rounded-xl border border-secondary text-center mb-stack-lg">
-        <h3 className="font-h2 text-h2 text-secondary">Activity log feature coming soon</h3>
-        <p className="text-on-surface-variant mt-unit">We are building an advanced audit trail for tracking platform events.</p>
+      <div className="grid grid-cols-1 xl:grid-cols-[1fr_360px] gap-8">
+        <Section title="Activity stream">
+          <div className="flex flex-wrap gap-2 mb-6">
+            {['all', 'user', 'job', 'company', 'admin'].map((item) => (
+              <button
+                className={`${filter === item ? 'bg-secondary text-on-secondary ring-2 ring-secondary/30' : 'bg-surface-container-low text-on-surface-variant hover:bg-surface-container-high'} rounded-full px-5 py-2 font-label-md text-label-md capitalize transition-all`}
+                key={item}
+                onClick={() => setFilter(item)}
+              >
+                {item === 'all' ? 'All Activity' : item === 'admin' ? 'Admin Actions' : `${item} Events`}
+              </button>
+            ))}
+          </div>
+          {loading ? (
+            <FullPageSpinner />
+          ) : filteredItems.length ? (
+            <div className="bg-surface-container-lowest border border-outline-variant rounded-xl overflow-hidden shadow-sm">
+              <div className="divide-y divide-outline-variant">
+                {filteredItems.map((item) => <AdminActivityItem item={item} key={item.id} />)}
+              </div>
+            </div>
+          ) : (
+            <AdminEmptyState title="No activity" message="No activity matches this filter." />
+          )}
+        </Section>
+        <Section 
+          title={
+            <div className="flex items-center gap-2">
+              System Logs
+              <div className="relative group flex items-center">
+                <span className="material-symbols-outlined text-[20px] text-outline cursor-help hover:text-primary transition-colors">info</span>
+                <div className="absolute right-0 md:left-1/2 md:-translate-x-1/2 bottom-full mb-2 opacity-0 group-hover:opacity-100 invisible group-hover:visible transition-all w-64 bg-inverse-surface text-inverse-on-surface text-xs p-3 rounded-lg shadow-overlay z-50 font-normal leading-relaxed pointer-events-none text-left md:text-center">
+                  This stream is a live representation of activities across the platform. It automatically tracks user status changes and job modifications.
+                </div>
+              </div>
+            </div>
+          }
+        >
+          <div className="space-y-6 text-on-surface-variant">
+            <div className="grid grid-cols-2 gap-4">
+              <button 
+                onClick={() => setFilter('all')}
+                className="rounded-xl bg-surface-container-lowest border border-outline-variant shadow-sm p-6 text-center hover:border-secondary/50 transition-colors cursor-pointer group col-span-2"
+              >
+                <div className="w-12 h-12 rounded-full bg-primary/10 text-primary flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform">
+                  <span className="material-symbols-outlined">history</span>
+                </div>
+                <p className="font-display text-[28px] text-primary leading-none mb-1">{items.length}</p>
+                <p className="font-label-sm uppercase tracking-wider text-on-surface-variant">All Activity</p>
+              </button>
+
+              <button 
+                onClick={() => setFilter('user')}
+                className="rounded-xl bg-surface-container-lowest border border-outline-variant shadow-sm p-6 text-center hover:border-secondary/50 transition-colors cursor-pointer group"
+              >
+                <div className="w-12 h-12 rounded-full bg-secondary/10 text-secondary flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform">
+                  <span className="material-symbols-outlined">group</span>
+                </div>
+                <p className="font-display text-[28px] text-primary leading-none mb-1">{items.filter((item) => item.targetType === 'User' && item.performedBy !== 'Admin' && item.performedBy !== 'System').length}</p>
+                <p className="font-label-sm uppercase tracking-wider text-on-surface-variant">User events</p>
+              </button>
+              
+              <button 
+                onClick={() => setFilter('company')}
+                className="rounded-xl bg-surface-container-lowest border border-outline-variant shadow-sm p-6 text-center hover:border-secondary/50 transition-colors cursor-pointer group"
+              >
+                <div className="w-12 h-12 rounded-full bg-tertiary/10 text-tertiary flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform">
+                  <span className="material-symbols-outlined">domain</span>
+                </div>
+                <p className="font-display text-[28px] text-primary leading-none mb-1">{items.filter((item) => item.targetType === 'Job' && item.performedBy !== 'Admin').length}</p>
+                <p className="font-label-sm uppercase tracking-wider text-on-surface-variant">Company events</p>
+              </button>
+
+              <button 
+                onClick={() => setFilter('job')}
+                className="rounded-xl bg-surface-container-lowest border border-outline-variant shadow-sm p-6 text-center hover:border-secondary/50 transition-colors cursor-pointer group"
+              >
+                <div className="w-12 h-12 rounded-full bg-secondary-fixed/50 text-on-secondary-fixed flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform">
+                  <span className="material-symbols-outlined">work</span>
+                </div>
+                <p className="font-display text-[28px] text-primary leading-none mb-1">{items.filter((item) => item.targetType === 'Job').length}</p>
+                <p className="font-label-sm uppercase tracking-wider text-on-surface-variant">Job events</p>
+              </button>
+              
+              <button 
+                onClick={() => setFilter('admin')}
+                className="rounded-xl bg-surface-container-lowest border border-outline-variant shadow-sm p-6 text-center hover:border-secondary/50 transition-colors cursor-pointer group"
+              >
+                <div className="w-12 h-12 rounded-full bg-error-container text-error flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform">
+                  <span className="material-symbols-outlined">admin_panel_settings</span>
+                </div>
+                <p className="font-display text-[28px] text-primary leading-none mb-1">{items.filter((item) => item.performedBy === 'Admin' || item.performedBy === 'System').length}</p>
+                <p className="font-label-sm uppercase tracking-wider text-on-surface-variant">Admin operations</p>
+              </button>
+            </div>
+          </div>
+        </Section>
       </div>
     </>
   );
@@ -548,52 +940,192 @@ export function AdminActivityLog() {
 
 export function AdminSettings() {
   const { addToast } = useToast();
-  const [settings, setSettings] = useState(() => ({
-    name: 'Admin',
-    email: 'admin@smartjobportal.local',
-    currentPassword: '',
+  const { user, refreshUser } = useAuth();
+  
+  const [settings, setSettings] = useState({
+    name: user?.name || '',
+    email: user?.email || '',
     newPassword: '',
     confirmPassword: '',
-  }));
+  });
   const [errors, setErrors] = useState({});
+  const [saving, setSaving] = useState(false);
+
+  const [unlockState, setUnlockState] = useState({ email: false, password: false });
+  const [verifyInput, setVerifyInput] = useState('');
+  const [verifyTarget, setVerifyTarget] = useState(null); // 'email' | 'password'
+  const [verifyError, setVerifyError] = useState('');
+  const [verifying, setVerifying] = useState(false);
+
+  useEffect(() => {
+    if (user) {
+      setSettings(prev => ({
+        ...prev,
+        name: user.name || '',
+        email: user.email || ''
+      }));
+    }
+  }, [user]);
+
   const update = (key, value) => setSettings((prev) => ({ ...prev, [key]: value }));
+
+  const startVerify = (target) => {
+    setVerifyTarget(target);
+    setVerifyInput('');
+    setVerifyError('');
+  };
+
+  const cancelVerify = () => {
+    setVerifyTarget(null);
+    setVerifyInput('');
+    setVerifyError('');
+  };
+
+  const confirmVerify = async () => {
+    if (!verifyInput) return;
+    setVerifying(true);
+    setVerifyError('');
+    try {
+      await adminApi.verifyPassword(verifyInput);
+      setUnlockState(prev => ({ ...prev, [verifyTarget]: true }));
+      // Store the verified password to send with the final save request
+      setSettings(prev => ({ ...prev, currentPassword: verifyInput }));
+      setVerifyTarget(null);
+    } catch (e) {
+      setVerifyError('Incorrect password. Please try again.');
+    } finally {
+      setVerifying(false);
+    }
+  };
 
   const validate = () => {
     const next = {};
     if (!settings.name.trim()) next.name = 'Name is required.';
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(settings.email)) next.email = 'Enter a valid email.';
-    if (settings.newPassword || settings.confirmPassword || settings.currentPassword) {
-      if (settings.newPassword.length < 8) next.newPassword = 'Password must be at least 8 characters.';
+    if (unlockState.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(settings.email)) next.email = 'Enter a valid email.';
+    
+    if (unlockState.password) {
+      if (!settings.newPassword || settings.newPassword.length < 8) next.newPassword = 'Password must be at least 8 characters.';
       if (settings.newPassword !== settings.confirmPassword) next.confirmPassword = 'Passwords must match.';
     }
+    
     setErrors(next);
     return !Object.keys(next).length;
   };
 
-  const save = () => {
+  const save = async () => {
     if (!validate()) return;
-    addToast({ title: 'Settings saved', message: 'Admin settings were updated.' });
+    setSaving(true);
+    try {
+      await adminApi.updateSettings({
+        name: settings.name,
+        email: unlockState.email ? settings.email : undefined,
+        currentPassword: settings.currentPassword || undefined,
+        newPassword: unlockState.password ? settings.newPassword : undefined,
+      });
+      
+      addToast({ title: 'Settings saved', message: 'Admin profile was updated successfully.', type: 'success' });
+      
+      refreshUser();
+      
+      setSettings(prev => ({ ...prev, currentPassword: '', newPassword: '', confirmPassword: '' }));
+      setUnlockState({ email: false, password: false });
+    } catch (e) {
+      addToast({ title: 'Update failed', message: e?.response?.data?.message || 'Could not update settings.', type: 'error' });
+    } finally {
+      setSaving(false);
+    }
   };
+
+  const renderVerifyBlock = (targetName) => (
+    <div className="bg-surface-container-low p-6 rounded-xl border border-outline-variant shadow-sm mt-2">
+      <p className="font-h3 text-primary mb-2 flex items-center gap-2">
+        <span className="material-symbols-outlined text-[20px] text-secondary">lock</span>
+        Security Check Required
+      </p>
+      <p className="font-body-sm text-on-surface-variant mb-4">Please enter your current password to unlock {targetName} changes.</p>
+      <div className="flex flex-col sm:flex-row gap-3">
+        <input 
+          type="password" 
+          className="flex-1 bg-surface border border-outline-variant rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-secondary/30 focus:border-secondary" 
+          placeholder="Current password"
+          value={verifyInput}
+          onChange={(e) => setVerifyInput(e.target.value)}
+          onKeyDown={(e) => e.key === 'Enter' && confirmVerify()}
+        />
+        <div className="flex gap-2">
+          <button className={buttonSecondary} onClick={cancelVerify} disabled={verifying}>Cancel</button>
+          <button className={buttonPrimary} onClick={confirmVerify} disabled={verifying || !verifyInput}>
+            {verifying ? 'Verifying...' : 'Unlock'}
+          </button>
+        </div>
+      </div>
+      {verifyError && <p className="font-body-sm text-error mt-2 flex items-center gap-1"><span className="material-symbols-outlined text-[16px]">error</span>{verifyError}</p>}
+    </div>
+  );
 
   return (
     <>
       <AdminPageHeader
         eyebrow="Settings"
         title="Admin settings"
-        description="Manage admin profile, notifications, and security preferences."
+        description="Manage your admin profile and security preferences."
       />
-      <Section title="Admin profile">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-stack-md">
-          <Field error={errors.name} label="Name">
-            <TextInput onChange={(e) => update('name', e.target.value)} value={settings.name} />
-          </Field>
-          <Field error={errors.email} label="Email">
-            <TextInput onChange={(e) => update('email', e.target.value)} value={settings.email} />
-          </Field>
+      <div className="flex flex-col gap-8">
+        <Section title="Admin profile">
+          <div className="grid grid-cols-1 gap-6">
+            <Field error={errors.name} label="Name">
+              <TextInput onChange={(e) => update('name', e.target.value)} value={settings.name} />
+            </Field>
+            
+            <div>
+              <span className="font-label-md text-label-md text-primary block mb-1">Email Address</span>
+              {!unlockState.email ? (
+                verifyTarget === 'email' ? renderVerifyBlock('email') : (
+                  <div className="flex items-center justify-between bg-surface-container-low border border-outline-variant rounded-lg px-4 py-2.5">
+                    <span className="text-on-surface-variant font-body-md truncate">{user?.email}</span>
+                    <button onClick={() => startVerify('email')} className="text-secondary font-semibold text-sm hover:underline flex items-center gap-1">
+                      <span className="material-symbols-outlined text-[16px]">edit</span> Change
+                    </button>
+                  </div>
+                )
+              ) : (
+                <Field error={errors.email}>
+                  <TextInput type="email" onChange={(e) => update('email', e.target.value)} value={settings.email} />
+                </Field>
+              )}
+            </div>
+          </div>
+        </Section>
+        
+        <Section title="Security & Authentication">
+          {!unlockState.password ? (
+            verifyTarget === 'password' ? renderVerifyBlock('password') : (
+              <div>
+                <p className="text-on-surface-variant font-body-sm mb-4">Your password is securely hashed. You can update it at any time by verifying your current password.</p>
+                <button onClick={() => startVerify('password')} className={buttonSecondary}>
+                  <span className="material-symbols-outlined text-[20px]">key</span>
+                  Change Password
+                </button>
+              </div>
+            )
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <Field error={errors.newPassword} label="New Password">
+                <TextInput type="password" onChange={(e) => update('newPassword', e.target.value)} value={settings.newPassword} />
+              </Field>
+              <Field error={errors.confirmPassword} label="Confirm New Password">
+                <TextInput type="password" onChange={(e) => update('confirmPassword', e.target.value)} value={settings.confirmPassword} />
+              </Field>
+            </div>
+          )}
+        </Section>
+
+        <div className="flex justify-end pt-4 border-t border-outline-variant">
+          <button className={buttonPrimary} disabled={saving} onClick={save}>
+            <span className="material-symbols-outlined text-[20px]">save</span>
+            {saving ? 'Saving...' : 'Save Changes'}
+          </button>
         </div>
-      </Section>
-      <div className="flex justify-end">
-        <button className={buttonPrimary} onClick={save}>Save Changes</button>
       </div>
     </>
   );

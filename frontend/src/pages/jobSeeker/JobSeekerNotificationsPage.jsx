@@ -53,7 +53,10 @@ export default function JobSeekerNotificationsPage() {
   const getIconColor = (type) => {
     switch(type) {
       case 'application_update': return 'text-success bg-success-container';
+      case 'application_status_updated': return 'text-success bg-success-container';
+      case 'demo_application_update': return 'text-success bg-success-container';
       case 'job_alert': return 'text-secondary bg-secondary-container';
+      case 'demo_job_alert': return 'text-secondary bg-secondary-container';
       case 'message': return 'text-primary bg-primary-container';
       default: return 'text-on-surface-variant bg-surface-container-highest';
     }
@@ -92,7 +95,8 @@ export default function JobSeekerNotificationsPage() {
         ) : (
           <>
             {notifications.slice((page - 1) * itemsPerPage, page * itemsPerPage).map(n => {
-              const title = n.title || n.data?.title || 'Notification';
+              const title = n.title || n.data?.title || (n.data?.job_title ? `Application update: ${n.data.job_title}` : 'Notification');
+              const message = n.message || n.data?.message || (n.data?.new_status ? `Status changed to ${n.data.new_status}.` : '');
               const unread = !n.read_at;
               return (
                 <button
@@ -110,7 +114,7 @@ export default function JobSeekerNotificationsPage() {
                       <h3 className={`font-bold text-body-lg ${unread ? 'text-primary' : 'text-on-surface'}`}>{title}</h3>
                       <span className="text-label-sm text-on-surface-variant whitespace-nowrap ml-4">{n.time || new Date(n.created_at).toLocaleDateString()}</span>
                     </div>
-                    <p className="text-body-md text-on-surface-variant">{n.message || n.data?.message}</p>
+                    <p className="text-body-md text-on-surface-variant">{message}</p>
                   </div>
                   {unread && <div className="w-3 h-3 rounded-full bg-secondary shrink-0 mt-2" aria-hidden="true"></div>}
                 </button>
