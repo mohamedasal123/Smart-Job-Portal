@@ -72,6 +72,15 @@ export default function AdminLayout() {
     });
   };
 
+  const markAllNotificationsRead = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const dismissed = JSON.parse(localStorage.getItem('dismissed_notifications') || '[]');
+    const nextDismissed = [...new Set([...dismissed, ...recentActivities.map((activity) => activity.id)])];
+    localStorage.setItem('dismissed_notifications', JSON.stringify(nextDismissed));
+    setRecentActivities([]);
+  };
+
   const displayName = user?.name || 'Admin';
   const displayEmail = user?.email || 'admin@smartjobportal.local';
   const initials = displayName.split(' ').map((part) => part[0]).join('').slice(0, 2).toUpperCase();
@@ -135,9 +144,15 @@ export default function AdminLayout() {
               
               {isNotifOpen && (
                 <div className="absolute right-0 mt-2 w-80 bg-surface-container-lowest border border-outline-variant rounded-xl shadow-md overflow-hidden z-50">
-                  <div className="px-4 py-3 border-b border-outline-variant bg-surface-container-low flex justify-between items-center">
+                  <div className="px-4 py-3 border-b border-outline-variant bg-surface-container-low flex justify-between items-center gap-3">
                     <h3 className="font-h3 text-primary">Notifications</h3>
-                    <Link to={ROUTES.ADMIN_ACTIVITY_LOG} className="text-xs text-secondary hover:underline" onClick={() => setIsNotifOpen(false)}>View all</Link>
+                    <div className="flex items-center gap-2">
+                      <button className="inline-flex items-center gap-1 text-xs text-secondary hover:underline disabled:opacity-40" disabled={!recentActivities.length} onClick={markAllNotificationsRead} type="button">
+                        <span className="material-symbols-outlined text-[14px]">done_all</span>
+                        Mark all as read
+                      </button>
+                      <Link to={ROUTES.ADMIN_ACTIVITY_LOG} className="text-xs text-secondary hover:underline" onClick={() => setIsNotifOpen(false)}>View all</Link>
+                    </div>
                   </div>
                   <div className="max-h-[300px] overflow-y-auto">
                     {recentActivities.length > 0 ? recentActivities.map((act, i) => (

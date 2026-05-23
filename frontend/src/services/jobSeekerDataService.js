@@ -18,6 +18,8 @@ const unwrapItems = (response) => {
   return [];
 };
 
+const SEEKER_LOCAL_NOTIFICATIONS_KEY = 'seeker_local_notifications';
+
 // ─── Small utilities ──────────────────────────────────────────────────────────
 
 const parseJson = (value, fallback = {}) => {
@@ -51,22 +53,57 @@ const splitTextList = (value) => {
 };
 
 const parseSalaryRange = (salaryRange) => {
-  const numbers =
-    String(salaryRange || '')
-      .match(/\d[\d,]*/g)
-      ?.map((item) => Number(item.replace(/,/g, ''))) || [];
+  const salaryText = String(salaryRange || '');
+  const numbers = salaryText
+    .match(/\d[\d,]*(?:\.\d+)?\s*k?/gi)
+    ?.map((item) => {
+      const hasK = /k/i.test(item);
+      const number = Number(item.replace(/[^\d.]/g, ''));
+      return hasK ? number * 1000 : number;
+    }) || [];
 
   return {
     salaryMin: numbers[0] || null,
     salaryMax: numbers[1] || numbers[0] || null,
-    currency:  salaryRange
-      ? String(salaryRange).replace(/[\d,\s\-–]+/g, '').trim() || 'USD'
+    currency:  salaryText
+      ? salaryText.replace(/[\d,.\s\-–kK]+/g, '').trim() || 'USD'
       : 'USD',
   };
 };
 
-const skillCategory = (type) =>
-  type === 'soft' ? 'soft_skill' : 'technical';
+const TOOL_SKILL_NAMES = new Set([
+  'aws', 'azure', 'gcp', 'google cloud', 'docker', 'kubernetes', 'git', 'github', 'gitlab', 'bitbucket',
+  'figma', 'photoshop', 'illustrator', 'jira', 'trello', 'notion', 'slack', 'postman', 'vs code',
+  'visual studio code', 'webpack', 'vite', 'npm', 'yarn', 'mysql', 'postgresql', 'mongodb', 'redis',
+  'linux', 'excel', 'power bi', 'tableau', 'wordpress', 'shopify', 'salesforce', 'firebase', 'vercel',
+  'netlify', 'jenkins', 'terraform', 'ansible', 'nginx', 'apache', 'xampp', 'phpmyadmin',
+]);
+
+const skillCategory = (type, name = '') => {
+  const normalizedName = String(name).trim().toLowerCase();
+  if (type === 'tool' || TOOL_SKILL_NAMES.has(normalizedName)) return 'tool';
+  return type === 'soft' || type === 'soft_skill' ? 'soft_skill' : 'technical';
+};
+
+const skillTypeForCategory = (category) =>
+  category === 'soft_skill' ? 'soft' : 'technical';
+
+const readLocalNotifications = () => {
+  if (typeof window === 'undefined') return [];
+
+  try {
+    const parsed = JSON.parse(window.localStorage.getItem(SEEKER_LOCAL_NOTIFICATIONS_KEY) || '[]');
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+};
+
+const writeLocalNotifications = (notifications) => {
+  if (typeof window === 'undefined') return;
+  window.localStorage.setItem(SEEKER_LOCAL_NOTIFICATIONS_KEY, JSON.stringify(notifications));
+  window.dispatchEvent(new Event('notifications_updated'));
+};
 
 // ─── Normalizers ──────────────────────────────────────────────────────────────
 
@@ -77,29 +114,39 @@ const normalizeJob = (job = {}) => {
     .map((row) => row.skill?.name || row.skill_name || row.name)
     .filter(Boolean);
   const salary = parseSalaryRange(job.salary_range || job.salaryRange);
+  const salaryMin = Number(job.salary_min ?? job.salaryMin ?? salary.salaryMin);
+  const salaryMax = Number(job.salary_max ?? job.salaryMax ?? salary.salaryMax);
 
   return {
     id:               job.id,
     title:            job.title || 'Untitled job',
+    category:         job.category || 'Other',
     company:          company.company_name || company.name || 'Company',
+    companyId:        company.id || null,
     companyLogo:      company.logo_url || company.logo || '',
     location:         job.location || company.location || 'Remote',
     type:             job.job_type || job.type || 'full_time',
-    workMode:         job.job_type === 'remote' ? 'Remote' : 'On-site',
+    workMode:         job.work_mode || job.workMode || (job.job_type === 'remote' ? 'Remote' : 'On-site'),
     description:      job.description || '',
     responsibilities: splitTextList(job.responsibilities),
     requirements:     splitTextList(job.requirements),
     requiredSkills,
+    tags:             requiredSkills,
     postedAt:         job.created_at || job.postedAt || new Date().toISOString(),
     status:           job.status || (job.is_active === false ? 'paused' : 'active'),
     matchScore:       job.ai_score ? Number(job.ai_score) : undefined,
     applicationsCount: job.applications_count || job.applicationsCount || 0,
+    salary:           job.salary_range || job.salaryRange || '',
+    experienceLevel:  job.experience_level || job.experienceLevel || '',
+    education:        job.education || '',
     companyInfo: {
       description: company.description || '',
       website:     company.website     || '',
       employees:   company.employees   || '',
     },
-    ...salary,
+    salaryMin: Number.isFinite(salaryMin) && salaryMin > 0 ? salaryMin : null,
+    salaryMax: Number.isFinite(salaryMax) && salaryMax > 0 ? salaryMax : null,
+    currency:  job.currency || salary.currency,
   };
 };
 
@@ -146,12 +193,18 @@ const normalizeProfile = (profile = {}) => {
   const skills  = profile.job_seeker_skills || profile.skills || [];
 
   const completedFields = [
-    user.name,
+    user.name || contact.firstName || contact.lastName,
     contact.title,
-    profile.address,
+    contact.email || user.email,
+    profile.address || contact.location,
     contact.bio,
-    profile.phone,
+    profile.phone || contact.phone,
+    contact.expectedSalary,
+    contact.portfolio || contact.linkedin,
+    profile.education_level,
+    profile.years_of_experience,
     profile.resume_file_url,
+    skills.length,
   ].filter(Boolean).length;
 
   return {
@@ -163,12 +216,14 @@ const normalizeProfile = (profile = {}) => {
     phone:              profile.phone     || contact.phone    || '',
     location:           profile.address   || contact.location || '',
     bio:                contact.bio       || '',
+    avatar:             contact.avatar    || '',
+    coverImage:         contact.coverImage || '',
     expectedSalary:     contact.expectedSalary || '',
     portfolio:          contact.portfolio || '',
     linkedin:           contact.linkedin  || '',
     educationLevel:     profile.education_level    || '',
     yearsOfExperience:  profile.years_of_experience || '',
-    completionPercentage: Math.round((completedFields / 6) * 100),
+    completionPercentage: Math.round((completedFields / 12) * 100),
     cvFile: profile.resume_file_url
       ? {
           name:       String(profile.resume_file_url).split('/').pop(),
@@ -183,8 +238,45 @@ const normalizeProfile = (profile = {}) => {
 const normalizeSkill = (skill, source = 'manual') => ({
   id:       skill.id    || skill.skill_id,
   name:     skill.name  || skill.skill?.name || 'Unnamed skill',
-  category: skill.category || skillCategory(skill.type || skill.skill?.type),
+  category: skill.category || skillCategory(skill.type || skill.skill?.type, skill.name || skill.skill?.name),
   source:   source === 'cv' ? 'cv_parsed' : source,
+});
+
+const normalizeNotification = (notification = {}) => {
+  const data = notification.data || {};
+  const readAt = notification.read_at || (notification.read ? notification.read_at || notification.created_at || new Date().toISOString() : null);
+  const legacyMessageMatch = String(notification.message || data.message || '').match(/^(.+?) sent you a message\.?$/i);
+  const type = notification.type || data.type || 'notification';
+  const legacyMessageSender = legacyMessageMatch?.[1];
+  const title = notification.title || data.title || 'Notification';
+  const isGenericMessageTitle = type === 'message_received' && ['New message received', 'Notification'].includes(title);
+
+  return {
+    ...notification,
+    id: notification.id,
+    type,
+    title: isGenericMessageTitle
+      ? (data.company_name || data.sender_name || legacyMessageSender || 'New message')
+      : title,
+    message: data.message_preview || notification.message || data.message || (legacyMessageSender ? 'Open the conversation to view the message.' : ''),
+    read: Boolean(readAt),
+    read_at: readAt,
+    created_at: notification.created_at || new Date().toISOString(),
+    data,
+  };
+};
+
+const normalizeConversation = (conversation = {}) => ({
+  id: conversation.id || `conv-${conversation.other_user_id || 'user'}-${conversation.job_id || 'general'}`,
+  other_user_id: conversation.other_user_id,
+  company: conversation.company || conversation.contact || 'Company',
+  contact: conversation.contact || conversation.company || 'Recruiter',
+  role: conversation.role || 'General conversation',
+  job_id: conversation.job_id || null,
+  last_message: conversation.last_message || '',
+  time: conversation.time || '',
+  unread: Boolean(conversation.unread),
+  status: conversation.status || 'Active',
 });
 
 const normalizeParsedProfile = (data, meta = {}) => {
@@ -326,7 +418,9 @@ export const getJobs = async (filters = {}) => {
   const query = {
     keyword:  filters.search,
     location: filters.location,
-    job_type: filters.type !== 'all' ? filters.type : undefined,
+    job_type: filters.type && filters.type !== 'all' ? filters.type : undefined,
+    category: filters.category || undefined,
+    experience_level: Array.isArray(filters.experienceLevels) ? filters.experienceLevels.join(',') : filters.experienceLevel,
   };
 
   return unwrapItems(await jobsService.listJobs(query)).map(normalizeJob);
@@ -364,6 +458,11 @@ export const getRecommendedJobs = async (filters = {}) => {
 
 export const getJobById = async (id) => {
   return normalizeJob(unwrap(await jobsService.getJob(id)));
+};
+
+export const trackJobView = async (jobId) => {
+  const { apiRequest } = await import('../api/httpClient');
+  return unwrap(await apiRequest(`/jobs/${jobId}/view`, { method: 'POST' }));
 };
 
 export const getApplications = async (filters = {}) => {
@@ -406,6 +505,14 @@ export const updateProfile = async (profileData) => {
   };
 };
 
+export const uploadProfileMedia = async (type, file) => {
+  const { apiRequest } = await import('../api/httpClient');
+  const form = new FormData();
+  form.append('image', file);
+  const endpoint = type === 'cover' ? '/profile/cover' : '/profile/avatar';
+  return unwrap(await apiRequest(endpoint, { method: 'POST', body: form }));
+};
+
 export const getSkills = async () => {
   const profile   = unwrap(await profileService.getProfile());
   const skillRows = profile.job_seeker_skills || [];
@@ -426,14 +533,21 @@ export const getSuggestedSkills = async () => {
 };
 
 export const addSkill = async (skillData) => {
-  const skillId = typeof skillData === 'object' ? skillData.id : skillData;
+  const payload = typeof skillData === 'object'
+    ? {
+        ...skillData,
+        type: skillData.type || skillTypeForCategory(skillData.category),
+      }
+    : skillData;
+  const response = await seekerService.addSkill(payload);
+  const createdSkill = normalizeSkill(unwrap(response), 'manual');
 
-  if (!skillId || String(skillId).startsWith('sk-')) {
-    throw new Error('Select an existing suggested skill before adding it.');
-  }
-
-  await seekerService.addSkill(skillId);
-  return { success: true, data: skillData };
+  return {
+    success: true,
+    data: typeof skillData === 'object'
+      ? { ...createdSkill, category: skillData.category || createdSkill.category }
+      : createdSkill,
+  };
 };
 
 export const removeSkill = async (skillId) => {
@@ -442,13 +556,36 @@ export const removeSkill = async (skillId) => {
 };
 
 export const getNotifications = async () => {
-  // Notifications are fetched via the NotificationController endpoint
   const { apiRequest } = await import('../api/httpClient');
   const envelope = await apiRequest('/notifications');
-  return unwrapItems(envelope);
+  const remote = unwrapItems(envelope).map(normalizeNotification);
+  const local = readLocalNotifications().map(normalizeNotification);
+
+  return [...local, ...remote].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+};
+
+export const addLocalNotification = (notification) => {
+  const nextNotification = normalizeNotification({
+    id: `seeker-loc-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    created_at: new Date().toISOString(),
+    read_at: null,
+    read: false,
+    data: {},
+    ...notification,
+  });
+  writeLocalNotifications([nextNotification, ...readLocalNotifications()]);
+  return nextNotification;
 };
 
 export const markNotificationRead = async (id) => {
+  if (String(id).startsWith('seeker-loc-')) {
+    const now = new Date().toISOString();
+    writeLocalNotifications(readLocalNotifications().map((notification) => (
+      notification.id === id ? { ...notification, read_at: now, read: true } : notification
+    )));
+    return { success: true };
+  }
+
   const { apiRequest } = await import('../api/httpClient');
   await apiRequest(`/notifications/${id}/read`, { method: 'PATCH' });
   return { success: true };
@@ -456,13 +593,59 @@ export const markNotificationRead = async (id) => {
 
 export const markAllNotificationsRead = async () => {
   const { apiRequest } = await import('../api/httpClient');
+  const now = new Date().toISOString();
+  writeLocalNotifications(readLocalNotifications().map((notification) => ({
+    ...notification,
+    read_at: now,
+    read: true,
+  })));
   await apiRequest('/notifications/read-all', { method: 'POST' });
   return { success: true };
 };
 
-export const getMessages = async () => [];   // No messages endpoint in backend yet
+export const getMessages = async () => {
+  const { apiRequest } = await import('../api/httpClient');
+  return unwrapItems(await apiRequest('/messages')).map(normalizeConversation);
+};
+
+export const getConversation = async (userId, jobId) => {
+  const { apiRequest } = await import('../api/httpClient');
+  return unwrapItems(await apiRequest(`/messages/${userId}`, { query: { job_id: jobId || undefined } }));
+};
+
+export const sendMessage = async (receiverId, content, jobId, metadata) => {
+  const { apiRequest } = await import('../api/httpClient');
+  const response = await apiRequest('/messages', {
+    method: 'POST',
+    body: {
+      receiver_id: receiverId,
+      content,
+      job_id: jobId || null,
+      metadata,
+    },
+  });
+
+  return unwrap(response);
+};
+
+export const markMessagesRead = async (userId) => {
+  const { apiRequest } = await import('../api/httpClient');
+  await apiRequest(`/messages/${userId}/read`, { method: 'PATCH' });
+  return { success: true };
+};
+
+export const deleteConversation = async (userId, jobId) => {
+  const { apiRequest } = await import('../api/httpClient');
+  await apiRequest(`/messages/${userId}`, { method: 'DELETE', query: { job_id: jobId || undefined } });
+  return { success: true };
+};
+
+export const verifyPassword = async (password) => {
+  const { apiRequest } = await import('../api/httpClient');
+  return apiRequest('/profile/verify-password', { method: 'POST', body: { password } });
+};
 
 export const updateSettings = async (settingsData) => {
-  // Delegated to profileService.updateProfile for account-level settings
-  return profileService.updateProfile(settingsData);
+  const { apiRequest } = await import('../api/httpClient');
+  return apiRequest('/profile/settings', { method: 'PUT', body: settingsData });
 };

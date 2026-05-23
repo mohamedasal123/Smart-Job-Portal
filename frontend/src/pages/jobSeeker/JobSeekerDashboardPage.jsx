@@ -59,12 +59,12 @@ export default function JobSeekerDashboardPage() {
       />
 
       {/* CV Upload / Status Card */}
-      <section className="bg-surface-container-lowest rounded-xl p-stack-lg shadow-sm border border-outline-variant flex flex-col md:flex-row items-center justify-between gap-4">
+      <section className="bg-surface-container-lowest rounded-xl p-stack-lg shadow-ambient border border-outline-variant flex flex-col md:flex-row items-center justify-between gap-4">
         {data.profile.cvFile ? (
           <>
             <div className="flex items-center gap-4">
-              <div className="bg-secondary-container/20 p-3 rounded-full text-secondary">
-                <span className="material-symbols-outlined text-[32px]">task</span>
+              <div className="w-10 h-10 rounded-full bg-secondary-container/20 text-secondary flex items-center justify-center shrink-0">
+                <span className="material-symbols-outlined">task</span>
               </div>
               <div>
                 <h3 className="font-h3 text-h3 text-primary mb-1">CV Uploaded Successfully</h3>
@@ -78,10 +78,10 @@ export default function JobSeekerDashboardPage() {
               </div>
             </div>
             <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
-              <Link to="/seeker/cv-upload" className="w-full sm:w-auto px-4 py-2 border border-outline-variant text-on-surface rounded-lg font-label-md hover:bg-surface-container-low transition-colors text-center">
+              <Link to="/seeker/cv-upload" className="w-full sm:w-auto inline-flex items-center justify-center gap-unit border border-outline-variant text-primary px-stack-md py-stack-sm rounded-lg font-h3 text-h3 hover:bg-surface-container-low transition-colors">
                 Re-upload CV
               </Link>
-              <Link to="/seeker/cv-review" className="w-full sm:w-auto px-4 py-2 bg-secondary text-on-secondary rounded-lg font-label-md hover:bg-secondary-container transition-colors shadow-sm text-center">
+              <Link to="/seeker/cv-review" className="w-full sm:w-auto inline-flex items-center justify-center gap-unit bg-secondary text-on-secondary px-stack-md py-stack-sm rounded-lg font-h3 text-h3 shadow-sm hover:opacity-90 transition-opacity">
                 Review Extracted Data
               </Link>
             </div>
@@ -89,8 +89,8 @@ export default function JobSeekerDashboardPage() {
         ) : (
           <>
             <div className="flex items-center gap-4">
-              <div className="bg-error-container/20 p-3 rounded-full text-error">
-                <span className="material-symbols-outlined text-[32px]">upload_file</span>
+              <div className="w-10 h-10 rounded-full bg-error-container/20 text-error flex items-center justify-center shrink-0">
+                <span className="material-symbols-outlined">upload_file</span>
               </div>
               <div>
                 <h3 className="font-h3 text-h3 text-primary mb-1">Upload your CV</h3>
@@ -100,7 +100,7 @@ export default function JobSeekerDashboardPage() {
               </div>
             </div>
             <div className="w-full md:w-auto">
-              <Link to="/seeker/cv-upload" className="w-full sm:w-auto justify-center px-6 py-2 bg-secondary text-on-secondary rounded-lg font-label-md hover:bg-secondary-container transition-colors shadow-sm flex items-center gap-2">
+              <Link to="/seeker/cv-upload" className="w-full sm:w-auto inline-flex items-center justify-center gap-unit bg-secondary text-on-secondary px-stack-md py-stack-sm rounded-lg font-h3 text-h3 shadow-sm hover:opacity-90 transition-opacity">
                 <span className="material-symbols-outlined text-[18px]">upload</span> Upload CV
               </Link>
             </div>
@@ -114,7 +114,7 @@ export default function JobSeekerDashboardPage() {
             title="Applied"
             value={data.stats.totalApplications}
             icon="send"
-            onClick={() => navigate(ROUTES.SEEKER_APPLICATIONS)}
+            onClick={() => navigate(`${ROUTES.SEEKER_PROFILE}#applications`)}
           />
         </Stagger.Item>
         <Stagger.Item>
@@ -122,7 +122,7 @@ export default function JobSeekerDashboardPage() {
             title="Under Review"
             value={data.stats.underReviewCount}
             icon="visibility"
-            onClick={() => navigate(ROUTES.SEEKER_APPLICATIONS)}
+            onClick={() => navigate(`${ROUTES.SEEKER_PROFILE}#applications`)}
           />
         </Stagger.Item>
         <Stagger.Item>
@@ -130,7 +130,7 @@ export default function JobSeekerDashboardPage() {
             title="Shortlisted"
             value={data.stats.shortlistedCount}
             icon="stars"
-            onClick={() => navigate(ROUTES.SEEKER_APPLICATIONS)}
+            onClick={() => navigate(`${ROUTES.SEEKER_PROFILE}#applications`)}
           />
         </Stagger.Item>
         <Stagger.Item>
@@ -138,7 +138,7 @@ export default function JobSeekerDashboardPage() {
             title="Profile Skills"
             value={data.skillsCount}
             icon="psychology"
-            onClick={() => navigate(ROUTES.SEEKER_SKILLS)}
+            onClick={() => navigate(`${ROUTES.SEEKER_PROFILE}#skills`)}
           />
         </Stagger.Item>
       </Stagger>
@@ -170,7 +170,7 @@ export default function JobSeekerDashboardPage() {
         <section className="space-y-stack-md min-w-0">
           <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
             <h2 className="font-h2 text-h2 text-primary truncate">Recent Applications</h2>
-            <Link className="font-label-sm text-label-sm text-secondary hover:underline whitespace-nowrap" to={ROUTES.SEEKER_APPLICATIONS}>
+            <Link className="font-label-sm text-label-sm text-secondary hover:underline whitespace-nowrap" to={`${ROUTES.SEEKER_PROFILE}#applications`}>
               View all
             </Link>
           </div>
@@ -189,19 +189,6 @@ export default function JobSeekerDashboardPage() {
             )}
           </Stagger>
           
-          <div className="bg-surface-container-lowest rounded-xl p-stack-lg shadow-[0px_4px_20px_rgba(15,23,42,0.05)] mt-stack-lg">
-            <h3 className="font-h3 text-h3 text-primary mb-stack-md">Quick Actions</h3>
-            <div className="grid grid-cols-2 gap-3">
-              <Link to="/seeker/profile" className="flex flex-col items-center justify-center p-4 rounded-lg border border-outline-variant hover:border-secondary hover:bg-surface-container-low transition-all group">
-                <span className="material-symbols-outlined text-on-surface-variant group-hover:text-secondary mb-2">person</span>
-                <span className="font-label-sm text-label-sm text-primary text-center">View Profile</span>
-              </Link>
-              <Link to="/seeker/profile/edit" className="flex flex-col items-center justify-center p-4 rounded-lg border border-outline-variant hover:border-secondary hover:bg-surface-container-low transition-all group">
-                <span className="material-symbols-outlined text-on-surface-variant group-hover:text-secondary mb-2">edit_document</span>
-                <span className="font-label-sm text-label-sm text-primary text-center">Edit Profile</span>
-              </Link>
-            </div>
-          </div>
         </section>
       </div>
     </div>

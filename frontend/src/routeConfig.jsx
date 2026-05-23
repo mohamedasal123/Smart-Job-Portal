@@ -24,6 +24,7 @@ import JobSeekerDashboardPage from './pages/jobSeeker/JobSeekerDashboardPage.jsx
 import JobSeekerEditProfilePage from './pages/jobSeeker/JobSeekerEditProfilePage.jsx';
 import JobSeekerJobDetailsPage from './pages/jobSeeker/JobSeekerJobDetailsPage.jsx';
 import JobSeekerJobSearchPage from './pages/jobSeeker/JobSeekerJobSearchPage.jsx';
+import JobSeekerInterviewsPage from './pages/jobSeeker/JobSeekerInterviewsPage.jsx';
 import JobSeekerSavedJobsPage from './pages/jobSeeker/JobSeekerSavedJobsPage.jsx';
 import JobSeekerApplicationsPage from './pages/jobSeeker/JobSeekerApplicationsPage.jsx';
 import JobSeekerSkillsPage from './pages/jobSeeker/JobSeekerSkillsPage.jsx';
@@ -91,6 +92,7 @@ export const appRoutes = [
   { path: '/seeker/profile/edit', element: <JobSeekerEditProfilePage />, roles: ['job_seeker'] },
   { path: '/seeker/jobs/:jobId', element: <JobSeekerJobDetailsPage />, roles: ['job_seeker'] },
   { path: '/seeker/jobs', element: <JobSeekerJobSearchPage />, roles: ['job_seeker'] },
+  { path: '/seeker/interviews', element: <JobSeekerInterviewsPage />, roles: ['job_seeker'] },
   { path: '/seeker/saved-jobs', element: <JobSeekerSavedJobsPage />, roles: ['job_seeker'] },
   { path: '/seeker/applications', element: <JobSeekerApplicationsPage />, roles: ['job_seeker'] },
   { path: '/seeker/skills', element: <JobSeekerSkillsPage />, roles: ['job_seeker'] },

@@ -3,6 +3,7 @@ import { Link, useParams, useNavigate } from 'react-router-dom';
 import PublicNavBar from '../../components/PublicNavBar';
 import { ROUTES } from '../../utils/constants';
 import { getPublicJobById } from '../../services/publicDataService';
+import { isJobSaved, toggleSavedJob, trackJobView } from '../../services/jobSeekerDataService';
 import { adminApi } from '../../api/adminApi';
 import { useAuth } from '../../context/useAuth';
 
@@ -13,8 +14,11 @@ export default function PublicJobDetailsPage() {
   const navigate = useNavigate();
   const [job, setJob] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [saved, setSaved] = useState(false);
+  const [saving, setSaving] = useState(false);
   const { user } = useAuth();
   const isAdmin = user?.role === 'admin';
+  const isJobSeeker = user?.role === 'job_seeker';
   const isOwner = user?.role === 'company' && String(user.profile?.id) === String(job?.companyId);
 
   useEffect(() => {
@@ -22,6 +26,10 @@ export default function PublicJobDetailsPage() {
       try {
         const data = await getPublicJobById(jobId);
         setJob(data);
+        if (user?.role === 'job_seeker') {
+          trackJobView(jobId).catch(console.error);
+          setSaved(await isJobSaved(jobId));
+        }
       } catch (err) { 
         console.error(err); 
       } finally { 
@@ -29,7 +37,17 @@ export default function PublicJobDetailsPage() {
       }
     };
     fetchJob();
-  }, [jobId]);
+  }, [jobId, user?.role]);
+
+  const salaryText = (() => {
+    const min = Number(job?.salaryMin || 0);
+    const max = Number(job?.salaryMax || 0);
+    const currency = job?.currency === 'USD' || !job?.currency ? '$' : job.currency;
+
+    if (!min && !max) return '';
+    if (min && max) return `${Math.round(min / 1000)}K ${currency} - ${Math.round(max / 1000)}K ${currency}`;
+    return `${Math.round((min || max) / 1000)}K ${currency}`;
+  })();
 
   const handleApplyClick = () => {
     // Login-to-apply flow
@@ -44,6 +62,21 @@ export default function PublicJobDetailsPage() {
       navigate(ROUTES.JOBS);
     } catch (err) {
       alert('Failed to force delete job');
+    }
+  };
+
+  const handleSave = async () => {
+    if (!isJobSeeker) {
+      navigate(ROUTES.LOGIN, { state: { from: { pathname: `/jobs/${jobId}` } } });
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const result = await toggleSavedJob(job.id);
+      setSaved(result.isSaved);
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -103,7 +136,7 @@ export default function PublicJobDetailsPage() {
         </div>
       )}
 
-      <main className="flex-grow w-full max-w-5xl mx-auto px-margin-desktop py-12 flex flex-col gap-8">
+      <main className="flex-grow w-full max-w-7xl mx-auto px-gutter lg:px-margin-desktop py-12 flex flex-col gap-8">
         <nav className="flex items-center gap-2 text-on-surface-variant font-body-md">
           <Link className="hover:text-secondary transition-colors" to={ROUTES.JOBS}>Jobs</Link>
           <span className="material-symbols-outlined text-[16px]">chevron_right</span>
@@ -129,14 +162,22 @@ export default function PublicJobDetailsPage() {
               <div className="flex flex-wrap items-center gap-stack-md mt-2">
                 <div className="flex items-center gap-1 text-on-surface-variant font-body-md"><span className="material-symbols-outlined text-[18px]">location_on</span> {job.location} ({job.workMode})</div>
                 <div className="w-1 h-1 rounded-full bg-outline-variant" />
-                <div className="flex items-center gap-1 text-on-surface-variant font-body-md"><span className="material-symbols-outlined text-[18px]">payments</span> {job.currency} {job.salaryMin?.toLocaleString() || 0} - {job.salaryMax?.toLocaleString() || 0}</div>
-                <div className="w-1 h-1 rounded-full bg-outline-variant" />
+                {salaryText && (
+                  <>
+                    <div className="flex items-center gap-1 text-on-surface-variant font-body-md"><span className="material-symbols-outlined text-[18px]">payments</span> {salaryText}</div>
+                    <div className="w-1 h-1 rounded-full bg-outline-variant" />
+                  </>
+                )}
                 <div className="flex items-center gap-1 text-on-surface-variant font-body-md"><span className="material-symbols-outlined text-[18px]">schedule</span> {job.type?.replace('_', '-')}</div>
               </div>
               
               <div className="flex flex-wrap items-center gap-stack-md mt-4 pt-4 border-t border-surface-variant">
                 <button className="bg-secondary text-on-secondary font-body-lg font-bold py-3 px-8 rounded-lg flex items-center gap-2 hover:bg-secondary-container transition-colors" onClick={handleApplyClick}>
                   Log in to Apply <span className="material-symbols-outlined">login</span>
+                </button>
+                <button className={`border border-outline-variant font-body-lg font-bold py-3 px-5 rounded-lg flex items-center gap-2 transition-colors ${saved ? 'bg-secondary-container text-on-secondary-container' : 'bg-surface text-primary hover:border-secondary hover:text-secondary'}`} disabled={saving} onClick={handleSave} type="button">
+                  <span className="material-symbols-outlined">{saved ? 'bookmark' : 'bookmark_add'}</span>
+                  {saved ? 'Saved' : 'Save Job'}
                 </button>
               </div>
             </div>
@@ -190,7 +231,8 @@ export default function PublicJobDetailsPage() {
                 {job.companyInfo?.website && <div className="flex items-center gap-2 text-on-surface-variant font-body-sm"><span className="material-symbols-outlined text-[16px]">link</span> {job.companyInfo.website}</div>}
               </div>
               {job.companyId && (
-                <Link to={`/companies/${job.companyId}`} className="text-secondary font-bold mt-2 hover:underline">
+                <Link to={`/companies/${job.companyId}`} className="inline-flex items-center justify-center gap-2 rounded-lg bg-secondary px-4 py-2 font-label-md text-on-secondary hover:opacity-90 mt-2">
+                  <span className="material-symbols-outlined text-[18px]">domain</span>
                   View Company Profile
                 </Link>
               )}

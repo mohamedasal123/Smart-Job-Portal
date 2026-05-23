@@ -14,7 +14,7 @@ const MatchScoreBadge = ({
 
   if (score >= 85) {
     config = {
-      color: 'text-green-600 bg-green-50 border-green-200',
+      color: 'text-success bg-success-container/30 border-success/30',
       label: 'Strong Match',
       icon: 'verified'
     };
@@ -26,7 +26,7 @@ const MatchScoreBadge = ({
     };
   } else if (score >= 50) {
     config = {
-      color: 'text-amber-600 bg-amber-50 border-amber-200',
+      color: 'text-warning bg-warning/10 border-warning/30',
       label: 'Fair Match',
       icon: 'trending_up'
     };

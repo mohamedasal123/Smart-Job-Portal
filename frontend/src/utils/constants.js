@@ -20,6 +20,7 @@ export const ROUTES = {
   SEEKER_RECOMMENDED_JOBS: '/seeker/recommended-jobs',
   SEEKER_SAVED_JOBS: '/seeker/saved-jobs',
   SEEKER_APPLICATIONS: '/seeker/applications',
+  SEEKER_INTERVIEWS: '/seeker/interviews',
   SEEKER_PROFILE: '/seeker/profile',
   SEEKER_SKILLS: '/seeker/skills',
   SEEKER_MESSAGES: '/seeker/messages',

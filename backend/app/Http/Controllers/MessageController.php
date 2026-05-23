@@ -6,8 +6,10 @@ use App\Models\Message;
 use App\Models\Notification;
 use App\Models\User;
 use App\Traits\ApiResponse;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class MessageController extends Controller
 {
@@ -92,12 +94,18 @@ class MessageController extends Controller
             $query->where('job_id', $jobId);
         }
 
-        $messages = $query->orderBy('created_at', 'asc')->get();
+        $messages = $query->with(['sender.companyProfile'])->orderBy('created_at', 'asc')->get();
 
         $formatted = $messages->map(function ($msg) use ($userId) {
+            $senderName = $msg->sender_id === $userId
+                ? 'You'
+                : ($msg->sender->role === 'company' && $msg->sender->companyProfile
+                    ? $msg->sender->companyProfile->company_name
+                    : $msg->sender->name);
+
             return [
                 'id' => $msg->id,
-                'from' => $msg->sender_id === $userId ? 'You' : $msg->sender->name,
+                'from' => $senderName,
                 'text' => $msg->content,
                 'created_at' => $msg->created_at,
             ];
@@ -112,6 +120,8 @@ class MessageController extends Controller
             'receiver_id' => 'required|exists:users,id',
             'content' => 'required|string',
             'job_id' => 'nullable|exists:job_posts,id',
+            'metadata' => 'sometimes|array',
+            'metadata.interview_at' => 'sometimes|date',
         ]);
 
         $message = Message::create([
@@ -121,16 +131,43 @@ class MessageController extends Controller
             'content' => $request->content,
         ]);
 
+        $message->loadMissing('jobPost.companyProfile');
+
+        $sender = $request->user()->loadMissing('companyProfile');
+        $senderName = $sender->role === 'company' && $sender->companyProfile
+            ? $sender->companyProfile->company_name
+            : $sender->name;
+        $jobTitle = $message->jobPost?->title;
+        $messagePreview = Str::limit($request->content, 160);
+        $interviewAt = $request->input('metadata.interview_at');
+        $looksLikeInterviewSchedule = Str::contains(Str::lower($request->content), 'interview scheduled');
+        $isInterviewSchedule = filled($interviewAt) || $looksLikeInterviewSchedule;
+        $formattedInterviewAt = $interviewAt ? Carbon::parse($interviewAt)->toDayDateTimeString() : null;
+        $notificationData = [
+            'title' => $isInterviewSchedule ? 'Interview scheduled with ' . $senderName : 'Message from ' . $senderName,
+            'message' => $isInterviewSchedule
+                ? ($formattedInterviewAt
+                    ? trim(($jobTitle ? 'Interview for ' . $jobTitle . ' on ' : 'Interview on ') . $formattedInterviewAt . '.')
+                    : $messagePreview)
+                : $messagePreview,
+            'message_preview' => $messagePreview,
+            'sender_id' => $request->user()->id,
+            'sender_name' => $senderName,
+            'company_name' => $sender->companyProfile?->company_name,
+            'job_id' => $request->job_id,
+            'job_title' => $jobTitle,
+            'message_id' => $message->id,
+        ];
+
+        if ($interviewAt) {
+            $notificationData['interview_at'] = $interviewAt;
+            $notificationData['formatted_interview_at'] = $formattedInterviewAt;
+        }
+
         Notification::create([
             'user_id' => $request->receiver_id,
-            'type' => 'message_received',
-            'data' => [
-                'title' => 'New message received',
-                'message' => $request->user()->name . ' sent you a message.',
-                'sender_id' => $request->user()->id,
-                'job_id' => $request->job_id,
-                'message_id' => $message->id,
-            ],
+            'type' => $isInterviewSchedule ? 'interview_scheduled' : 'message_received',
+            'data' => $notificationData,
             'created_at' => now(),
         ]);
 

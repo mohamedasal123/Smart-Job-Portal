@@ -2,30 +2,29 @@ import { Link } from 'react-router-dom';
 
 export default function SeekerPageHeader({ title, subtitle, actionLabel, actionTo, actionOnClick, icon }) {
   return (
-    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-stack-lg border-b border-outline-variant pb-stack-md">
-      <div className="flex items-center gap-3">
+    <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between mb-8 pb-6 border-b border-outline-variant">
+      <div className="flex-1">
         {icon && (
-          <div className="w-12 h-12 rounded-xl bg-secondary-container text-on-secondary-container flex items-center justify-center">
-            <span className="material-symbols-outlined text-[24px]">{icon}</span>
-          </div>
+          <p className="inline-flex items-center gap-unit font-label-sm text-label-sm uppercase tracking-wider text-secondary mb-2">
+            <span className="material-symbols-outlined text-[18px]">{icon}</span>
+            Job Seeker
+          </p>
         )}
-        <div>
-          <h1 className="font-h1 text-h1 text-primary">{title}</h1>
-          {subtitle && <p className="font-body-md text-body-md text-on-surface-variant mt-1">{subtitle}</p>}
-        </div>
+        <h1 className="font-h1 text-h1 text-primary break-words">{title}</h1>
+        {subtitle && <p className="font-body-lg text-body-lg text-on-surface-variant mt-3 max-w-3xl break-words">{subtitle}</p>}
       </div>
       {(actionLabel && (actionTo || actionOnClick)) && (
         actionTo ? (
           <Link
             to={actionTo}
-            className="inline-flex items-center justify-center w-full sm:w-auto px-6 py-2.5 rounded-lg font-label-md bg-secondary text-on-secondary hover:bg-secondary-container transition-all hover:-translate-y-0.5 shadow-sm"
+            className="inline-flex items-center justify-center w-full sm:w-auto gap-unit bg-secondary text-on-secondary px-stack-md py-stack-sm rounded-lg font-h3 text-h3 shadow-sm hover:opacity-90 transition-opacity"
           >
             {actionLabel}
           </Link>
         ) : (
           <button
             onClick={actionOnClick}
-            className="inline-flex items-center justify-center w-full sm:w-auto px-6 py-2.5 rounded-lg font-label-md bg-secondary text-on-secondary hover:bg-secondary-container transition-all hover:-translate-y-0.5 shadow-sm"
+            className="inline-flex items-center justify-center w-full sm:w-auto gap-unit bg-secondary text-on-secondary px-stack-md py-stack-sm rounded-lg font-h3 text-h3 shadow-sm hover:opacity-90 transition-opacity"
           >
             {actionLabel}
           </button>

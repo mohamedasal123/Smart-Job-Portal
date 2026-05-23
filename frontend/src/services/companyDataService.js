@@ -57,7 +57,7 @@ const normalizeApplicant = (app) => {
   }
   const profile = applicant.job_seeker_profile || {};
   const user = profile.user || {};
-  let contact = {};
+  let contact;
   try {
     contact = typeof profile.contact_information === 'string' ? JSON.parse(profile.contact_information) : (profile.contact_information || {});
   } catch {
@@ -120,6 +120,7 @@ export const addLocalNotification = (notification) => {
     ...notification,
   });
   localStorage.setItem('local_notifications', JSON.stringify(local));
+  window.dispatchEvent(new Event('notifications_updated'));
 };
 
 // Make it available globally for timers outside react component scope
@@ -280,6 +281,7 @@ async updateCompanyProfile(payload) {
       message: n.data?.message || '',
       sender_id: n.data?.sender_id,
       job_id: n.data?.job_id,
+      application_id: n.data?.application_id,
       read: !!n.read_at,
       read_at: n.read_at,
       created_at: n.created_at,
@@ -338,11 +340,11 @@ async updateCompanyProfile(payload) {
     return true;
   },
 
-  async sendCompanyMessage(receiverId, content, jobId) {
+  async sendCompanyMessage(receiverId, content, jobId, metadata) {
     const { apiRequest } = await import('../api/httpClient');
     const res = await apiRequest('/messages', {
       method: 'POST',
-      body: { receiver_id: receiverId, content, job_id: jobId },
+      body: { receiver_id: receiverId, content, job_id: jobId, metadata },
     });
     return res?.data;
   }

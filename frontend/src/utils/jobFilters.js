@@ -1,19 +1,24 @@
 const normalize = (value) => String(value || '').trim().toLowerCase();
 
 const EXPERIENCE_GROUPS = {
+  internship: ['internship', 'intern'],
   entry: ['entry', 'junior', 'entry level', '0-1', '0-2'],
   mid: ['mid', 'intermediate', '2-4', '3-5'],
   senior: ['senior', '5+', '5-8'],
-  lead: ['lead', 'principal', 'staff', '8+'],
+  lead: ['lead', 'manager', 'principal', 'staff', '8+'],
   executive: ['executive', 'director', 'head', 'vp', 'c-level'],
 };
 
 const EXPERIENCE_LABELS = {
+  Internship: 'internship',
   'Entry Level': 'entry',
+  'Entry Level / Junior': 'entry',
   'Mid Level': 'mid',
   Senior: 'senior',
   Lead: 'lead',
+  'Lead / Manager': 'lead',
   Executive: 'executive',
+  'Director / Executive': 'executive',
 };
 
 const TYPE_ALIASES = {
@@ -70,12 +75,12 @@ export const parseSalaryRange = (job) => {
 export const matchesExperienceLevel = (job, selectedLevels = []) => {
   if (!selectedLevels.length) return true;
 
-  const jobLevel = normalizeExperienceLevel(job.experienceLevel || job.level || '');
+  const jobLevel = normalizeExperienceLevel(job.experienceLevel || job.experience_level || job.level || '');
   const normalizedSelected = selectedLevels.map(normalizeExperienceLevel);
 
   return normalizedSelected.some((selected) => {
     if (jobLevel === selected) return true;
-    const rawLevel = normalize(job.experienceLevel || job.level || '');
+    const rawLevel = normalize(job.experienceLevel || job.experience_level || job.level || '');
     return EXPERIENCE_GROUPS[selected]?.some((token) => rawLevel.includes(token));
   });
 };

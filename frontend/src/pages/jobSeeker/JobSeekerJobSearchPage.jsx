@@ -1,196 +1,513 @@
-import { useState, useEffect } from 'react';
-import { getJobs } from '../../services/jobSeekerDataService';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { getJobs, getRecommendedJobs } from '../../services/jobSeekerDataService';
 import SeekerJobCard from '../../components/jobSeeker/SeekerJobCard';
 import SeekerEmptyState from '../../components/jobSeeker/SeekerEmptyState';
 import Stagger from '../../motion/Stagger';
-import { SkeletonCard } from '../../components/Skeleton';
+import { filterJobs } from '../../utils/jobFilters';
 
-export default function JobSeekerJobSearchPage() {
+const CATEGORIES = ['Engineering', 'Design', 'Marketing', 'Data Science', 'Finance', 'Customer Success', 'Operations', 'Human Resources', 'Other'];
+const JOB_TYPES = ['Full-time', 'Part-time', 'Contract', 'Internship', 'Remote'];
+const EXPERIENCE_LEVELS = ['Internship', 'Entry Level / Junior', 'Mid Level', 'Senior', 'Lead / Manager', 'Director / Executive'];
+
+const TYPE_TO_BACKEND = {
+  'Full-time': 'full_time',
+  'Part-time': 'part_time',
+  Contract: 'contract',
+  Internship: 'internship',
+  Remote: 'remote',
+};
+
+const modeLabels = {
+  all: 'jobs',
+  recommended: 'AI matches',
+};
+
+function JobListSkeleton() {
+  return (
+    <div className="flex flex-col gap-4" aria-busy="true" aria-live="polite">
+      {[1, 2, 3].map((skeleton) => (
+        <div key={skeleton} className="bg-surface-container-lowest rounded-xl p-6 border border-outline-variant shadow-ambient animate-pulse flex items-start gap-4">
+          <div className="w-12 h-12 rounded-lg bg-surface-container-high shrink-0" />
+          <div className="flex-grow">
+            <div className="h-6 bg-surface-container-high rounded w-1/3 mb-2" />
+            <div className="h-4 bg-surface-container-high rounded w-1/4 mb-4" />
+            <div className="flex gap-4 mb-4">
+              <div className="h-4 bg-surface-container-high rounded w-16" />
+              <div className="h-4 bg-surface-container-high rounded w-16" />
+              <div className="h-4 bg-surface-container-high rounded w-16" />
+            </div>
+            <div className="h-5 bg-surface-container-high rounded w-2/3" />
+          </div>
+        </div>
+      ))}
+      <span className="sr-only">Loading jobs...</span>
+    </div>
+  );
+}
+
+export default function JobSeekerJobSearchPage({ initialMode = 'all' }) {
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [filters, setFilters] = useState({
-    search: '',
-    location: '',
-    type: 'all',
-  });
-  const [activeFilters, setActiveFilters] = useState(filters);
-  const [sortBy, setSortBy] = useState('Best match');
+  const [errorStatus, setErrorStatus] = useState(null);
+  const [mode, setMode] = useState(initialMode);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [locationQuery, setLocationQuery] = useState('');
+  const [categoryQuery, setCategoryQuery] = useState('');
+  const [selectedType, setSelectedType] = useState('');
+  const [selectedExperienceLevels, setSelectedExperienceLevels] = useState([]);
+  const [activeFilters, setActiveFilters] = useState({ search: '', location: '', category: '', type: '' });
   const [page, setPage] = useState(1);
+  const [showFilters, setShowFilters] = useState(false);
+  const [showJobSuggestions, setShowJobSuggestions] = useState(false);
+  const [showLocationSuggestions, setShowLocationSuggestions] = useState(false);
+  const jobInputRef = useRef(null);
+  const locationInputRef = useRef(null);
   const itemsPerPage = 10;
 
   useEffect(() => {
     const fetchJobs = async () => {
       setLoading(true);
+      setErrorStatus(null);
+
       try {
-        const result = await getJobs(activeFilters);
-        // Simple sort implementation
-        if (sortBy === 'Newest') {
-          result.sort((a, b) => new Date(b.postedAt) - new Date(a.postedAt));
-        } else if (sortBy === 'Salary high to low') {
-          result.sort((a, b) => (b.salaryMax || 0) - (a.salaryMax || 0));
+        if (mode === 'recommended') {
+          const recommendations = await getRecommendedJobs({ search: activeFilters.search });
+
+          if (recommendations.needsCvUpload) {
+            setJobs([]);
+            setErrorStatus(403);
+            return;
+          }
+
+          const recommendedJobs = recommendations.map((recommendation) => ({
+            ...recommendation.job,
+            recommendation,
+            matchScore: recommendation.matchScore || recommendation.job.matchScore,
+          }));
+
+          const filtered = filterJobs(recommendedJobs, {
+            search: activeFilters.search,
+            location: activeFilters.location,
+            selectedTypes: activeFilters.type ? [activeFilters.type] : [],
+            selectedExperienceLevels,
+          }).filter((job) => !activeFilters.category || job.category === activeFilters.category);
+
+          setJobs(filtered.sort((a, b) => (b.matchScore || 0) - (a.matchScore || 0)));
+          return;
         }
-        setJobs(result);
+
+        const result = await getJobs({ ...activeFilters, experienceLevels: selectedExperienceLevels });
+        const filtered = filterJobs(result, {
+          search: activeFilters.search,
+          location: activeFilters.location,
+          selectedTypes: activeFilters.type ? [activeFilters.type] : [],
+          selectedExperienceLevels,
+        }).filter((job) => !activeFilters.category || job.category === activeFilters.category);
+
+        setJobs(filtered);
       } catch (error) {
         console.error('Error fetching jobs:', error);
+        setJobs([]);
+        setErrorStatus(500);
       } finally {
         setLoading(false);
       }
     };
-    
-    fetchJobs();
-  }, [activeFilters, sortBy]);
 
-  const handleSearch = () => {
-    setActiveFilters(filters);
+    fetchJobs();
+  }, [activeFilters, mode, selectedExperienceLevels]);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (jobInputRef.current && !jobInputRef.current.contains(event.target)) {
+        setShowJobSuggestions(false);
+      }
+      if (locationInputRef.current && !locationInputRef.current.contains(event.target)) {
+        setShowLocationSuggestions(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const { uniqueTitles, uniqueLocations, popularSearches } = useMemo(() => {
+    const titleCounts = {};
+    const locationSet = new Set();
+
+    jobs.forEach((job) => {
+      const title = job.title?.trim();
+      if (title) titleCounts[title] = (titleCounts[title] || 0) + 1;
+      if (job.location && job.location !== 'Remote') locationSet.add(job.location.trim());
+    });
+
+    const titles = Object.entries(titleCounts)
+      .sort((a, b) => b[1] - a[1])
+      .map(([title]) => title);
+
+    return {
+      uniqueTitles: titles,
+      uniqueLocations: Array.from(locationSet).sort(),
+      popularSearches: titles.slice(0, 4),
+    };
+  }, [jobs]);
+
+  const filteredJobSuggestions = useMemo(() => {
+    if (!searchQuery) return [];
+    const query = searchQuery.toLowerCase();
+    return uniqueTitles.filter((title) => title.toLowerCase().includes(query)).slice(0, 6);
+  }, [searchQuery, uniqueTitles]);
+
+  const filteredLocationSuggestions = useMemo(() => {
+    if (!locationQuery) return [];
+    const query = locationQuery.toLowerCase();
+    return uniqueLocations.filter((location) => location.toLowerCase().includes(query)).slice(0, 6);
+  }, [locationQuery, uniqueLocations]);
+
+  const applySearch = (event) => {
+    event.preventDefault();
+    setActiveFilters((prev) => ({
+      ...prev,
+      search: searchQuery,
+      location: locationQuery,
+    }));
     setPage(1);
   };
 
-  const handleFilterChange = (e) => {
-    const { name, value, type, checked } = e.target;
-    // For simplicity, checkboxes just update 'type' in this demo
-    if (type === 'checkbox') {
-      if (checked) {
-        setFilters(prev => ({ ...prev, type: name }));
-        setActiveFilters(prev => ({ ...prev, type: name }));
-      } else {
-        setFilters(prev => ({ ...prev, type: 'all' }));
-        setActiveFilters(prev => ({ ...prev, type: 'all' }));
-      }
-      setPage(1);
-    } else {
-      setFilters(prev => ({ ...prev, [name]: value }));
-    }
+  const applyPopularSearch = (term) => {
+    setSearchQuery(term);
+    setActiveFilters((prev) => ({ ...prev, search: term }));
+    setShowJobSuggestions(false);
+    setPage(1);
+  };
+
+  const toggleRecommended = () => {
+    setMode((prev) => prev === 'recommended' ? 'all' : 'recommended');
+    setPage(1);
+  };
+
+  const toggleCategory = (category) => {
+    const nextCategory = categoryQuery === category ? '' : category;
+    setCategoryQuery(nextCategory);
+    setActiveFilters((prev) => ({ ...prev, category: nextCategory }));
+    setPage(1);
+  };
+
+  const toggleType = (type) => {
+    const nextType = selectedType === type ? '' : type;
+    setSelectedType(nextType);
+    setActiveFilters((prev) => ({ ...prev, type: nextType ? TYPE_TO_BACKEND[nextType] : '' }));
+    setPage(1);
+  };
+
+  const toggleExperienceLevel = (level) => {
+    setSelectedExperienceLevels((prev) =>
+      prev.includes(level) ? prev.filter((item) => item !== level) : [...prev, level]
+    );
+    setPage(1);
   };
 
   const clearFilters = () => {
-    const reset = { search: '', location: '', type: 'all' };
-    setFilters(reset);
-    setActiveFilters(reset);
+    setMode('all');
+    setSearchQuery('');
+    setLocationQuery('');
+    setCategoryQuery('');
+    setSelectedType('');
+    setSelectedExperienceLevels([]);
+    setActiveFilters({ search: '', location: '', category: '', type: '' });
     setPage(1);
   };
 
+  const hasActiveFilters =
+    mode === 'recommended' ||
+    searchQuery ||
+    locationQuery ||
+    categoryQuery ||
+    selectedType ||
+    selectedExperienceLevels.length > 0;
+
+  const currentPage = page;
+  const lastPage = Math.max(1, Math.ceil(jobs.length / itemsPerPage));
+  const visibleJobs = jobs.slice((page - 1) * itemsPerPage, page * itemsPerPage);
+  const isAiScanning = mode === 'recommended' && loading;
+
   return (
-    <div className="px-4 sm:px-6 lg:px-margin-desktop py-6 lg:py-margin-desktop max-w-7xl mx-auto flex flex-col h-full">
-      <div className="mb-stack-lg">
-        <h1 className="font-h1 text-h1 text-primary mb-stack-md">Search Jobs</h1>
-        <div className="flex flex-col md:flex-row gap-stack-sm bg-surface-container-lowest p-stack-sm rounded-lg border border-outline-variant shadow-[0px_4px_20px_rgba(15,23,42,0.05)]">
-          <div className="flex-1 flex items-center bg-surface-variant/30 rounded-[8px] px-3 focus-within:border-secondary border border-outline-variant transition-all">
-            <span className="material-symbols-outlined text-on-surface-variant mr-2">search</span>
-            <input 
-              name="search"
-              value={filters.search}
-              onChange={handleFilterChange}
-              onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-              className="w-full bg-transparent border-none focus:ring-0 text-body-md py-3 text-on-surface placeholder-on-surface-variant outline-none" 
-              placeholder="Job title, keywords, or company" 
-              type="text" 
-            />
-          </div>
-          <div className="flex-1 flex items-center bg-surface-variant/30 rounded-[8px] px-3 focus-within:border-secondary border border-outline-variant transition-all">
-            <span className="material-symbols-outlined text-on-surface-variant mr-2">location_on</span>
-            <input 
-              name="location"
-              value={filters.location}
-              onChange={handleFilterChange}
-              onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-              className="w-full bg-transparent border-none focus:ring-0 text-body-md py-3 text-on-surface placeholder-on-surface-variant outline-none" 
-              placeholder="City, state, or remote" 
-              type="text" 
-            />
-          </div>
-          <button 
-            onClick={handleSearch}
-            className="w-full md:w-auto bg-secondary text-on-secondary font-body-md font-bold px-6 py-3 rounded-lg hover:bg-secondary-container transition-colors flex items-center gap-2 justify-center"
+    <div className="px-4 sm:px-6 lg:px-margin-desktop py-6 lg:py-margin-desktop max-w-7xl mx-auto flex flex-col min-h-full space-y-gutter">
+      <section className="bg-surface-container-lowest rounded-xl p-stack-lg shadow-ambient border border-outline-variant">
+        <p className="font-label-sm text-label-sm uppercase tracking-wider text-secondary mb-stack-sm">Job Search</p>
+        <h1 className="font-display text-display text-primary mb-stack-sm">Browse jobs that match your goals</h1>
+        <p className="font-body-lg text-body-lg text-on-surface-variant max-w-3xl mb-gutter">
+          Search open positions or ask the AI filter to scan recommendations matched to your profile.
+        </p>
+
+        <div className={`mb-gutter rounded-2xl border p-stack-md transition-all ${mode === 'recommended' ? 'border-secondary/40 bg-secondary/10 shadow-ambient' : 'border-outline-variant bg-surface-container-low'}`}>
+          <button
+            className="group flex w-full flex-col gap-stack-md text-left sm:flex-row sm:items-center"
+            onClick={toggleRecommended}
+            type="button"
           >
-            Search
+            <span className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl shadow-sm ${mode === 'recommended' ? 'bg-secondary text-on-secondary' : 'bg-primary text-on-primary'} ${isAiScanning ? 'animate-pulse' : ''}`}>
+              <span className={`material-symbols-outlined text-[26px] ${isAiScanning ? 'animate-spin' : mode === 'recommended' ? 'animate-pulse' : ''}`}>auto_awesome</span>
+            </span>
+            <span className="flex-1">
+              <span className="block font-h2 text-h2 text-primary">Recommended Jobs</span>
+              <span className="block font-body-md text-body-md text-on-surface-variant">
+                {isAiScanning ? 'AI is scanning your profile and skills...' : 'Turn on AI matching to show jobs ranked for your profile.'}
+              </span>
+            </span>
+            <span className={`inline-flex items-center justify-center rounded-full px-4 py-2 font-label-sm text-label-sm uppercase tracking-wider ${mode === 'recommended' ? 'bg-secondary text-on-secondary' : 'bg-surface-container-lowest text-on-surface-variant border border-outline-variant group-hover:text-secondary'}`}>
+              {mode === 'recommended' ? 'AI On' : 'Use AI'}
+            </span>
           </button>
         </div>
-      </div>
-      
-      <div className="flex flex-col lg:flex-row gap-gutter flex-1">
-        {/* Filters Panel */}
-        <aside className="w-full lg:w-64 flex-shrink-0 space-y-stack-md">
-          <div className="bg-surface-container-lowest rounded-xl p-stack-md shadow-[0px_4px_20px_rgba(15,23,42,0.05)] border border-outline-variant">
-            <div className="flex justify-between items-center mb-stack-md">
-              <h3 className="font-h3 text-h3 text-primary">Filters</h3>
-              <button onClick={clearFilters} className="text-secondary font-label-sm text-label-sm hover:underline">Clear all</button>
-            </div>
-            {/* Job Type */}
-            <div className="mb-stack-md border-b border-outline-variant pb-stack-md">
-              <h4 className="font-body-md font-semibold text-primary mb-stack-sm">Job Type</h4>
-              <div className="space-y-2">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input name="full_time" checked={filters.type === 'full_time'} onChange={handleFilterChange} className="rounded border-outline-variant text-secondary focus:ring-secondary" type="checkbox" />
-                  <span className="font-body-md text-on-surface-variant break-words">Full-time</span>
-                </label>
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input name="contract" checked={filters.type === 'contract'} onChange={handleFilterChange} className="rounded border-outline-variant text-secondary focus:ring-secondary" type="checkbox" />
-                  <span className="font-body-md text-on-surface-variant break-words">Contract</span>
-                </label>
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input name="part_time" checked={filters.type === 'part_time'} onChange={handleFilterChange} className="rounded border-outline-variant text-secondary focus:ring-secondary" type="checkbox" />
-                  <span className="font-body-md text-on-surface-variant break-words">Part-time</span>
-                </label>
+
+        <form className="mt-gutter grid grid-cols-1 md:grid-cols-[1fr_1fr_auto] gap-stack-md" onSubmit={applySearch}>
+          <label className="relative" ref={jobInputRef}>
+            <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant">search</span>
+            <input
+              className="w-full bg-surface-container-low border border-outline-variant rounded-lg pl-12 pr-4 py-3 focus:outline-none focus:ring-2 focus:ring-secondary/30 focus:border-secondary"
+              placeholder="Job title, keywords, or company"
+              type="search"
+              value={searchQuery}
+              onChange={(event) => {
+                setSearchQuery(event.target.value);
+                setShowJobSuggestions(true);
+              }}
+              onFocus={() => setShowJobSuggestions(true)}
+            />
+            {showJobSuggestions && filteredJobSuggestions.length > 0 && (
+              <ul className="absolute top-full left-0 right-0 mt-2 bg-surface-container-lowest border border-outline-variant rounded-xl shadow-hover overflow-hidden z-50 py-2">
+                {filteredJobSuggestions.map((suggestion) => (
+                  <li
+                    key={suggestion}
+                    className="px-4 py-2 hover:bg-surface-container-low cursor-pointer text-on-surface transition-colors flex items-center gap-3"
+                    onClick={() => {
+                      setSearchQuery(suggestion);
+                      setShowJobSuggestions(false);
+                    }}
+                  >
+                    <span className="material-symbols-outlined text-outline-variant text-[18px]">search</span>
+                    {suggestion}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </label>
+          <label className="relative" ref={locationInputRef}>
+            <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant">location_on</span>
+            <input
+              className="w-full bg-surface-container-low border border-outline-variant rounded-lg pl-12 pr-4 py-3 focus:outline-none focus:ring-2 focus:ring-secondary/30 focus:border-secondary"
+              placeholder="City, state, or remote"
+              type="search"
+              value={locationQuery}
+              onChange={(event) => {
+                setLocationQuery(event.target.value);
+                setShowLocationSuggestions(true);
+              }}
+              onFocus={() => setShowLocationSuggestions(true)}
+            />
+            {showLocationSuggestions && filteredLocationSuggestions.length > 0 && (
+              <ul className="absolute top-full left-0 right-0 mt-2 bg-surface-container-lowest border border-outline-variant rounded-xl shadow-hover overflow-hidden z-50 py-2">
+                {filteredLocationSuggestions.map((suggestion) => (
+                  <li
+                    key={suggestion}
+                    className="px-4 py-2 hover:bg-surface-container-low cursor-pointer text-on-surface transition-colors flex items-center gap-3"
+                    onClick={() => {
+                      setLocationQuery(suggestion);
+                      setShowLocationSuggestions(false);
+                    }}
+                  >
+                    <span className="material-symbols-outlined text-outline-variant text-[18px]">location_on</span>
+                    {suggestion}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </label>
+          <button type="submit" disabled={loading} className="bg-secondary text-on-secondary font-h3 text-h3 px-gutter py-stack-sm rounded-lg shadow-sm hover:opacity-90 transition-opacity whitespace-nowrap disabled:opacity-70 flex items-center justify-center gap-2">
+            {loading && mode === 'all' ? <span className="material-symbols-outlined animate-spin text-[20px]">progress_activity</span> : 'Search Jobs'}
+          </button>
+        </form>
+
+        {popularSearches.length > 0 && (
+          <div className="mt-5 flex items-center gap-2 flex-wrap text-on-surface-variant font-body-md">
+            <span className="text-outline">Popular:</span>
+            {popularSearches.map((term) => (
+              <button
+                key={term}
+                className="px-3 py-1 rounded-full border border-outline-variant hover:border-secondary hover:text-secondary transition-colors text-sm"
+                onClick={() => applyPopularSearch(term)}
+                type="button"
+              >
+                {term}
+              </button>
+            ))}
+          </div>
+        )}
+      </section>
+
+      <section className="w-full flex flex-col md:flex-row gap-gutter">
+        <div className="md:hidden">
+          <button
+            className="w-full flex items-center justify-center gap-2 py-3 bg-surface-container-lowest border border-outline-variant rounded-xl font-h3 text-primary shadow-sm"
+            onClick={() => setShowFilters(!showFilters)}
+            type="button"
+          >
+            <span className="material-symbols-outlined text-[20px]">{showFilters ? 'close' : 'tune'}</span>
+            {showFilters ? 'Hide Filters' : 'Show Filters'}
+          </button>
+        </div>
+
+        <aside className={`w-full md:w-[280px] shrink-0 ${showFilters ? 'block' : 'hidden md:block'}`}>
+          <div className="sticky top-6 bg-surface-container-lowest rounded-xl p-stack-md shadow-ambient border border-outline-variant">
+            <h3 className="font-h3 text-h3 text-primary mb-stack-md flex items-center gap-2">
+              <span className="material-symbols-outlined text-[20px]">tune</span>
+              Filters
+            </h3>
+
+            <div className="mb-stack-md">
+              <h4 className="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-widest mb-stack-sm">Category</h4>
+              <div className="flex flex-col gap-2">
+                {CATEGORIES.map((category) => (
+                  <label key={category} className="flex items-center gap-2 font-body-md text-on-surface cursor-pointer hover:text-secondary transition-colors">
+                    <input
+                      type="checkbox"
+                      className="accent-[#2563EB] w-4 h-4 rounded"
+                      checked={categoryQuery === category}
+                      onChange={() => toggleCategory(category)}
+                    />
+                    {category}
+                  </label>
+                ))}
               </div>
             </div>
+
+            <div className="mb-stack-md">
+              <h4 className="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-widest mb-stack-sm">Job Type</h4>
+              <div className="flex flex-col gap-2">
+                {JOB_TYPES.map((type) => (
+                  <label key={type} className="flex items-center gap-2 font-body-md text-on-surface cursor-pointer hover:text-secondary transition-colors">
+                    <input
+                      type="checkbox"
+                      className="accent-[#2563EB] w-4 h-4 rounded"
+                      checked={selectedType === type}
+                      onChange={() => toggleType(type)}
+                    />
+                    {type}
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            <div className="mb-stack-md">
+              <h4 className="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-widest mb-stack-sm">Experience Level</h4>
+              <div className="flex flex-col gap-2">
+                {EXPERIENCE_LEVELS.map((level) => (
+                  <label key={level} className="flex items-center gap-2 font-body-md text-on-surface cursor-pointer hover:text-secondary transition-colors">
+                    <input
+                      type="checkbox"
+                      className="accent-[#2563EB] w-4 h-4 rounded"
+                      checked={selectedExperienceLevels.includes(level)}
+                      onChange={() => toggleExperienceLevel(level)}
+                    />
+                    {level}
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            {hasActiveFilters && (
+              <button className="mt-stack-md w-full py-2 text-center font-body-md text-error hover:bg-error-container/20 rounded-lg transition-colors" onClick={clearFilters} type="button">
+                Clear All Filters
+              </button>
+            )}
           </div>
         </aside>
-        
-        {/* Job Results */}
-        <div className="flex-1 flex flex-col min-w-0">
-          {/* Top Bar */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-stack-md">
-            <span className="font-body-md text-on-surface-variant">Showing <strong className="text-primary">{jobs.length}</strong> jobs</span>
-            <div className="flex items-center gap-2">
-              <span className="font-label-sm text-on-surface-variant whitespace-nowrap">Sort by:</span>
-              <select 
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
-                className="w-full sm:w-auto bg-surface-container-lowest border border-outline-variant rounded-lg font-body-md text-primary py-1 px-3 focus:ring-secondary focus:border-secondary outline-none"
-              >
-                <option>Best match</option>
-                <option>Newest</option>
-                <option>Salary high to low</option>
-              </select>
+
+        <div className="flex-grow min-w-0">
+          <div className="flex items-center justify-between mb-6 gap-4">
+            <div className="flex flex-col gap-2">
+              <p className="font-body-md text-on-surface-variant">
+                Showing <span className="font-semibold text-primary">{jobs.length}</span> {modeLabels[mode]}
+              </p>
+              {(categoryQuery || mode === 'recommended') && (
+                <div className="flex flex-wrap items-center gap-2">
+                  {mode === 'recommended' && (
+                    <span className="px-3 py-1 bg-secondary-container text-on-secondary-container rounded-full font-label-sm flex items-center gap-1">
+                      <span className="material-symbols-outlined text-[14px]">auto_awesome</span>
+                      Recommended Jobs
+                    </span>
+                  )}
+                  {categoryQuery && (
+                    <span className="px-3 py-1 bg-secondary-container text-on-secondary-container rounded-full font-label-sm flex items-center gap-1">
+                      Category: {categoryQuery}
+                      <button onClick={() => toggleCategory(categoryQuery)} className="material-symbols-outlined text-[14px] hover:text-error transition-colors" type="button">close</button>
+                    </span>
+                  )}
+                </div>
+              )}
             </div>
           </div>
-          
-          {/* Results List */}
-          {loading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-gutter" aria-busy="true" aria-live="polite">
-              {Array.from({ length: 6 }).map((_, i) => <SkeletonCard key={i} />)}
-              <span className="sr-only">Loading jobs…</span>
+
+          {errorStatus === 500 && (
+            <div className="p-4 bg-error-container text-on-error-container rounded-lg mb-4">
+              Failed to load jobs. Please try again.
             </div>
-          ) : jobs.length > 0 ? (
+          )}
+
+          {loading ? (
+            <JobListSkeleton />
+          ) : errorStatus === 403 ? (
+            <SeekerEmptyState
+              icon="lock"
+              title="Recommendations Locked"
+              description="Please upload your CV and fill your profile to unlock personalized AI job recommendations."
+              action={<a href="/seeker/cv-upload" className="inline-flex items-center justify-center gap-unit bg-secondary text-on-secondary px-stack-md py-stack-sm rounded-lg font-h3 text-h3 shadow-sm hover:opacity-90 transition-opacity">Upload CV</a>}
+            />
+          ) : jobs.length === 0 ? (
+            <SeekerEmptyState
+              icon="search_off"
+              title={mode === 'recommended' ? 'No AI matches found' : 'No jobs match your search'}
+              description={mode === 'recommended' ? 'Try clearing filters or adding more skills to your profile.' : 'Try adjusting your filters or search terms.'}
+              action={<button onClick={clearFilters} className="inline-flex items-center justify-center gap-unit bg-secondary text-on-secondary px-stack-md py-stack-sm rounded-lg font-h3 text-h3 shadow-sm hover:opacity-90 transition-opacity" type="button">Clear Filters</button>}
+            />
+          ) : (
             <>
-              <Stagger className="grid grid-cols-1 md:grid-cols-2 gap-gutter" delayChildren={0.05} staggerChildren={0.05}>
-                {jobs.slice((page - 1) * itemsPerPage, page * itemsPerPage).map(job => (
+              <Stagger className="flex flex-col gap-4" delayChildren={0.05} staggerChildren={0.05}>
+                {visibleJobs.map((job) => (
                   <Stagger.Item key={job.id}>
                     <SeekerJobCard job={job} />
                   </Stagger.Item>
                 ))}
               </Stagger>
-              
-              <div className="flex flex-col sm:flex-row justify-between items-center gap-3 mt-stack-md bg-surface-container-lowest p-stack-sm rounded-lg border border-outline-variant">
-                <button className="w-full sm:w-auto px-4 py-2 border border-outline-variant rounded-lg text-primary disabled:opacity-50" disabled={page <= 1} onClick={() => setPage(p => p - 1)}>Previous</button>
-                <span className="text-on-surface-variant font-label-md">Page {page} of {Math.max(1, Math.ceil(jobs.length / itemsPerPage))}</span>
-                <button className="w-full sm:w-auto px-4 py-2 border border-outline-variant rounded-lg text-primary disabled:opacity-50" disabled={page * itemsPerPage >= jobs.length} onClick={() => setPage(p => p + 1)}>Next</button>
-              </div>
+
+              {lastPage > 1 && (
+                <div className="flex flex-col sm:flex-row justify-between items-center gap-3 p-4 bg-surface-container-lowest rounded-xl border border-outline-variant mt-4">
+                  <button
+                    className="w-full sm:w-auto px-4 py-2 border border-outline-variant rounded-lg text-primary disabled:opacity-50 hover:bg-surface-container-low transition-colors"
+                    disabled={currentPage <= 1 || loading}
+                    onClick={() => setPage((prev) => prev - 1)}
+                    type="button"
+                  >
+                    Previous
+                  </button>
+                  <span className="text-on-surface-variant font-label-md">
+                    Page {currentPage} of {lastPage}
+                  </span>
+                  <button
+                    className="w-full sm:w-auto px-4 py-2 border border-outline-variant rounded-lg text-primary disabled:opacity-50 hover:bg-surface-container-low transition-colors"
+                    disabled={currentPage >= lastPage || loading}
+                    onClick={() => setPage((prev) => prev + 1)}
+                    type="button"
+                  >
+                    Next
+                  </button>
+                </div>
+              )}
             </>
-          ) : (
-            <SeekerEmptyState 
-              icon="search_off"
-              title="No jobs found"
-              description="We couldn't find any jobs matching your current filters. Try adjusting your search criteria."
-              action={
-                <button onClick={clearFilters} className="px-4 py-2 bg-secondary text-on-secondary rounded-lg hover:bg-secondary-container">
-                  Clear Filters
-                </button>
-              }
-            />
           )}
         </div>
-      </div>
+      </section>
     </div>
   );
 }

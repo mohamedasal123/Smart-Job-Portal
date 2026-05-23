@@ -7,6 +7,12 @@ export default function SeekerStatusBadge({ status }) {
         return { bg: 'bg-[#8B5CF6]/10 border border-[#8B5CF6]/30', text: 'text-[#8B5CF6]', label: 'Under Review', icon: 'visibility' };
       case 'shortlisted':
         return { bg: 'bg-[#22C55E]/10 border border-[#22C55E]/30', text: 'text-[#22C55E]', label: 'Shortlisted', icon: 'star' };
+      case 'approved':
+        return { bg: 'bg-[#16A34A]/10 border border-[#16A34A]/30', text: 'text-[#16A34A]', label: 'Approved', icon: 'verified' };
+      case 'interview_scheduled':
+        return { bg: 'bg-[#0EA5E9]/10 border border-[#0EA5E9]/30', text: 'text-[#0EA5E9]', label: 'Interview Scheduled', icon: 'event_available' };
+      case 'waiting_interview':
+        return { bg: 'bg-[#F59E0B]/10 border border-[#F59E0B]/30', text: 'text-[#B45309]', label: 'Waiting Interview', icon: 'pending_actions' };
       case 'rejected':
         return { bg: 'bg-[#EF4444]/10 border border-[#EF4444]/30', text: 'text-[#EF4444]', label: 'Rejected', icon: 'cancel' };
       default:

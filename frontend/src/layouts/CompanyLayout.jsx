@@ -135,6 +135,18 @@ export default function CompanyLayout() {
     });
   };
 
+  const markAllNotificationsRead = async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    try {
+      await companyDataService.markAllNotificationsRead();
+      setRecentNotifications((prev) => prev.map((notification) => ({ ...notification, read_at: new Date().toISOString(), read: true })));
+      window.dispatchEvent(new Event('notifications_updated'));
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
   const handleLogout = async () => {
     await logout?.();
     navigate(ROUTES.LOGIN);
@@ -157,6 +169,8 @@ export default function CompanyLayout() {
       navigate(`${ROUTES.COMPANY_MESSAGES}?user=${senderId}&job=${jobId || ''}`);
     } else if (type === 'application_submitted' && appId) {
       navigate(`/company/applicants/${appId}`);
+    } else if (type === 'job_viewed' && jobId) {
+      navigate(`/company/jobs/${jobId}`);
     } else {
       navigate(ROUTES.COMPANY_NOTIFICATIONS);
     }
@@ -242,9 +256,15 @@ export default function CompanyLayout() {
               
               {isNotifOpen && (
                 <div className="absolute right-0 mt-2 w-80 bg-surface-container-lowest border border-outline-variant rounded-xl shadow-md overflow-hidden z-50">
-                  <div className="px-4 py-3 border-b border-outline-variant bg-surface-container-low flex justify-between items-center">
+                  <div className="px-4 py-3 border-b border-outline-variant bg-surface-container-low flex justify-between items-center gap-3">
                     <h3 className="font-h3 text-primary">Notifications</h3>
-                    <Link to={ROUTES.COMPANY_NOTIFICATIONS} className="text-xs text-secondary hover:underline" onClick={() => setIsNotifOpen(false)}>View all</Link>
+                    <div className="flex items-center gap-2">
+                      <button className="inline-flex items-center gap-1 text-xs text-secondary hover:underline disabled:opacity-40" disabled={!unreadCount} onClick={markAllNotificationsRead} type="button">
+                        <span className="material-symbols-outlined text-[14px]">done_all</span>
+                        Mark all as read
+                      </button>
+                      <Link to={ROUTES.COMPANY_NOTIFICATIONS} className="text-xs text-secondary hover:underline" onClick={() => setIsNotifOpen(false)}>View all</Link>
+                    </div>
                   </div>
                   <div className="max-h-[300px] overflow-y-auto">
                     {recentNotifications.length > 0 ? recentNotifications.map((notif, i) => (
@@ -258,7 +278,7 @@ export default function CompanyLayout() {
                         </button>
                         <p className="font-semibold text-primary pr-6">{notif.title || notif.data?.title || 'Notification'}</p>
                         <p className="text-on-surface-variant text-xs mt-1 pr-6">{notif.message || notif.data?.message}</p>
-                        <p className="text-outline text-xs mt-1">{new Date(notif.created_at || Date.now()).toLocaleDateString()}</p>
+                        <p className="text-outline text-xs mt-1">{new Date(notif.created_at || Date.now()).toLocaleString()}</p>
                       </div>
                     )) : (
                       <p className="p-4 text-center text-on-surface-variant text-sm">No new notifications.</p>

@@ -130,7 +130,7 @@ export default function JobSeekerCvReviewPage() {
   }
 
   return (
-    <div className="px-4 sm:px-6 lg:px-margin-desktop py-6 lg:py-margin-desktop max-w-4xl mx-auto flex flex-col h-full space-y-gutter pb-12">
+    <div className="px-4 sm:px-6 lg:px-margin-desktop py-6 lg:py-margin-desktop max-w-7xl mx-auto flex flex-col h-full space-y-gutter pb-12">
       <SeekerPageHeader 
         title="Review Parsed CV Data" 
         subtitle="We've extracted the following information from your CV. Review and edit the AI-extracted CV data before using it for job matching." 
@@ -169,7 +169,7 @@ export default function JobSeekerCvReviewPage() {
           </div>
           {editModes.personal ? (
             <div className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
                 <div>
                   <label className="block font-label-md text-on-surface-variant mb-1">First Name *</label>
                   <input type="text" value={editPersonal.firstName || ''} onChange={e => setEditPersonal({...editPersonal, firstName: e.target.value})} className="w-full bg-surface border border-outline-variant rounded-lg px-3 py-2 outline-none focus:border-secondary" />
@@ -201,7 +201,7 @@ export default function JobSeekerCvReviewPage() {
               </div>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
               <div><p className="font-label-sm text-on-surface-variant">Full Name</p><p className="font-body-md text-on-surface">{profileData.personalInfo?.firstName} {profileData.personalInfo?.lastName}</p></div>
               <div><p className="font-label-sm text-on-surface-variant">Professional Title</p><p className="font-body-md text-on-surface">{profileData.personalInfo?.title}</p></div>
               <div><p className="font-label-sm text-on-surface-variant">Email</p><p className="font-body-md text-on-surface">{profileData.personalInfo?.email}</p></div>

@@ -28,7 +28,7 @@ class ApplicationController extends Controller
 
     public function index(Request $request)
     {
-        $applications = Application::with(['jobPost.companyProfile'])
+        $applications = Application::with(['jobPost.companyProfile', 'jobPost.jobRequiredSkills.skill'])
             ->where('job_seeker_id', $request->user()->jobSeekerProfile->id)
             ->paginate(15);
 
@@ -43,7 +43,7 @@ class ApplicationController extends Controller
 
         return $this->success(
             new ApplicationResource(
-                $application->load(['jobPost.companyProfile', 'applicationStatusHistory'])
+                $application->load(['jobPost.companyProfile', 'jobPost.jobRequiredSkills.skill', 'applicationStatusHistory'])
             )
         );
     }

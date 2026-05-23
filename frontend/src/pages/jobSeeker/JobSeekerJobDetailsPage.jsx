@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import { ROUTES } from '../../utils/constants';
-import { applyToJob, getApplications, getJobById, isJobSaved, toggleSavedJob } from '../../services/jobSeekerDataService';
+import { applyToJob, getApplications, getJobById, isJobSaved, toggleSavedJob, trackJobView } from '../../services/jobSeekerDataService';
 import { useToast } from '../../components/useToast';
 import MatchScoreBadge from '../../components/jobSeeker/MatchScoreBadge';
 
@@ -20,6 +20,7 @@ export default function JobSeekerJobDetailsPage() {
       try {
         const data = await getJobById(jobId);
         setJob(data);
+        trackJobView(jobId).catch(console.error);
         const isSaved = await isJobSaved(jobId);
         setSaved(isSaved);
         const apps = await getApplications();

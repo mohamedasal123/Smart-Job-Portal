@@ -4,9 +4,10 @@ import MatchScoreBadge from './MatchScoreBadge';
 
 export default function SeekerApplicationCard({ application }) {
   const { job } = application;
+  const matchScore = Number(application.matchScore || 0);
   
   return (
-    <div className="bg-surface-container-lowest border border-outline-variant rounded-xl p-6 hover:shadow-md transition-shadow">
+    <div className="bg-surface-container-lowest rounded-xl p-stack-lg border border-outline-variant shadow-ambient hover:shadow-hover transition-all">
       <div className="flex flex-col md:flex-row md:items-start justify-between gap-4 mb-4">
         <div className="flex items-center gap-4 min-w-0">
           <div className="w-12 h-12 shrink-0 rounded-lg bg-surface-variant flex items-center justify-center text-on-surface-variant font-bold text-xl">
@@ -26,23 +27,23 @@ export default function SeekerApplicationCard({ application }) {
         </div>
       </div>
       
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mt-6 pt-4 border-t border-outline-variant">
+      <div className="flex flex-wrap items-center justify-between gap-3 mt-6 pt-4 border-t border-outline-variant">
         <div className="flex flex-wrap items-center gap-4 text-sm text-on-surface-variant">
           <span className="flex items-center gap-2">
             <span className="material-symbols-outlined text-[18px]">calendar_today</span>
             Applied {new Date(application.appliedAt).toLocaleDateString()}
           </span>
-          {application.matchScore && (
-            <MatchScoreBadge score={application.matchScore} size="sm" showLabel={true} />
+          {matchScore > 0 && (
+            <MatchScoreBadge score={matchScore} size="sm" showLabel={true} />
           )}
         </div>
         
         <Link
           to={`/seeker/applications/${application.id}`}
-          className="w-full md:w-auto text-secondary font-label-md hover:underline flex justify-center items-center gap-1"
+          className="group inline-flex items-center gap-unit text-secondary font-label-md text-label-md hover:text-primary transition-colors whitespace-nowrap"
         >
-          View Details
-          <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
+          <span className="group-hover:underline">View Details</span>
+          <span className="material-symbols-outlined text-[18px] no-underline">arrow_forward</span>
         </Link>
       </div>
     </div>

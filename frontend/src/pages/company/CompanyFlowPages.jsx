@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Link, useNavigate, useParams, useLocation } from 'react-router-dom';
 import ConfirmModal from '../../components/ConfirmModal';
 import AdminConfirmModal from '../../components/admin/AdminConfirmModal';
@@ -17,7 +17,6 @@ import { useAuth } from '../../context/useAuth';
 import { useValidationErrors } from '../../hooks/useValidationErrors';
 import { companyDataService } from '../../services/companyDataService';
 import { companyApi } from '../../api/companyApi';
-import { api, getListItems } from '../../api/axios';
 import { ROUTES } from '../../utils/constants';
 
 const salary = (job) => `$${Math.round(job.salaryMin / 1000)}k - $${Math.round(job.salaryMax / 1000)}k`;
@@ -209,71 +208,6 @@ function useApplicantActions(refresh) {
 
 function NotFoundState({ title = 'Item not found', message = 'The record may have been removed or is unavailable.' }) {
   return <CompanyEmptyState title={title} message={message} />;
-}
-
-function CVParsedDataDisplay({ data }) {
-  if (!data || typeof data !== 'object') return <p className="text-on-surface-variant">No CV data available.</p>;
-
-  const hiddenKeys = new Set([
-    'id',
-    'job_seeker_id',
-    'user_id',
-    'created_at',
-    'updated_at',
-    'deleted_at',
-    'parsed_at',
-    'createdAt',
-    'updatedAt',
-    'parsedAt',
-  ]);
-
-  const renderValue = (value) => {
-    if (Array.isArray(value)) {
-      if (value.every((item) => typeof item !== 'object' || item === null)) {
-        return (
-          <div className="flex flex-wrap gap-2 mt-2">
-            {value.map((item, index) => <CompanySkillTag key={`${item}-${index}`}>{String(item)}</CompanySkillTag>)}
-          </div>
-        );
-      }
-      return <ul className="list-disc pl-5 space-y-1 text-on-surface-variant">{value.map((item, index) => <li key={index}>{typeof item === 'object' ? renderValue(item) : item}</li>)}</ul>;
-    }
-
-    if (typeof value === 'object' && value !== null) {
-      return (
-        <div className="pl-4 mt-2 border-l-2 border-outline-variant space-y-2">
-          {Object.entries(value).map(([key, child]) => !hiddenKeys.has(key) && child ? (
-            <div key={key}>
-              <span className="font-semibold capitalize text-on-surface-variant text-sm block">{key.replace(/_/g, ' ')}:</span>
-              <div className="text-primary mt-0.5">{renderValue(child)}</div>
-            </div>
-          ) : null)}
-        </div>
-      );
-    }
-
-    return <span className="text-primary">{String(value)}</span>;
-  };
-
-  return (
-    <div className="grid gap-4">
-      {Object.entries(data).map(([key, value]) => {
-        if (hiddenKeys.has(key)) return null;
-        if (!value || (Array.isArray(value) && value.length === 0) || (typeof value === 'object' && Object.keys(value).length === 0)) return null;
-        return (
-          <div key={key} className="bg-surface-container-lowest border border-outline-variant rounded-lg p-4 shadow-sm">
-            <h4 className="font-h3 text-primary capitalize mb-3 flex items-center gap-2 border-b border-outline-variant pb-2">
-              <span className="material-symbols-outlined text-[18px] text-secondary">
-                {key === 'skills' ? 'psychology' : key === 'experience' ? 'work' : key === 'education' ? 'school' : 'info'}
-              </span>
-              {key.replace(/_/g, ' ')}
-            </h4>
-            <div className="font-body-md leading-relaxed">{renderValue(value)}</div>
-          </div>
-        );
-      })}
-    </div>
-  );
 }
 
 function JobForm({ initialJob, mode }) {
@@ -1076,7 +1010,7 @@ export function CompanyJobDetails() {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  const { setShortlistTarget, setRejectTarget, setApproveTarget, modals } = useApplicantActions(fetchData);
+  const { setShortlistTarget, setRejectTarget, modals } = useApplicantActions(fetchData);
 
   if (loading) return <FullPageSpinner />;
   if (!job) return <NotFoundState title="Job not found" message="This job post is unavailable." />;
@@ -1356,7 +1290,7 @@ export function CompanyApplicantMatchingDetails() {
   }, [id]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
-  const { setShortlistTarget, setRejectTarget, modals } = useApplicantActions(fetchData);
+  const { setShortlistTarget, setRejectTarget, setApproveTarget, modals } = useApplicantActions(fetchData);
 
   if (loading) return <FullPageSpinner />;
   if (!applicant || !job) return <NotFoundState title="Matching details unavailable" message="Applicant or job data could not be found." />;
@@ -1415,39 +1349,110 @@ export function CompanyApplicantMatchingDetails() {
 }
 
 export function CompanyNotifications() {
+  const navigate = useNavigate();
+  const { addToast } = useToast();
   const [filter, setFilter] = useState('all');
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
 
   const refresh = useCallback(() => {
     setLoading(true);
-    api.get('/notifications')
-      .then(res => {
-         setNotifications(getListItems(res));
+    companyDataService.getCompanyNotifications()
+      .then((items) => {
+         setNotifications(items);
       })
-      .catch(e => console.error(e))
+      .catch((error) => {
+        console.error(error);
+        addToast({ title: 'Notifications unavailable', message: 'Could not load company notifications.', type: 'error' });
+      })
       .finally(() => setLoading(false));
-  }, []);
+  }, [addToast]);
 
   useEffect(() => { refresh(); }, [refresh]);
 
-  const visibleNotifications = filter === 'unread'
-    ? notifications.filter((notification) => !notification.read_at)
-    : notifications;
+  const visibleNotifications = notifications.filter((notification) => {
+    const type = notification.type || notification.data?.type;
+    if (filter === 'unread') return !notification.read_at && !notification.read;
+    if (filter === 'messages') return type === 'message_received' || type === 'message';
+    if (filter === 'applications') return type === 'application_submitted' || type === 'application_update';
+    if (filter === 'views') return type === 'job_viewed';
+    return true;
+  });
+  const unreadCount = notifications.filter((notification) => !notification.read_at && !notification.read).length;
+
+  const toneFor = (type) => {
+    if (type === 'message_received' || type === 'message') return { icon: 'chat', className: 'bg-primary-container text-on-primary-container' };
+    if (type === 'application_submitted' || type === 'application_update') return { icon: 'person_add', className: 'bg-success-container text-success' };
+    if (type === 'job_viewed') return { icon: 'visibility', className: 'bg-secondary-container text-on-secondary-container' };
+    if (type === 'interview_reminder') return { icon: 'event_available', className: 'bg-secondary-container text-on-secondary-container' };
+    return { icon: 'notifications', className: 'bg-surface-container-high text-on-surface-variant' };
+  };
+
+  const markAll = async () => {
+    try {
+      await companyDataService.markAllNotificationsRead();
+      refresh();
+    } catch (error) {
+      console.error(error);
+      addToast({ title: 'Update failed', message: 'Could not mark notifications as read.', type: 'error' });
+    }
+  };
+
+  const openNotification = async (notification) => {
+    if (!notification.read_at && !notification.read) {
+      await companyDataService.markNotificationRead(notification.id).catch(console.error);
+      setNotifications((prev) => prev.map((item) => item.id === notification.id ? { ...item, read_at: new Date().toISOString(), read: true } : item));
+    }
+
+    const type = notification.type || notification.data?.type;
+    const senderId = notification.sender_id || notification.data?.sender_id;
+    const jobId = notification.job_id || notification.data?.job_id;
+    const applicationId = notification.application_id || notification.data?.application_id;
+
+    if ((type === 'message_received' || type === 'message') && (senderId || jobId)) {
+      navigate(`${ROUTES.COMPANY_MESSAGES}?user=${senderId || ''}&job=${jobId || ''}`);
+    } else if ((type === 'application_submitted' || type === 'application_update') && applicationId) {
+      navigate(`/company/applicants/${applicationId}`);
+    } else if (type === 'job_viewed' && jobId) {
+      navigate(`/company/jobs/${jobId}`);
+    }
+  };
 
   return (
-    <>
-      <CompanyPageHeader actions={<button className={buttonSecondary} onClick={async () => { await api.post('/notifications/read-all'); refresh(); }}>Mark all as read</button>} eyebrow="Notifications" title="Company notifications" description="Monitor applicant, job, and system updates." />
-      <div className="flex flex-wrap gap-unit">{['all', 'unread'].map((item) => <button className={`${filter === item ? 'bg-secondary text-on-secondary' : 'bg-surface-container-low text-on-surface-variant'} px-stack-md py-stack-sm rounded-lg font-label-md text-label-md`} key={item} onClick={() => setFilter(item)}>{item.replace('_', ' ')}</button>)}</div>
-      <Section title="Updates">
-        {loading ? <FullPageSpinner /> : (!visibleNotifications.length ? <CompanyEmptyState title="No notifications" message="No notifications match this filter." /> : visibleNotifications.map((notification) => (
-          <div className="flex items-start gap-stack-md border-b border-outline-variant py-stack-md last:border-b-0 cursor-pointer hover:bg-surface-container-low transition-colors" key={notification.id} onClick={async () => { if (!notification.read_at) { await api.patch(`/notifications/${notification.id}/read`); refresh(); } }}>
-            <span className={`w-2.5 h-2.5 rounded-full mt-2 ${notification.read_at ? 'bg-outline-variant' : 'bg-error'}`} />
-            <div><p className="font-h3 text-h3 text-primary">{notification.title || notification.data?.title || 'Notification'}</p><p className="text-on-surface-variant">{notification.message || notification.data?.message}</p></div>
-          </div>
-        )))}
-      </Section>
-    </>
+    <div className="w-full max-w-7xl space-y-gutter">
+      <CompanyPageHeader
+        actions={<button className={buttonSecondary} disabled={!unreadCount} onClick={markAll} type="button"><span className="material-symbols-outlined text-[18px]">done_all</span>Mark all as read</button>}
+        eyebrow="Notifications"
+        title="Company notifications"
+        description="Monitor applicant, job, message, and view updates."
+      />
+      <div className="flex flex-wrap gap-unit">{['all', 'unread', 'messages', 'applications', 'views'].map((item) => <button className={`${filter === item ? 'bg-secondary text-on-secondary' : 'bg-surface-container-low text-on-surface-variant hover:bg-surface-container-high'} px-stack-md py-stack-sm rounded-lg font-label-md text-label-md capitalize transition-colors`} key={item} onClick={() => setFilter(item)} type="button">{item}</button>)}</div>
+      <section className="overflow-hidden rounded-xl border border-outline-variant bg-surface-container-lowest shadow-ambient">
+        {loading ? <FullPageSpinner /> : (!visibleNotifications.length ? <CompanyEmptyState title="No notifications" message="No notifications match this filter." /> : visibleNotifications.map((notification) => {
+          const type = notification.type || notification.data?.type;
+          const tone = toneFor(type);
+          const unread = !notification.read_at && !notification.read;
+
+          return (
+            <button className={`w-full border-b border-outline-variant p-stack-lg text-left transition-colors last:border-b-0 ${unread ? 'bg-secondary-container/10 hover:bg-secondary-container/20' : 'hover:bg-surface-container-low'}`} key={notification.id} onClick={() => openNotification(notification)} type="button">
+              <div className="flex items-start gap-stack-md">
+                <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full ${tone.className}`}>
+                  <span className="material-symbols-outlined">{notification.icon || tone.icon}</span>
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
+                    <h3 className={`font-h3 text-h3 ${unread ? 'text-primary' : 'text-on-surface'}`}>{notification.title || notification.data?.title || 'Notification'}</h3>
+                    <span className="whitespace-nowrap text-label-sm text-on-surface-variant">{new Date(notification.created_at || Date.now()).toLocaleString()}</span>
+                  </div>
+                  <p className="mt-unit text-body-md text-on-surface-variant">{notification.message || notification.data?.message}</p>
+                </div>
+                {unread && <span className="mt-2 h-3 w-3 shrink-0 rounded-full bg-secondary" aria-hidden="true" />}
+              </div>
+            </button>
+          );
+        }))}
+      </section>
+    </div>
   );
 }
 
@@ -1466,6 +1471,8 @@ export function CompanyMessages() {
   const [mutedConversations, setMutedConversations] = useState(() => JSON.parse(localStorage.getItem('muted_message_conversations') || '[]'));
   const [mutePulse, setMutePulse] = useState(null);
   const [contextMenu, setContextMenu] = useState(null);
+  const [messageQuery, setMessageQuery] = useState('');
+  const messagesEndRef = useRef(null);
 
   useEffect(() => {
     const handleGlobalClick = () => setContextMenu(null);
@@ -1481,6 +1488,14 @@ export function CompanyMessages() {
   const conversationKey = (conversation) => `${conversation?.other_user_id || ''}-${conversation?.job_id || ''}`;
   const active = conversations.find((item) => item.id === activeId);
   const activeConversationKey = conversationKey(active);
+  const filteredConversations = conversations.filter((item) => {
+    const query = messageQuery.trim().toLowerCase();
+    if (!query) return true;
+
+    return [item.candidate, item.role, item.last_message, item.status, item.company]
+      .filter(Boolean)
+      .some((value) => String(value).toLowerCase().includes(query));
+  });
 
   const saveInterviews = (next) => {
     setInterviews({ ...next });
@@ -1569,6 +1584,10 @@ export function CompanyMessages() {
     }
   }, [activeId, conversations]);
 
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ block: 'end' });
+  }, [activeId, messages]);
+
   const handleSend = async () => {
     if (!newMessage.trim() || !activeId) return;
     const conv = conversations.find(c => c.id === activeId);
@@ -1595,7 +1614,7 @@ export function CompanyMessages() {
     const text = `Interview scheduled for ${formatted}. Please confirm your availability.`;
 
     try {
-      const sent = await companyDataService.sendCompanyMessage(conv.other_user_id, text, conv.job_id);
+      const sent = await companyDataService.sendCompanyMessage(conv.other_user_id, text, conv.job_id, { interview_at: cleanTime });
       setMessages(prev => [...prev, { id: sent.id, from: 'You', text: sent.content, created_at: sent.created_at }]);
       
       const payload = {
@@ -1680,7 +1699,7 @@ export function CompanyMessages() {
 
   return (
     <>
-      <div className="h-[calc(100vh-116px)] overflow-hidden flex flex-col gap-3 -mb-10">
+      <div className="h-full min-h-0 overflow-hidden flex flex-col gap-3">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 shrink-0">
           <div>
             <p className="font-label-sm text-label-sm uppercase tracking-wider text-secondary mb-1">Messages</p>
@@ -1695,12 +1714,23 @@ export function CompanyMessages() {
         <section className="bg-surface-container-lowest rounded-xl border border-outline-variant shadow-ambient overflow-hidden flex flex-col min-h-0">
           <div className="px-5 py-4 border-b border-outline-variant flex items-center justify-between">
             <h2 className="font-h2 text-h2 text-primary">Inbox</h2>
-            <span className="text-sm text-on-surface-variant">{conversations.length} chats</span>
+            <span className="text-sm text-on-surface-variant">{filteredConversations.length} chats</span>
+          </div>
+          <div className="px-4 pb-4 border-b border-outline-variant">
+            <label className="relative block">
+              <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-[20px]">search</span>
+              <input
+                className="w-full rounded-full border border-outline-variant bg-surface-container-low py-2 pl-10 pr-3 text-on-surface outline-none focus:border-secondary focus:ring-2 focus:ring-secondary/20"
+                onChange={(event) => setMessageQuery(event.target.value)}
+                placeholder="Search candidates, roles, messages"
+                value={messageQuery}
+              />
+            </label>
           </div>
           <div className="divide-y divide-outline-variant overflow-y-auto flex-1 p-2">
             {loading ? <FullPageSpinner /> : (
-              conversations.length === 0 ? <CompanyEmptyState title="No messages" message="You have no messages yet." /> :
-              conversations.map((item) => (
+              filteredConversations.length === 0 ? <CompanyEmptyState title="No messages" message={messageQuery ? 'No conversations match your search.' : 'You have no messages yet.'} /> :
+              filteredConversations.map((item) => (
                 <div
                   key={item.id}
                   className={`w-full py-4 transition-colors hover:bg-surface-container-low rounded-lg px-4 cursor-pointer select-none ${active?.id === item.id ? 'bg-secondary-container/15' : ''}`}
@@ -1714,7 +1744,10 @@ export function CompanyMessages() {
                     <div className="min-w-0 flex-1">
                       <div className="flex items-start justify-between gap-3">
                     <Link className="font-h3 text-h3 text-primary hover:text-secondary truncate block" to={item.application_id ? `/company/applicants/${item.application_id}` : '#'}>{item.candidate}</Link>
-                        {item.unread && <span className="h-2.5 w-2.5 rounded-full bg-secondary mt-2 shrink-0" />}
+                        <span className="flex shrink-0 items-center gap-2 mt-1">
+                          {mutedConversations.includes(conversationKey(item)) && <span className="material-symbols-outlined text-[16px] text-on-surface-variant" title="Muted conversation">notifications_off</span>}
+                          {item.unread && <span className="h-2.5 w-2.5 rounded-full bg-secondary" aria-hidden="true" />}
+                        </span>
                       </div>
                       <p className="text-on-surface-variant text-sm truncate">{item.role}</p>
                       <p className="mt-2 text-body-sm text-on-surface-variant truncate">{item.last_message || 'No messages yet'}</p>
@@ -1795,7 +1828,7 @@ export function CompanyMessages() {
                   </>
                 )}
                 </div>
-              <div className="space-y-4 bg-surface-container-low px-6 py-5 flex-1 overflow-y-auto min-h-0 min-h-[360px]">
+              <div className="space-y-4 bg-surface-container-low px-6 py-5 flex-1 overflow-y-auto min-h-0">
                 {messages.length === 0 ? <p className="text-on-surface-variant text-center font-body-sm italic mt-10">No messages yet.</p> :
                   messages.map((message, index) => {
                     const mine = message.from === 'You';
@@ -1809,6 +1842,7 @@ export function CompanyMessages() {
                     );
                   })
                 }
+                <div ref={messagesEndRef} />
               </div>
               <div className="flex gap-3 p-2.5 border-t border-outline-variant bg-surface-container-lowest shrink-0">
                 <input 

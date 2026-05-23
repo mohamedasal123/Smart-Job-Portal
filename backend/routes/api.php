@@ -50,6 +50,7 @@ Route::middleware(['auth:sanctum', 'verified', 'ban.check'])->group(function () 
     Route::get('skills',       [SkillController::class, 'index']);
     Route::get('jobs',         [JobController::class, 'index']);
     Route::get('jobs/{job}',   [JobController::class, 'show']);
+    Route::post('jobs/{job}/view', [JobController::class, 'recordView']);
 
     // Notifications (seeker + company)
     Route::get('notifications',              [NotificationController::class, 'index']);
@@ -68,6 +69,10 @@ Route::middleware(['auth:sanctum', 'verified', 'ban.check'])->group(function () 
 
         Route::get('profile', [ProfileController::class, 'show']);
         Route::put('profile', [ProfileController::class, 'update']);
+        Route::post('profile/avatar', [ProfileController::class, 'uploadAvatar']);
+        Route::post('profile/cover', [ProfileController::class, 'uploadCover']);
+        Route::post('profile/verify-password', [ProfileController::class, 'verifyPassword']);
+        Route::put('profile/settings', [ProfileController::class, 'updateSettings']);
 
         Route::middleware('throttle:cv_upload')
              ->post('cv/upload', [CVController::class, 'upload']);
