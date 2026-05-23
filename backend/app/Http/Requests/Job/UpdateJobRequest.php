@@ -13,18 +13,59 @@ class UpdateJobRequest extends FormRequest
 
     public function rules(): array
     {
+        $skillsRule = 'required_with:skills|string';
+        if ($this->has('skills') && is_array($this->skills) && isset($this->skills[0]['name'])) {
+            $skillsRule = 'required_with:skills|array';
+        }
+
         return [
             'title'              => 'sometimes|required|string|max:255',
             'category'           => 'sometimes|required|string|max:255',
-            'description'        => 'sometimes|required|string|min:50',
+            'description'        => 'sometimes|required|string',
             'responsibilities'   => 'nullable|string',
             'location'           => 'nullable|string|max:255',
+            'work_mode'          => 'nullable|string|max:255',
             'job_type'           => 'sometimes|required|in:full_time,part_time,remote,contract,internship',
-            'salary_range'       => 'nullable|string|max:100',
+            'salary_min'         => 'nullable|numeric|min:0|max:9999999',
+            'salary_max'         => 'nullable|numeric|min:0|max:9999999',
+            'experience_level'   => 'nullable|string|max:255',
+            'education'          => 'nullable|string|max:255',
+            'status'             => 'nullable|in:draft,active,paused,closed',
             'skills'             => 'sometimes|required|array|min:1',
-            'skills.*.id'        => 'required_with:skills|exists:skills,id',
-            'skills.*.is_mandatory' => 'required_with:skills|boolean',
+            'skills.*'           => $skillsRule,
+            'skills.*.name'      => 'sometimes|required|string',
         ];
+    }
+
+    protected function prepareForValidation()
+    {
+        if ($this->has('skills')) {
+            $formattedSkills = [];
+            foreach ($this->skills as $skillName) {
+                if (is_string($skillName)) {
+                    $formattedSkills[] = [
+                        'name' => trim($skillName),
+                        'is_mandatory' => true
+                    ];
+                }
+            }
+            if (count($formattedSkills) > 0) {
+                $this->merge(['skills' => $formattedSkills]);
+            }
+        }
+        
+        // Remove commas from salary values before validation if they exist
+        if ($this->has('salary_min') && is_string($this->salary_min)) {
+            $this->merge(['salary_min' => str_replace(',', '', $this->salary_min)]);
+        }
+        if ($this->has('salary_max') && is_string($this->salary_max)) {
+            $this->merge(['salary_max' => str_replace(',', '', $this->salary_max)]);
+        }
+        
+        // Format responsibilities as JSON for DB if it's an array
+        if ($this->has('responsibilities') && is_array($this->responsibilities)) {
+            $this->merge(['responsibilities' => implode("\n", $this->responsibilities)]);
+        }
     }
 
     protected function passedValidation(): void

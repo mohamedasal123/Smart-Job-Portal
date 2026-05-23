@@ -61,6 +61,7 @@ Route::middleware(['auth:sanctum', 'verified', 'ban.check'])->group(function () 
     Route::get('messages/{user_id}',         [MessageController::class, 'show']);
     Route::post('messages',                  [MessageController::class, 'store']);
     Route::patch('messages/{user_id}/read',  [MessageController::class, 'markRead']);
+    Route::delete('messages/{user_id}',       [MessageController::class, 'destroyConversation']);
 
     // ── JOB SEEKER ──────────────────────────────────────
     Route::middleware('role:job_seeker')->group(function () {
@@ -90,6 +91,7 @@ Route::middleware(['auth:sanctum', 'verified', 'ban.check'])->group(function () 
         Route::post('applications',              [ApplicationController::class, 'store'])->middleware('cv.uploaded');
         Route::get('applications/{application}', [ApplicationController::class, 'show']);
         Route::get('applications/{application}/feedback', [ApplicationController::class, 'feedback']);
+        Route::delete('applications/{application}', [ApplicationController::class, 'destroy']);
     });
 
     // ── COMPANY ──────────────────────────────────────────
@@ -99,6 +101,8 @@ Route::middleware(['auth:sanctum', 'verified', 'ban.check'])->group(function () 
         Route::get('profile',         [CompanyProfileController::class, 'show']);
         Route::put('profile',         [CompanyProfileController::class, 'update']);
         Route::post('profile/logo',   [CompanyProfileController::class, 'uploadLogo']);
+        Route::post('verify-password',[CompanyProfileController::class, 'verifyPassword']);
+        Route::put('settings',        [CompanyProfileController::class, 'updateSettings']);
 
         Route::get('jobs',                [CompanyJobController::class, 'index']);
         Route::post('jobs',               [CompanyJobController::class, 'store']);

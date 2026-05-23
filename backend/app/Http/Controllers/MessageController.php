@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Message;
+use App\Models\Notification;
 use App\Models\User;
 use App\Traits\ApiResponse;
 use Illuminate\Http\Request;
@@ -60,6 +61,7 @@ class MessageController extends Controller
                 $conversations[] = [
                     'id' => 'conv-' . $pairKey,
                     'other_user_id' => $otherUserId,
+                    'application_id' => $message->job_id && $otherUser->jobSeekerProfile ? \App\Models\Application::where('job_id', $message->job_id)->where('job_seeker_id', $otherUser->jobSeekerProfile->id)->value('id') : null,
                     'company' => $otherUser->role === 'company' ? $otherName : ($message->jobPost->companyProfile->company_name ?? 'Company'),
                     'candidate' => $otherUser->role === 'job_seeker' ? $otherName : $request->user()->name,
                     'contact' => $otherName,
@@ -119,6 +121,19 @@ class MessageController extends Controller
             'content' => $request->content,
         ]);
 
+        Notification::create([
+            'user_id' => $request->receiver_id,
+            'type' => 'message_received',
+            'data' => [
+                'title' => 'New message received',
+                'message' => $request->user()->name . ' sent you a message.',
+                'sender_id' => $request->user()->id,
+                'job_id' => $request->job_id,
+                'message_id' => $message->id,
+            ],
+            'created_at' => now(),
+        ]);
+
         return $this->success($message, 'Message sent successfully.');
     }
 
@@ -132,5 +147,24 @@ class MessageController extends Controller
             ->update(['read_at' => now()]);
 
         return $this->success(null, 'Messages marked as read.');
+    }
+
+    public function destroyConversation(Request $request, $otherUserId)
+    {
+        $userId = $request->user()->id;
+        $jobId = $request->query('job_id');
+
+        $query = Message::where(function ($q) use ($userId, $otherUserId) {
+            $q->where('sender_id', $userId)->where('receiver_id', $otherUserId)
+                ->orWhere('sender_id', $otherUserId)->where('receiver_id', $userId);
+        });
+
+        if ($jobId) {
+            $query->where('job_id', $jobId);
+        }
+
+        $query->delete();
+
+        return $this->success(null, 'Conversation deleted.');
     }
 }

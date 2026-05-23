@@ -14,12 +14,12 @@ class AuthService
     public function registerUser(array $data): User
     {
         return DB::transaction(function () use ($data) {
-            $user = User::create([
-                'name' => $data['name'],
-                'email' => $data['email'],
-                'password' => Hash::make($data['password']),
-                'role' => $data['role'],
-            ]);
+        $user = User::create([
+            'name' => $data['name'],
+            'email' => $data['email'],
+            'password' => $data['password'],
+            'role' => $data['role'],
+        ]);
 
             if ($data['role'] === 'job_seeker') {
                 $user->jobSeekerProfile()->create([]);

@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { ToastContext } from './toastContext';
 import { SPRING_SOFT } from '../motion/variants';
@@ -26,6 +26,12 @@ export function ToastProvider({ children }) {
   );
 
   const value = useMemo(() => ({ addToast, removeToast }), [addToast, removeToast]);
+
+  useEffect(() => {
+    const handleToastEvent = (event) => addToast(event.detail || {});
+    window.addEventListener('toast', handleToastEvent);
+    return () => window.removeEventListener('toast', handleToastEvent);
+  }, [addToast]);
 
   const iconMap = {
     success: { icon: 'check_circle', bg: 'bg-[#22C55E]/10', text: 'text-[#22C55E]' },
@@ -76,9 +82,17 @@ function ToastStack({ toasts, iconMap, onRemove }) {
                   <p className="font-h3 text-h3 text-primary text-sm truncate">{toast.title}</p>
                 )}
                 {toast.message && (
-                  <p className="font-body-md text-body-md text-on-surface-variant text-sm truncate">
+                  <p className="font-body-md text-body-md text-on-surface-variant text-sm line-clamp-2">
                     {toast.message}
                   </p>
+                )}
+                {toast.action && (
+                  <button 
+                    onClick={() => { toast.action.onClick(); onRemove(toast.id); }} 
+                    className="mt-1 font-label-sm text-sm text-secondary hover:underline"
+                  >
+                    {toast.action.label}
+                  </button>
                 )}
               </div>
               <button

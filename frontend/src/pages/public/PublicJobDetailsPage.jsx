@@ -15,6 +15,7 @@ export default function PublicJobDetailsPage() {
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
   const isAdmin = user?.role === 'admin';
+  const isOwner = user?.role === 'company' && String(user.profile?.id) === String(job?.companyId);
 
   useEffect(() => {
     const fetchJob = async () => {
@@ -80,6 +81,23 @@ export default function PublicJobDetailsPage() {
             </button>
             <Link to={`/admin/jobs/${job.id}`} className="bg-surface text-primary px-3 py-1 rounded-md text-xs font-bold hover:bg-surface-container transition-colors border border-outline-variant">
               View in Dashboard
+            </Link>
+          </div>
+        </div>
+      )}
+
+      {isOwner && (
+        <div className="bg-secondary-container text-on-secondary-container w-full py-2 px-4 flex items-center justify-between shadow-sm z-40">
+          <div className="flex items-center gap-2 font-bold font-body-sm">
+            <span className="material-symbols-outlined text-[18px]">visibility</span>
+            Public View Mode
+          </div>
+          <div className="flex gap-2">
+            <Link to={`/company/jobs/${job.id}/edit`} className="bg-surface text-primary px-3 py-1 rounded-md text-xs font-bold hover:bg-surface-container transition-colors border border-outline-variant">
+              Edit Job
+            </Link>
+            <Link to={`/company/jobs/${job.id}/applicants`} className="bg-secondary text-on-secondary px-3 py-1 rounded-md text-xs font-bold hover:opacity-90 transition-opacity">
+              Manage Applicants
             </Link>
           </div>
         </div>

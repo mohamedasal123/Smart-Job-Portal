@@ -20,8 +20,15 @@ class JobPost extends Model
         'description',
         'responsibilities',
         'location',
+        'work_mode',
         'job_type',
         'salary_range',
+        'salary_min',
+        'salary_max',
+        'experience_level',
+        'education',
+        'status',
+        'views',
         'is_active',
     ];
 
@@ -29,6 +36,9 @@ class JobPost extends Model
     {
         return [
             'is_active' => 'boolean',
+            'salary_min' => 'integer',
+            'salary_max' => 'integer',
+            'views' => 'integer',
         ];
     }
 

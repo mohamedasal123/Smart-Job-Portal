@@ -10,7 +10,7 @@ class TestAccountsSeeder extends Seeder
 {
     public function run(): void
     {
-        $password = Hash::make('password123');
+        $password = 'password123';
 
         $admin = $this->upsertUser([
             'name' => 'Test Admin',

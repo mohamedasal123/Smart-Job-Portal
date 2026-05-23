@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams, useLocation } from 'react-router-dom';
 import ConfirmModal from '../../components/ConfirmModal';
+import AdminConfirmModal from '../../components/admin/AdminConfirmModal';
 import ApplicantMatchScore from '../../components/company/ApplicantMatchScore';
 import CompanyApplicantCard from '../../components/company/CompanyApplicantCard';
 import CompanyApplicantTable from '../../components/company/CompanyApplicantTable';
@@ -12,6 +13,7 @@ import CompanySkillTag from '../../components/company/CompanySkillTag';
 import CompanyStatsCard from '../../components/company/CompanyStatsCard';
 import CompanyStatusBadge from '../../components/company/CompanyStatusBadge';
 import { useToast } from '../../components/useToast';
+import { useAuth } from '../../context/useAuth';
 import { useValidationErrors } from '../../hooks/useValidationErrors';
 import { companyDataService } from '../../services/companyDataService';
 import { companyApi } from '../../api/companyApi';
@@ -21,7 +23,7 @@ import { ROUTES } from '../../utils/constants';
 const salary = (job) => `$${Math.round(job.salaryMin / 1000)}k - $${Math.round(job.salaryMax / 1000)}k`;
 const jobParam = (params) => params.jobId || params.id;
 const toText = (value) => (Array.isArray(value) ? value.join('\n') : value || '');
-const toList = (value) => String(value || '').split('\n').map((item) => item.trim()).filter(Boolean);
+const toList = (value) => String(value || '').split(/[\n,]+/).map((item) => item.trim()).filter(Boolean);
 
 const buttonPrimary = 'inline-flex items-center justify-center gap-unit bg-secondary text-on-secondary px-stack-md py-stack-sm rounded-lg font-h3 text-h3 shadow-sm hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed';
 const buttonSecondary = 'inline-flex items-center justify-center gap-unit border border-outline-variant text-primary px-stack-md py-stack-sm rounded-lg font-h3 text-h3 hover:bg-surface-container-low transition-colors disabled:opacity-50 disabled:cursor-not-allowed';
@@ -54,12 +56,22 @@ function TextArea(props) {
 }
 
 function SelectInput(props) {
-  return <select className="w-full bg-surface-container-low border border-outline-variant rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-secondary/30 focus:border-secondary disabled:opacity-50" {...props} />;
+  return (
+    <div className="relative">
+      <select 
+        className="w-full bg-surface-container-low border border-outline-variant rounded-lg pl-4 pr-10 py-3 focus:outline-none focus:ring-2 focus:ring-secondary/30 focus:border-secondary disabled:opacity-50 appearance-none cursor-pointer" 
+        {...props} 
+      />
+      <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none">
+        expand_more
+      </span>
+    </div>
+  );
 }
 
 function Section({ title, children }) {
   return (
-    <section className="bg-surface-container-lowest rounded-xl border border-outline-variant shadow-ambient p-stack-lg space-y-stack-md">
+    <section className="bg-surface-container-lowest rounded-xl border border-outline-variant shadow-ambient p-8 space-y-6">
       <h2 className="font-h2 text-h2 text-primary">{title}</h2>
       {children}
     </section>
@@ -92,10 +104,11 @@ function ApplicantActionModals({ shortlistTarget, rejectTarget, setShortlistTarg
   const updateStatus = async (target, status) => {
     try {
       setSaving(true);
-      await companyDataService.updateApplicantStatus(target.applicationId, status);
+      const nextStatus = target.nextStatus || status;
+      await companyDataService.updateApplicantStatus(target.applicationId, nextStatus);
       addToast({
-        title: status === 'shortlisted' ? 'Candidate shortlisted' : 'Candidate rejected',
-        message: `${target.name} was moved to ${status === 'shortlisted' ? 'shortlisted' : 'rejected'}.`,
+        title: nextStatus === 'shortlisted' ? 'Candidate shortlisted' : nextStatus === 'under_review' ? 'Candidate moved back' : 'Candidate rejected',
+        message: `${target.name} was moved to ${nextStatus.replace('_', ' ')}.`,
       });
       onComplete?.();
     } catch (e) {
@@ -110,12 +123,12 @@ function ApplicantActionModals({ shortlistTarget, rejectTarget, setShortlistTarg
   return (
     <>
       <ConfirmModal
-        confirmLabel={saving ? "Saving..." : "Shortlist Candidate"}
-        message={shortlistTarget ? `Move ${shortlistTarget.name} to the shortlist for recruiter follow-up?` : ''}
+        confirmLabel={saving ? "Saving..." : shortlistTarget?.nextStatus === 'under_review' ? "Unshortlist Candidate" : "Shortlist Candidate"}
+        message={shortlistTarget ? (shortlistTarget.nextStatus === 'under_review' ? `Move ${shortlistTarget.name} back to under review?` : `Move ${shortlistTarget.name} to the shortlist for recruiter follow-up?`) : ''}
         onCancel={() => setShortlistTarget(null)}
         onConfirm={() => updateStatus(shortlistTarget, 'shortlisted')}
         open={Boolean(shortlistTarget)}
-        title="Shortlist candidate"
+        title={shortlistTarget?.nextStatus === 'under_review' ? "Unshortlist candidate" : "Shortlist candidate"}
       />
 
       {rejectTarget && (
@@ -165,30 +178,110 @@ function ApplicantActionModals({ shortlistTarget, rejectTarget, setShortlistTarg
 function useApplicantActions(refresh) {
   const [shortlistTarget, setShortlistTarget] = useState(null);
   const [rejectTarget, setRejectTarget] = useState(null);
+  const [approveTarget, setApproveTarget] = useState(null);
 
   const modals = (
-    <ApplicantActionModals
-      onComplete={refresh}
-      rejectTarget={rejectTarget}
-      setRejectTarget={setRejectTarget}
-      setShortlistTarget={setShortlistTarget}
-      shortlistTarget={shortlistTarget}
-    />
+    <>
+      <ApplicantActionModals
+        onComplete={refresh}
+        rejectTarget={rejectTarget}
+        setRejectTarget={setRejectTarget}
+        setShortlistTarget={setShortlistTarget}
+        shortlistTarget={shortlistTarget}
+      />
+      <ConfirmModal
+        confirmLabel="Approve Candidate"
+        message={approveTarget ? `Approve ${approveTarget.name} for this role?` : ''}
+        onCancel={() => setApproveTarget(null)}
+        onConfirm={async () => {
+          await companyDataService.updateApplicantStatus(approveTarget.applicationId, 'approved');
+          setApproveTarget(null);
+          refresh?.();
+        }}
+        open={Boolean(approveTarget)}
+        title="Approve candidate"
+      />
+    </>
   );
 
-  return { setShortlistTarget, setRejectTarget, modals };
+  return { setShortlistTarget, setRejectTarget, setApproveTarget, modals };
 }
 
 function NotFoundState({ title = 'Item not found', message = 'The record may have been removed or is unavailable.' }) {
   return <CompanyEmptyState title={title} message={message} />;
 }
 
+function CVParsedDataDisplay({ data }) {
+  if (!data || typeof data !== 'object') return <p className="text-on-surface-variant">No CV data available.</p>;
+
+  const hiddenKeys = new Set([
+    'id',
+    'job_seeker_id',
+    'user_id',
+    'created_at',
+    'updated_at',
+    'deleted_at',
+    'parsed_at',
+    'createdAt',
+    'updatedAt',
+    'parsedAt',
+  ]);
+
+  const renderValue = (value) => {
+    if (Array.isArray(value)) {
+      if (value.every((item) => typeof item !== 'object' || item === null)) {
+        return (
+          <div className="flex flex-wrap gap-2 mt-2">
+            {value.map((item, index) => <CompanySkillTag key={`${item}-${index}`}>{String(item)}</CompanySkillTag>)}
+          </div>
+        );
+      }
+      return <ul className="list-disc pl-5 space-y-1 text-on-surface-variant">{value.map((item, index) => <li key={index}>{typeof item === 'object' ? renderValue(item) : item}</li>)}</ul>;
+    }
+
+    if (typeof value === 'object' && value !== null) {
+      return (
+        <div className="pl-4 mt-2 border-l-2 border-outline-variant space-y-2">
+          {Object.entries(value).map(([key, child]) => !hiddenKeys.has(key) && child ? (
+            <div key={key}>
+              <span className="font-semibold capitalize text-on-surface-variant text-sm block">{key.replace(/_/g, ' ')}:</span>
+              <div className="text-primary mt-0.5">{renderValue(child)}</div>
+            </div>
+          ) : null)}
+        </div>
+      );
+    }
+
+    return <span className="text-primary">{String(value)}</span>;
+  };
+
+  return (
+    <div className="grid gap-4">
+      {Object.entries(data).map(([key, value]) => {
+        if (hiddenKeys.has(key)) return null;
+        if (!value || (Array.isArray(value) && value.length === 0) || (typeof value === 'object' && Object.keys(value).length === 0)) return null;
+        return (
+          <div key={key} className="bg-surface-container-lowest border border-outline-variant rounded-lg p-4 shadow-sm">
+            <h4 className="font-h3 text-primary capitalize mb-3 flex items-center gap-2 border-b border-outline-variant pb-2">
+              <span className="material-symbols-outlined text-[18px] text-secondary">
+                {key === 'skills' ? 'psychology' : key === 'experience' ? 'work' : key === 'education' ? 'school' : 'info'}
+              </span>
+              {key.replace(/_/g, ' ')}
+            </h4>
+            <div className="font-body-md leading-relaxed">{renderValue(value)}</div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 function JobForm({ initialJob, mode }) {
   const navigate = useNavigate();
   const { addToast } = useToast();
   const { errors, serverError, handleApiError, clearErrors, setErrors } = useValidationErrors();
-  const [saving, setSaving] = useState(false);
-    const [form, setForm] = useState({
+  const [savingStatus, setSavingStatus] = useState(null); // 'draft', 'active', 'preview', etc
+  const [form, setForm] = useState({
       title: initialJob?.title || '',
       category: initialJob?.category || '',
       location: initialJob?.location || '',
@@ -217,6 +310,8 @@ function JobForm({ initialJob, mode }) {
     
     if (Object.keys(nextErrors).length) {
       setErrors(nextErrors);
+      const firstError = Object.values(nextErrors)[0];
+      addToast({ title: 'Missing information', message: firstError, type: 'error' });
       return false;
     }
     return true;
@@ -233,23 +328,29 @@ function JobForm({ initialJob, mode }) {
 
   const save = async (status) => {
     if (!validate()) return;
-    setSaving(true);
+    setSavingStatus(status);
     try {
       if (mode === 'edit') {
-        const updated = await companyDataService.updateCompanyJob(initialJob.id, payload(initialJob.status));
+        const updated = await companyDataService.updateCompanyJob(initialJob.id, payload(status === 'preview' ? 'draft' : status));
         addToast({ title: 'Job updated', message: `${updated.title} was saved.` });
-        navigate(`/company/jobs/${updated.id}`);
+        if (status === 'preview') {
+            navigate(`/company/jobs/${updated.id}/preview`);
+        } else {
+            navigate(status === 'draft' ? ROUTES.COMPANY_JOBS : `/company/jobs/${updated.id}`);
+        }
       } else {
-        const created = await companyDataService.createCompanyJob(payload(status));
-        addToast({ title: status === 'draft' ? 'Draft saved' : 'Job published', message: `${created.title} is now ${status}.` });
-        navigate(status === 'draft' ? `/company/jobs/${created.id}/preview` : `/company/jobs/${created.id}`);
+        const created = await companyDataService.createCompanyJob(payload(status === 'preview' ? 'draft' : status));
+        addToast({ title: status === 'draft' || status === 'preview' ? 'Draft saved' : 'Job published', message: `${created.title} is now saved.` });
+        navigate(status === 'preview' ? `/company/jobs/${created.id}/preview` : (status === 'draft' ? ROUTES.COMPANY_JOBS : `/company/jobs/${created.id}`));
       }
     } catch (err) {
       handleApiError(err);
     } finally {
-      setSaving(false);
+      setSavingStatus(null);
     }
   };
+
+  const isSaving = savingStatus !== null;
 
   return (
     <form className="space-y-gutter" onSubmit={(event) => event.preventDefault()}>
@@ -260,10 +361,10 @@ function JobForm({ initialJob, mode }) {
       )}
         <Section title="Basic info">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-stack-md">
-            <Field error={errors.title} label="Job title"><TextInput disabled={saving} onChange={(event) => 
+            <Field error={errors.title} label="Job title"><TextInput disabled={isSaving} onChange={(event) => 
 update('title', event.target.value)} value={form.title} /></Field>
             <Field error={errors.category} label="Category">
-              <SelectInput disabled={saving} onChange={(event) => update('category', event.target.value)} value={form.category}>
+              <SelectInput disabled={isSaving} onChange={(event) => update('category', event.target.value)} value={form.category}>
                 <option value="">Select category</option>
                 <option value="Engineering">Engineering</option>
                 <option value="Design">Design</option>
@@ -277,7 +378,7 @@ update('title', event.target.value)} value={form.title} /></Field>
               </SelectInput>
             </Field>
             <Field error={errors.type} label="Job type">
-            <SelectInput disabled={saving} onChange={(event) => update('type', event.target.value)} value={form.type}>
+            <SelectInput disabled={isSaving} onChange={(event) => update('type', event.target.value)} value={form.type}>
               <option value="">Select type</option>
               <option value="full_time">Full time</option>
               <option value="part_time">Part time</option>
@@ -285,9 +386,9 @@ update('title', event.target.value)} value={form.title} /></Field>
               <option value="internship">Internship</option>
             </SelectInput>
           </Field>
-          <Field error={errors.location} label="Location"><TextInput disabled={saving} onChange={(event) => update('location', event.target.value)} value={form.location} /></Field>
+          <Field error={errors.location} label="Location"><TextInput disabled={isSaving} onChange={(event) => update('location', event.target.value)} value={form.location} /></Field>
           <Field error={errors.workMode} label="Work mode">
-            <SelectInput disabled={saving} onChange={(event) => update('workMode', event.target.value)} value={form.workMode}>
+            <SelectInput disabled={isSaving} onChange={(event) => update('workMode', event.target.value)} value={form.workMode}>
               <option value="Remote">Remote</option>
               <option value="Hybrid">Hybrid</option>
               <option value="On-site">On-site</option>
@@ -297,15 +398,15 @@ update('title', event.target.value)} value={form.title} /></Field>
       </Section>
 
       <Section title="Description">
-        <Field error={errors.description} label="Job description"><TextArea disabled={saving} onChange={(event) => update('description', event.target.value)} value={form.description} /></Field>
+        <Field error={errors.description} label="Job description"><TextArea disabled={isSaving} onChange={(event) => update('description', event.target.value)} value={form.description} /></Field>
       </Section>
 
       <Section title="Responsibilities">
-        <Field error={errors.responsibilities} label="One responsibility per line"><TextArea disabled={saving} onChange={(event) => update('responsibilities', event.target.value)} value={form.responsibilities} /></Field>
+        <Field error={errors.responsibilities} label="One responsibility per line"><TextArea disabled={isSaving} onChange={(event) => update('responsibilities', event.target.value)} value={form.responsibilities} /></Field>
       </Section>
 
       <Section title="Required skills">
-        <Field error={errors.requiredSkills} label="One skill per line"><TextArea disabled={saving} onChange={(event) => update('requiredSkills', event.target.value)} value={form.requiredSkills} /></Field>
+        <Field error={errors.requiredSkills} label="Enter skills separated by commas or new lines"><TextArea disabled={isSaving} onChange={(event) => update('requiredSkills', event.target.value)} value={form.requiredSkills} /></Field>
         <div className="flex flex-wrap gap-unit">
           {toList(form.requiredSkills).map((skill) => <CompanySkillTag key={skill}>{skill}</CompanySkillTag>)}
         </div>
@@ -313,22 +414,91 @@ update('title', event.target.value)} value={form.title} /></Field>
 
       <Section title="Salary, experience, and education">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-stack-md">
-          <Field error={errors.salaryMin} label="Salary min"><TextInput disabled={saving} onChange={(event) => update('salaryMin', event.target.value)} type="number" value={form.salaryMin} /></Field>
-          <Field error={errors.salaryMax} label="Salary max"><TextInput disabled={saving} onChange={(event) => update('salaryMax', event.target.value)} type="number" value={form.salaryMax} /></Field>
-          <Field error={errors.experienceLevel} label="Experience level"><TextInput disabled={saving} onChange={(event) => update('experienceLevel', event.target.value)} value={form.experienceLevel} /></Field>
-          <Field error={errors.education} label="Education"><TextInput disabled={saving} onChange={(event) => update('education', event.target.value)} value={form.education} /></Field>
+          <Field error={errors.salaryMin} label="Salary min">
+            <TextInput 
+              disabled={isSaving} 
+              onChange={(event) => update('salaryMin', event.target.value.replace(/\D/g, '').slice(0, 7))} 
+              value={form.salaryMin ? Number(form.salaryMin).toLocaleString() : ''} 
+              placeholder="e.g. 90,000"
+            />
+          </Field>
+          <Field error={errors.salaryMax} label="Salary max">
+            <TextInput 
+              disabled={isSaving} 
+              onChange={(event) => update('salaryMax', event.target.value.replace(/\D/g, '').slice(0, 7))} 
+              value={form.salaryMax ? Number(form.salaryMax).toLocaleString() : ''} 
+              placeholder="e.g. 130,000"
+            />
+          </Field>
+          <Field error={errors.experienceLevel} label="Experience level">
+            <SelectInput disabled={isSaving} onChange={(event) => update('experienceLevel', event.target.value)} value={form.experienceLevel}>
+              <option value="">Select level</option>
+              <option value="Internship">Internship</option>
+              <option value="Entry Level / Junior">Entry Level / Junior</option>
+              <option value="Mid Level">Mid Level</option>
+              <option value="Senior">Senior</option>
+              <option value="Lead / Manager">Lead / Manager</option>
+              <option value="Director / Executive">Director / Executive</option>
+            </SelectInput>
+          </Field>
+          <Field error={errors.education} label="Education"><TextInput disabled={isSaving} onChange={(event) => update('education', event.target.value)} value={form.education} /></Field>
         </div>
       </Section>
 
       <div className="flex flex-wrap justify-end gap-stack-sm">
-        <button disabled={saving} className={buttonSecondary} onClick={() => navigate(mode === 'edit' ? `/company/jobs/${initialJob.id}` : ROUTES.COMPANY_JOBS)}>Cancel</button>
-        {mode !== 'edit' && <button disabled={saving} className={buttonSecondary} onClick={() => save('draft')}>Save Draft</button>}
-        {mode !== 'edit' && <button disabled={saving} className={buttonSecondary} onClick={() => save('draft')}>Preview</button>}
-        <button disabled={saving} className={buttonPrimary} onClick={() => save(mode === 'edit' ? initialJob.status : 'active')}>
-          {saving ? 'Saving...' : (mode === 'edit' ? 'Save Changes' : 'Publish Job')}
+        <button type="button" disabled={isSaving} className={buttonSecondary} onClick={() => navigate(mode === 'edit' ? `/company/jobs/${initialJob.id}` : ROUTES.COMPANY_JOBS)}>Cancel</button>
+        
+        <button type="button" disabled={isSaving} className={buttonSecondary} onClick={() => save('draft')}>
+            {savingStatus === 'draft' ? 'Saving...' : 'Save Draft'}
+        </button>
+        
+        <button type="button" disabled={isSaving} className={buttonSecondary} onClick={() => save('preview')}>
+            {savingStatus === 'preview' ? 'Loading...' : 'Preview'}
+        </button>
+        
+        <button type="button" disabled={isSaving} className={buttonPrimary} onClick={() => save('active')}>
+          {savingStatus === 'active' ? 'Publishing...' : (mode === 'edit' ? 'Publish Changes' : 'Publish Job')}
         </button>
       </div>
     </form>
+  );
+}
+
+function UndoToast({ target, onClear }) {
+  const [timeLeft, setTimeLeft] = useState(5);
+
+  useEffect(() => {
+    if (!target) return;
+    const interval = setInterval(() => {
+      setTimeLeft((prev) => {
+        if (prev <= 1) {
+          clearInterval(interval);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [target]);
+
+  if (!target) return null;
+
+  return (
+    <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[9999] bg-inverse-surface text-inverse-on-surface px-4 py-3 rounded-lg shadow-overlay flex items-center justify-between gap-4 w-auto min-w-[320px] max-w-[400px] animate-fade-up">
+      <p className="font-body-sm truncate flex-1">Chat with {target.conv.candidate} deleted.</p>
+      <div className="flex items-center gap-3 shrink-0">
+        <span className="font-label-sm w-4 text-center">{timeLeft}s</span>
+        <button 
+          onClick={() => {
+            target.restore();
+            onClear();
+          }}
+          className="font-label-sm text-secondary hover:underline px-2 py-1 rounded hover:bg-secondary/10 transition-colors uppercase tracking-wider"
+        >
+          Undo
+        </button>
+      </div>
+    </div>
   );
 }
 
@@ -366,14 +536,14 @@ export function CompanyDashboard() {
   };
 
   const modals = (
-    <ConfirmModal
-      confirmLabel="Shortlist Candidate"
-      message={shortlistTarget ? `Move ${shortlistTarget.applicant_name} to the shortlist for recruiter follow-up?` : ''}
-      onCancel={() => setShortlistTarget(null)}
-      onConfirm={() => updateStatus(shortlistTarget, 'shortlisted')}
-      open={Boolean(shortlistTarget)}
-      title="Shortlist candidate"
-    />
+      <AdminConfirmModal
+        confirmLabel="Shortlist Candidate"
+        message={shortlistTarget ? `Move ${shortlistTarget.applicant_name} to the shortlist for recruiter follow-up?` : ''}
+        onCancel={() => setShortlistTarget(null)}
+        onConfirm={() => updateStatus(shortlistTarget, 'shortlisted')}
+        open={Boolean(shortlistTarget)}
+        title="Shortlist candidate"
+      />
   );
 
   if (loading) return <FullPageSpinner />;
@@ -383,55 +553,106 @@ export function CompanyDashboard() {
   return (
     <>
       <CompanyPageHeader
+        actions={<Link className={buttonPrimary} to={ROUTES.COMPANY_CREATE_JOB}><span className="material-symbols-outlined text-[18px]">add</span>Create Job</Link>}
         eyebrow="Company Dashboard"
         title="Welcome back"
         description="Track job performance, applicant quality, and recruiter actions from one connected workspace."
       />
-      <div className="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-6 gap-gutter">
+      
+      {/* Overview Stats Row */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-gutter">
         <CompanyStatsCard icon="work" label="Total jobs" to={ROUTES.COMPANY_JOBS} value={stats.total_jobs} />
         <CompanyStatsCard icon="work_outline" label="Active jobs" to={ROUTES.COMPANY_JOBS} value={stats.active_jobs} />
         <CompanyStatsCard icon="group" label="Total applicants" to={ROUTES.COMPANY_APPLICANTS} value={stats.total_applicants} />
         <CompanyStatsCard icon="new_releases" label="New this week" to={ROUTES.COMPANY_APPLICANTS} value={stats.new_applicants_this_week} />
-        <CompanyStatsCard icon="hourglass_top" label="Under review" to={ROUTES.COMPANY_APPLICANTS} value={stats.under_review} />
-        <CompanyStatsCard icon="check_circle" label="Shortlisted" to={ROUTES.COMPANY_APPLICANTS} value={stats.shortlisted} />
-        <CompanyStatsCard icon="cancel" label="Rejected" to={ROUTES.COMPANY_APPLICANTS} value={stats.rejected} />
       </div>
-      <section className="grid grid-cols-1 xl:grid-cols-[1.3fr_1fr] gap-gutter">
-        <Section title="Recent applicants">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-stack-md">
-            {stats.recent_applicants?.map((applicant) => (
-              <div key={applicant.application_id} className="bg-surface-container-low rounded-lg p-4 border border-outline-variant flex flex-col gap-2">
-                 <p className="font-h3 text-primary">{applicant.applicant_name}</p>
-                 <p className="text-sm text-on-surface-variant">{applicant.job_title} · Score: {applicant.ai_score}</p>
-                 <div className="flex gap-2 mt-2">
-                    <button onClick={() => setShortlistTarget(applicant)} className="text-sm text-secondary hover:underline">Shortlist</button>
-                 </div>
-              </div>
-            ))}
-            {!stats.recent_applicants?.length && <p className="text-on-surface-variant p-4">No recent applicants.</p>}
-          </div>
-        </Section>
-        <Section title="Quick actions">
-          <div className="grid gap-stack-sm">
-            <Link className={buttonPrimary} to={ROUTES.COMPANY_CREATE_JOB}>Create Job</Link>
-            <Link className={buttonSecondary} to={ROUTES.COMPANY_JOBS}>Manage Jobs</Link>
-            <Link className={buttonSecondary} to={ROUTES.COMPANY_APPLICANTS}>View Applicants</Link>
-            <Link className={buttonSecondary} to={ROUTES.COMPANY_PROFILE + '/edit'}>Edit Company Profile</Link>
-          </div>
-        </Section>
-      </section>
-      <Section title="Top performing jobs">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-stack-md">
-          {stats.top_jobs?.map((job) => (
-            <div key={job.id} className="bg-surface-container-low rounded-lg p-4 border border-outline-variant">
-              <p className="font-h3 text-primary">{job.title}</p>
-              <p className="text-sm text-on-surface-variant">Applicants: {job.applicants_count}</p>
-              <CompanyStatusBadge status={job.is_active ? 'active' : 'paused'} />
+
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-gutter">
+        {/* Main Content Area (Left side) */}
+        <div className="xl:col-span-2 flex flex-col gap-gutter">
+          <Section title="Recent applicants">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-stack-md">
+              {stats.recent_applicants?.map((applicant) => {
+                const isShortlisted = String(applicant.status || '').toLowerCase() === 'shortlisted';
+                return (
+                <div key={applicant.applicationId} className="bg-surface-container-lowest rounded-xl p-5 border border-outline-variant shadow-sm hover:shadow-hover transition-shadow flex flex-col justify-between gap-4">
+                  <div>
+                    <div className="flex justify-between items-start mb-2">
+                      <p className="font-h3 text-primary truncate pr-2">{applicant.name}</p>
+                      <span className="bg-secondary/10 text-secondary text-xs font-bold px-2 py-1 rounded-full shrink-0">
+                        {applicant.matchScore}% Match
+                      </span>
+                    </div>
+                    <p className="text-sm text-on-surface-variant flex items-center gap-1.5">
+                      <span className="material-symbols-outlined text-[16px]">work</span>
+                      <span className="truncate">{applicant.job_title || applicant.title || 'Job Application'}</span>
+                    </p>
+                  </div>
+                  <button onClick={() => setShortlistTarget({ ...applicant, nextStatus: isShortlisted ? 'under_review' : 'shortlisted' })} className={`w-full mt-2 text-center py-2 font-label-md rounded-lg transition-colors border ${isShortlisted ? 'border-outline-variant text-primary hover:bg-surface-container-high' : 'border-secondary/30 bg-surface-container-highest hover:bg-secondary/10 text-secondary'}`}>
+                    {isShortlisted ? 'Unshortlist' : 'Shortlist Candidate'}
+                  </button>
+                </div>
+              )})}
+              {!stats.recent_applicants?.length && <p className="text-on-surface-variant p-4">No recent applicants.</p>}
             </div>
-          ))}
-          {!stats.top_jobs?.length && <p className="text-on-surface-variant p-4">No top jobs.</p>}
+          </Section>
+
+          <Section title="Top performing jobs">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-stack-md">
+              {stats.top_jobs?.map((job) => (
+                <div key={job.id} className="bg-surface-container-lowest rounded-xl p-5 border border-outline-variant shadow-sm flex flex-col gap-4">
+                  <div className="flex justify-between items-start gap-4">
+                    <p className="font-h3 text-primary leading-tight">{job.title}</p>
+                    <CompanyStatusBadge status={job.is_active ? 'active' : 'paused'} />
+                  </div>
+                  <div className="flex items-center gap-2 text-sm text-on-surface-variant mt-auto">
+                    <span className="material-symbols-outlined text-[18px]">group</span>
+                    <span>{job.applicants_count} Applicants</span>
+                  </div>
+                </div>
+              ))}
+              {!stats.top_jobs?.length && <p className="text-on-surface-variant p-4">No top jobs.</p>}
+            </div>
+          </Section>
         </div>
-      </Section>
+
+        {/* Sidebar Area (Right side) */}
+        <div className="flex flex-col gap-gutter">
+          <Section title="Hiring Pipeline">
+            <div className="flex flex-col gap-stack-sm">
+              <Link to={ROUTES.COMPANY_APPLICANTS} className="bg-surface-container-lowest hover:bg-surface-container-low transition-colors rounded-xl p-4 border border-outline-variant flex justify-between items-center group">
+                <span className="text-on-surface-variant group-hover:text-primary transition-colors flex items-center gap-3 font-medium">
+                  <div className="w-8 h-8 rounded-full bg-surface-variant flex items-center justify-center">
+                    <span className="material-symbols-outlined text-[18px]">hourglass_top</span>
+                  </div>
+                  Under review
+                </span>
+                <span className="font-h2 text-primary">{stats.under_review}</span>
+              </Link>
+              
+              <Link to={ROUTES.COMPANY_APPLICANTS} className="bg-surface-container-lowest hover:bg-surface-container-low transition-colors rounded-xl p-4 border border-outline-variant flex justify-between items-center group">
+                <span className="text-on-surface-variant group-hover:text-primary transition-colors flex items-center gap-3 font-medium">
+                  <div className="w-8 h-8 rounded-full bg-success/10 text-success flex items-center justify-center">
+                    <span className="material-symbols-outlined text-[18px]">check_circle</span>
+                  </div>
+                  Shortlisted
+                </span>
+                <span className="font-h2 text-primary">{stats.shortlisted}</span>
+              </Link>
+              
+              <Link to={ROUTES.COMPANY_APPLICANTS} className="bg-surface-container-lowest hover:bg-surface-container-low transition-colors rounded-xl p-4 border border-outline-variant flex justify-between items-center group">
+                <span className="text-on-surface-variant group-hover:text-primary transition-colors flex items-center gap-3 font-medium">
+                  <div className="w-8 h-8 rounded-full bg-error/10 text-error flex items-center justify-center">
+                    <span className="material-symbols-outlined text-[18px]">cancel</span>
+                  </div>
+                  Rejected
+                </span>
+                <span className="font-h2 text-primary">{stats.rejected}</span>
+              </Link>
+            </div>
+          </Section>
+        </div>
+      </div>
       {modals}
     </>
   );
@@ -458,15 +679,27 @@ export function CompanyProfile() {
   return (
     <>
       <CompanyPageHeader
-        actions={<><Link className={buttonSecondary} to={ROUTES.COMPANY_PROFILE + '/preview'}>Public Preview</Link><Link className={buttonPrimary} to={ROUTES.COMPANY_PROFILE + '/edit'}>Edit Profile</Link></>}
+        actions={<><Link className={buttonSecondary} to={ROUTES.COMPANY_PROFILE + '/preview'}>
+          <span className="material-symbols-outlined text-[18px]">open_in_new</span>
+          Public Preview
+        </Link><Link className={buttonPrimary} to={ROUTES.COMPANY_PROFILE + '/edit'}>
+          <span className="material-symbols-outlined text-[18px]">edit</span>
+          Edit Profile
+        </Link></>}
         eyebrow="Company Profile"
         title={profile.name}
         description={profile.description}
       />
       <Section title="Company details">
-        <div className="grid grid-cols-1 lg:grid-cols-[220px_1fr] gap-gutter">
-          <img alt={profile.name} className="w-36 h-36 rounded-2xl object-cover border border-outline-variant" src={profile.logo} />
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-stack-md">
+        <div className="flex flex-col md:flex-row gap-8">
+          <div className="w-36 h-36 rounded-2xl bg-surface border border-outline-variant flex items-center justify-center p-2 shrink-0">
+            {profile.logo ? (
+              <img alt={profile.name} className="w-full h-full object-contain" src={profile.logo} />
+            ) : (
+              <span className="material-symbols-outlined text-[48px] text-on-surface-variant">domain</span>
+            )}
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 w-full">
             {[
               ['Industry', profile.industry],
               ['Website', profile.website],
@@ -477,9 +710,9 @@ export function CompanyProfile() {
               ['Company size', profile.companySize],
               ['Active jobs', activeJobs.length],
             ].map(([label, value]) => (
-              <div className="bg-surface-container-low rounded-lg p-stack-md" key={label}>
-                <p className="font-label-sm text-label-sm uppercase tracking-wider text-on-surface-variant">{label}</p>
-                <p className="font-h3 text-h3 text-primary mt-unit">{value || '-'}</p>
+              <div className="bg-surface-container-low rounded-xl p-6 border border-outline-variant shadow-sm flex flex-col justify-center" key={label}>
+                <p className="font-label-sm text-label-sm uppercase tracking-wider text-on-surface-variant mb-2">{label}</p>
+                <p className="font-h3 text-h3 text-primary break-all">{value || '-'}</p>
               </div>
             ))}
           </div>
@@ -608,23 +841,35 @@ export function CompanyProfilePreview() {
   return (
     <>
       <CompanyPageHeader
-        actions={<><Link className={buttonSecondary} to={ROUTES.COMPANY_PROFILE}>Back to Profile</Link><Link className={buttonPrimary} to={ROUTES.COMPANY_PROFILE + '/edit'}>Edit Profile</Link></>}
+        actions={<><Link className={buttonSecondary} to={ROUTES.COMPANY_PROFILE}>
+          <span className="material-symbols-outlined text-[18px]">arrow_back</span>
+          Back to Profile
+        </Link><Link className={buttonPrimary} to={ROUTES.COMPANY_PROFILE + '/edit'}>
+          <span className="material-symbols-outlined text-[18px]">edit</span>
+          Edit Profile
+        </Link></>}
         eyebrow="Public Preview"
         title={profile.name}
         description={profile.description}
       />
       <Section title="Employer profile">
-        <div className="flex flex-col md:flex-row gap-gutter">
-          <img alt={profile.name} className="w-32 h-32 rounded-2xl object-cover border border-outline-variant" src={profile.logo} />
-          <div className="space-y-unit text-on-surface-variant">
-            <p>{profile.industry} · {profile.location}</p>
-            <p>{profile.companySize} · Founded {profile.foundedYear}</p>
-            <p>{profile.website}</p>
+        <div className="flex flex-col md:flex-row gap-8">
+          <div className="w-32 h-32 rounded-2xl bg-surface border border-outline-variant flex items-center justify-center p-2 shrink-0">
+            {profile.logo ? (
+              <img alt={profile.name} className="w-full h-full object-contain" src={profile.logo} />
+            ) : (
+              <span className="material-symbols-outlined text-[48px] text-on-surface-variant">domain</span>
+            )}
+          </div>
+          <div className="space-y-2 text-on-surface-variant flex flex-col justify-center">
+            <p className="flex items-center gap-2"><span className="material-symbols-outlined text-[18px]">category</span> {profile.industry} · {profile.location}</p>
+            <p className="flex items-center gap-2"><span className="material-symbols-outlined text-[18px]">group</span> {profile.companySize} · Founded {profile.foundedYear}</p>
+            <p className="flex items-center gap-2"><span className="material-symbols-outlined text-[18px]">language</span> <a href={profile.website} target="_blank" rel="noreferrer" className="text-secondary hover:underline">{profile.website}</a></p>
           </div>
         </div>
       </Section>
       <Section title="Open jobs">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-stack-md">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {activeJobs.map((job) => <CompanyJobCard job={job} key={job.id} />)}
         </div>
       </Section>
@@ -662,11 +907,16 @@ export function CompanyManageJobs() {
 
   return (
     <>
-      <CompanyPageHeader actions={<Link className={buttonPrimary} to={ROUTES.COMPANY_CREATE_JOB}>Create Job</Link>} eyebrow="Manage Jobs" title="Job board" description="Search, filter, publish, pause, edit, preview, and remove job posts." />
-      <div className="bg-surface-container-lowest rounded-xl border border-outline-variant shadow-ambient p-stack-md grid grid-cols-1 md:grid-cols-[1fr_180px_200px] gap-stack-md">
-        <TextInput onChange={(event) => updateFilters('query', event.target.value)} placeholder="Search by title, location, skill, or status" value={filters.query} />
+      <CompanyPageHeader
+        actions={<Link className={buttonPrimary} to={ROUTES.COMPANY_CREATE_JOB}><span className="material-symbols-outlined text-[18px]">add</span>Create Job</Link>}
+        eyebrow="Manage Jobs"
+        title="Job board"
+        description="Search, filter, publish, pause, edit, preview, and remove job posts."
+      />
+      <div className="bg-surface-container-lowest rounded-xl border border-outline-variant shadow-ambient p-6 grid grid-cols-1 md:grid-cols-[1fr_160px_160px] gap-6 mb-8">
+        <TextInput onChange={(event) => updateFilters('query', event.target.value)} placeholder="Search jobs by title, location, skill, work mode, or status..." value={filters.query} />
         <SelectInput onChange={(event) => updateFilters('status', event.target.value)} value={filters.status}>
-          <option value="all">All</option><option value="active">Active</option><option value="paused">Paused</option><option value="closed">Closed</option>
+          <option value="all">All Status</option><option value="active">Active</option><option value="draft">Draft</option><option value="paused">Paused</option><option value="closed">Closed</option>
         </SelectInput>
         <SelectInput onChange={(event) => updateFilters('sort', event.target.value)} value={filters.sort}>
           <option value="newest">Newest</option><option value="applicants">Most applicants</option><option value="views">Most views</option>
@@ -807,14 +1057,18 @@ export function CompanyJobDetails() {
     try {
       setLoading(true);
       const id = jobParam(params);
-      const [j, a] = await Promise.all([
-        companyDataService.getCompanyJobById(id),
-        companyDataService.getApplicantsByJob(id)
-      ]);
+      const j = await companyDataService.getCompanyJobById(id);
       setJob(j);
-      setApplicants(a);
+      try {
+        const a = await companyDataService.getApplicantsByJob(id);
+        setApplicants(a);
+      } catch (applicantsError) {
+        console.error(applicantsError);
+        setApplicants([]);
+      }
     } catch(e) {
       console.error(e);
+      setJob(null);
     } finally {
       setLoading(false);
     }
@@ -822,7 +1076,7 @@ export function CompanyJobDetails() {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  const { setShortlistTarget, setRejectTarget, modals } = useApplicantActions(fetchData);
+  const { setShortlistTarget, setRejectTarget, setApproveTarget, modals } = useApplicantActions(fetchData);
 
   if (loading) return <FullPageSpinner />;
   if (!job) return <NotFoundState title="Job not found" message="This job post is unavailable." />;
@@ -906,7 +1160,7 @@ export function CompanyApplicants() {
   }, [jobId, filters, page]);
 
   useEffect(() => { refresh(); }, [refresh]);
-  const { setShortlistTarget, setRejectTarget, modals } = useApplicantActions(refresh);
+  const { setShortlistTarget, setRejectTarget, setApproveTarget, modals } = useApplicantActions(refresh);
 
   const updateFilters = (key, value) => {
     setFilters(prev => ({ ...prev, [key]: value }));
@@ -931,7 +1185,7 @@ export function CompanyApplicants() {
       
       {loading ? <FullPageSpinner /> : (
         <>
-          <CompanyApplicantTable applicants={applicants} onReject={setRejectTarget} onShortlist={setShortlistTarget} />
+          <CompanyApplicantTable applicants={applicants} onApprove={setApproveTarget} onReject={setRejectTarget} onShortlist={setShortlistTarget} />
           <PaginationControls page={page} setPage={setPage} itemsCount={applicants.length} />
         </>
       )}
@@ -962,46 +1216,115 @@ export function CompanyApplicantProfile() {
   }, [params.id]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
-  const { setShortlistTarget, setRejectTarget, modals } = useApplicantActions(fetchData);
+  const { setShortlistTarget, setRejectTarget, setApproveTarget, modals } = useApplicantActions(fetchData);
 
   if (loading) return <FullPageSpinner />;
   if (!applicant) return <NotFoundState title="Applicant not found" message="This candidate record is unavailable." />;
 
+  const isShortlisted = String(applicant.status || '').toLowerCase() === 'shortlisted';
+  const messagePath = applicant.userId ? `${ROUTES.COMPANY_MESSAGES}?user=${applicant.userId}&job=${applicant.jobId}&application=${applicant.id}&name=${encodeURIComponent(applicant.name)}` : ROUTES.COMPANY_MESSAGES;
+  const profileActionBase = 'h-14 w-full sm:w-[260px] px-stack-lg py-stack-md text-center whitespace-nowrap text-base font-semibold';
+  const primaryActions = (
+    <div className="grid grid-cols-1 sm:grid-cols-3 gap-stack-sm w-full">
+      <button className={`${buttonPrimary} ${profileActionBase}`} onClick={() => setApproveTarget(applicant)}>
+        <span className="material-symbols-outlined text-[18px]">verified</span>
+        Approve
+      </button>
+      <button className={`${isShortlisted ? buttonSecondary : buttonPrimary} ${profileActionBase}`} onClick={() => setShortlistTarget({ ...applicant, nextStatus: isShortlisted ? 'under_review' : 'shortlisted' })}>
+        <span className="material-symbols-outlined text-[18px]">{isShortlisted ? 'undo' : 'check_circle'}</span>
+        {isShortlisted ? 'Unshortlist' : 'Shortlist'}
+      </button>
+      {isShortlisted ? <Link className={`${buttonSecondary} ${profileActionBase}`} to={messagePath}><span className="material-symbols-outlined text-[18px]">chat</span>Message Candidate</Link> : <div className={`${profileActionBase} hidden sm:block invisible`} />}
+    </div>
+  );
+  const secondaryActions = (
+    <div className="grid grid-cols-1 sm:grid-cols-3 gap-stack-sm w-full">
+      <button className={`${buttonDanger} ${profileActionBase}`} onClick={() => setRejectTarget(applicant)}>
+        <span className="material-symbols-outlined text-[18px]">cancel</span>
+        Reject
+      </button>
+      <button className={`${buttonSecondary} ${profileActionBase}`} onClick={async () => {
+        const blob = await companyDataService.getApplicantCV(applicant.id);
+        const url = window.URL.createObjectURL(new Blob([blob]));
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', `cv-${applicant.name}.pdf`);
+        document.body.appendChild(link);
+        link.click();
+      }}>
+        <span className="material-symbols-outlined text-[18px]">download</span>
+        Download CV
+      </button>
+      <Link className={`${buttonSecondary} ${profileActionBase}`} to={`/company/jobs/${applicant.jobId}/applicants`}>
+        <span className="material-symbols-outlined text-[18px]">arrow_back</span>
+        Back to Applicants
+      </Link>
+    </div>
+  );
+
   return (
     <>
       <CompanyPageHeader
-        actions={<><button className={buttonPrimary} onClick={() => setShortlistTarget(applicant)}>Shortlist</button><button className={buttonDanger} onClick={() => setRejectTarget(applicant)}>Reject</button><button className={buttonSecondary} onClick={async () => {
-          const blob = await companyDataService.getApplicantCV(applicant.id);
-          const url = window.URL.createObjectURL(new Blob([blob]));
-          const link = document.createElement('a');
-          link.href = url;
-          link.setAttribute('download', `cv-${applicant.name}.pdf`);
-          document.body.appendChild(link);
-          link.click();
-        }}>Download CV</button><Link className={buttonSecondary} to={`/company/applicants/${applicant.id}/matching`}>View Matching Details</Link><Link className={buttonSecondary} to={`/company/jobs/${applicant.jobId}/applicants`}>Back to Applicants</Link></>}
+        actions={<div className="w-full sm:w-auto flex flex-col gap-stack-sm rounded-xl border border-outline-variant bg-surface-container-lowest p-stack-sm shadow-sm">{primaryActions}{secondaryActions}</div>}
         eyebrow="Applicant Profile"
         title={applicant.name}
         description={`${applicant.title} for ${job?.title || 'selected role'}`}
       />
-      <div className="grid grid-cols-1 xl:grid-cols-[1fr_320px] gap-gutter">
-        <Section title="Candidate profile">
-          <div className="flex items-start gap-stack-md">
-            <img alt={applicant.name} className="w-20 h-20 rounded-full object-cover" src={applicant.avatar} />
-            <div><CompanyStatusBadge status={applicant.status} /><p className="mt-stack-sm text-on-surface-variant">{applicant.email} · {applicant.phone} · {applicant.location}</p></div>
+      <div className="flex flex-col gap-8">
+        <div className="bg-surface-container-lowest rounded-xl shadow-sm border border-outline-variant overflow-hidden">
+          <div className="h-32 bg-secondary/10 relative overflow-hidden">
+            <div className="absolute top-0 right-0 p-8 opacity-10 transform translate-x-1/4 -translate-y-1/4">
+              <span className="material-symbols-outlined text-[150px] text-secondary">person</span>
+            </div>
           </div>
-          <p className="text-on-surface-variant">{applicant.experience}</p>
-          <p className="text-on-surface-variant">Education: {applicant.education}</p>
-          <div className="flex flex-wrap gap-unit">{applicant.skills.map((skill) => <CompanySkillTag key={skill}>{skill}</CompanySkillTag>)}</div>
-        </Section>
-        <Section title="AI match">
-          <ApplicantMatchScore score={applicant.matchScore} size="lg" />
-          <p className="font-h3 text-h3 text-primary">Missing skills</p>
-          <div className="flex flex-wrap gap-unit">
-            {applicant.missingSkills?.length 
-              ? applicant.missingSkills.map((skill) => <CompanySkillTag tone="missing" key={skill}>{skill}</CompanySkillTag>)
-              : <CompanySkillTag tone="matched">No missing skills detected</CompanySkillTag>}
+          <div className="px-8 pb-8 relative">
+            <div className="w-24 h-24 rounded-full bg-surface border-4 border-surface-container-lowest flex items-center justify-center font-display text-h1 text-primary shadow-sm -mt-12 mb-4 overflow-hidden">
+              {applicant.avatar ? <img alt={applicant.name} className="w-full h-full object-cover" src={applicant.avatar} /> : applicant.name?.charAt(0).toUpperCase()}
+            </div>
+            <div className="flex flex-col gap-8">
+              <div className="max-w-3xl">
+                <h1 className="font-display text-h2 text-primary">{applicant.name}</h1>
+                <p className="font-body-lg text-on-surface-variant mt-1 flex items-center gap-2">
+                  <span className="material-symbols-outlined text-[18px]">email</span>
+                  {applicant.email || 'No email available'}
+                </p>
+                {applicant.location && <p className="font-body-md text-on-surface-variant mt-1 flex items-center gap-2"><span className="material-symbols-outlined text-[18px]">location_on</span>{applicant.location}</p>}
+                {applicant.phone && <p className="font-body-md text-on-surface-variant mt-1 flex items-center gap-2"><span className="material-symbols-outlined text-[18px]">call</span>{applicant.phone}</p>}
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-[180px_160px_minmax(260px,1fr)] gap-3 items-stretch">
+                <div className="bg-surface-container-low border border-outline-variant rounded-xl px-4 py-3 min-h-[96px] flex flex-col justify-center">
+                  <p className="font-label-sm text-label-sm uppercase tracking-wider text-on-surface-variant mb-2">Application status</p>
+                  <CompanyStatusBadge status={applicant.status} />
+                </div>
+                <div className="bg-surface-container-low border border-outline-variant rounded-xl px-4 py-3 min-h-[96px] flex flex-col justify-center">
+                  <p className="font-label-sm text-label-sm uppercase tracking-wider text-on-surface-variant mb-2 flex items-center gap-2"><span className="material-symbols-outlined text-[16px]">work</span>Experience</p>
+                  <p className="font-h3 text-primary">{applicant.yearsExperience} years</p>
+                </div>
+                <div className="bg-surface-container-low border border-outline-variant rounded-xl px-4 py-3 min-h-[96px] flex flex-col justify-center">
+                  <p className="font-label-sm text-label-sm uppercase tracking-wider text-on-surface-variant mb-2 flex items-center gap-2"><span className="material-symbols-outlined text-[16px]">school</span>Education</p>
+                  <p className="font-body-md text-primary leading-relaxed" title={applicant.education}>{applicant.education}</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-6 pt-6 border-t border-outline-variant grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-6">
+              <div>
+                <h3 className="font-h3 text-primary mb-3">Top Skills</h3>
+                <div className="flex flex-wrap gap-2">
+                  {applicant.skills?.length > 0 ? applicant.skills.map((skill) => <CompanySkillTag key={skill}>{skill}</CompanySkillTag>) : <p className="text-sm italic text-on-surface-variant">No skills listed.</p>}
+                </div>
+              </div>
+              <Link to={`/company/applicants/${applicant.id}/matching`} className="block bg-surface-container-low rounded-xl p-4 border border-outline-variant hover:border-secondary hover:shadow-hover transition-all">
+                <p className="font-h3 text-primary mb-3">AI match</p>
+                <div className="flex justify-center"><ApplicantMatchScore score={applicant.matchScore} size="lg" /></div>
+                <p className="font-label-md text-label-md text-primary mt-4 mb-2">Missing skills</p>
+                <div className="flex flex-wrap gap-2">
+                  {applicant.missingSkills?.length ? applicant.missingSkills.map((skill) => <CompanySkillTag tone="missing" key={skill}>{skill}</CompanySkillTag>) : <CompanySkillTag tone="matched">No missing skills detected</CompanySkillTag>}
+                </div>
+              </Link>
+            </div>
           </div>
-        </Section>
+        </div>
       </div>
       {modals}
     </>
@@ -1042,28 +1365,48 @@ export function CompanyApplicantMatchingDetails() {
   return (
     <>
       <CompanyPageHeader
-        actions={<><button className={buttonPrimary} onClick={() => setShortlistTarget(applicant)}>Shortlist</button><button className={buttonDanger} onClick={() => setRejectTarget(applicant)}>Reject</button><Link className={buttonSecondary} to={`/company/applicants/${applicant.id}`}>View Profile</Link></>}
+        actions={<div className="flex flex-col items-start sm:items-end gap-unit"><div className="flex flex-wrap gap-unit"><button className={buttonPrimary} onClick={() => setApproveTarget(applicant)}>Approve</button><button className={buttonSecondary} onClick={() => setShortlistTarget({ ...applicant, nextStatus: 'shortlisted' })}>Shortlist</button></div><div className="flex flex-wrap gap-unit"><button className={buttonDanger} onClick={() => setRejectTarget(applicant)}>Reject</button><Link className={buttonSecondary} to={`/company/applicants/${applicant.id}`}>View Profile</Link></div></div>}
         eyebrow="AI Matching Details"
         title={`${applicant.name} · ${recommendation}`}
         description={`Evaluated against ${job.title}.`}
       />
-      <div className="grid grid-cols-1 xl:grid-cols-[320px_1fr] gap-gutter">
-        <Section title="Score"><ApplicantMatchScore score={applicant.matchScore} size="lg" /><CompanyStatusBadge status={applicant.status} /></Section>
+      <div className="grid grid-cols-1 xl:grid-cols-[320px_1fr] gap-8">
+        <div className="flex flex-col gap-6">
+          <Section title="Match Score">
+            <div className="flex justify-center py-4 border-b border-outline-variant mb-4">
+              <ApplicantMatchScore score={applicant.matchScore} size="lg" />
+            </div>
+            <div className="flex justify-center">
+              <CompanyStatusBadge status={applicant.status} />
+            </div>
+          </Section>
+        </div>
         <Section title="Required skills checklist">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-stack-sm">
-            {job.requiredSkills.map((skill) => {
-              const matched = !(applicant.missingSkills || []).includes(skill);
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+            {job.requiredSkills.length ? job.requiredSkills.map((skill) => {
+              const normalize = (value) => String(value || '').trim().toLowerCase();
+              const applicantSkills = (applicant.skills || []).map(normalize);
+              const missingSkills = (applicant.missingSkills || []).map(normalize);
+              const normalizedSkill = normalize(skill);
+              const matched = applicantSkills.includes(normalizedSkill) && !missingSkills.includes(normalizedSkill);
               return (
-                <div className="flex items-center gap-stack-sm bg-surface-container-low rounded-lg p-stack-md" key={skill}>
-                  <span className={`material-symbols-outlined ${matched ? 'text-[#15803D]' : 'text-error'}`}>{matched ? 'check_circle' : 'cancel'}</span>
-                  <span>{skill}</span>
+                <div className="flex items-center gap-3 bg-surface-container-low rounded-xl p-4 border border-outline-variant shadow-sm" key={skill}>
+                  <span className={`material-symbols-outlined text-[24px] ${matched ? 'text-success' : 'text-error'}`}>{matched ? 'check_circle' : 'cancel'}</span>
+                  <span className="font-body-md text-primary font-medium">{skill}</span>
                 </div>
               );
-            })}
+            }) : <CompanyEmptyState title="No required skills" message="This job does not have required skills configured yet." />}
           </div>
-          <p className="text-on-surface-variant">Experience match: {applicant.yearsExperience} years for a {job.experienceLevel} role.</p>
-          <p className="text-on-surface-variant">Education match: {applicant.education}</p>
-          <p className="font-h3 text-h3 text-primary">Recommendation: {recommendation}</p>
+          <div className="bg-surface-container-low rounded-xl p-6 border border-outline-variant shadow-sm space-y-3">
+            <p className="text-on-surface-variant font-body-md flex items-center gap-2"><span className="material-symbols-outlined text-secondary">work</span> Experience match: <span className="font-bold text-primary">{applicant.yearsExperience} years</span> for a {job.experienceLevel} role.</p>
+            <p className="text-on-surface-variant font-body-md flex items-center gap-2"><span className="material-symbols-outlined text-secondary">school</span> Education match: <span className="font-bold text-primary">{applicant.education}</span></p>
+            <div className="border-t border-outline-variant pt-3 mt-3">
+              <p className="font-h3 text-h3 text-primary flex items-center gap-2">
+                <span className="material-symbols-outlined text-secondary">psychology</span>
+                Recommendation: <span className={applicant.matchScore >= 85 ? 'text-success' : applicant.matchScore >= 70 ? 'text-secondary' : 'text-error'}>{recommendation}</span>
+              </p>
+            </div>
+          </div>
         </Section>
       </div>
       {modals}
@@ -1109,21 +1452,106 @@ export function CompanyNotifications() {
 }
 
 export function CompanyMessages() {
+  const location = useLocation();
+  const { addToast } = useToast();
   const [conversations, setConversations] = useState([]);
   const [activeId, setActiveId] = useState(null);
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(true);
+  const [interviewTime, setInterviewTime] = useState('');
+  const [editingInterview, setEditingInterview] = useState(false);
+  const [interviews, setInterviews] = useState(() => JSON.parse(localStorage.getItem('scheduled_interviews') || '{}'));
+  const [muteAllMessages, setMuteAllMessages] = useState(() => localStorage.getItem('muted_messages_all') === 'true');
+  const [mutedConversations, setMutedConversations] = useState(() => JSON.parse(localStorage.getItem('muted_message_conversations') || '[]'));
+  const [mutePulse, setMutePulse] = useState(null);
+  const [contextMenu, setContextMenu] = useState(null);
+
+  useEffect(() => {
+    const handleGlobalClick = () => setContextMenu(null);
+    document.addEventListener('click', handleGlobalClick);
+    return () => document.removeEventListener('click', handleGlobalClick);
+  }, []);
+
+  const handleContextMenu = (e, item) => {
+    e.preventDefault();
+    setContextMenu({ x: e.pageX, y: e.pageY, conversation: item });
+  };
+
+  const conversationKey = (conversation) => `${conversation?.other_user_id || ''}-${conversation?.job_id || ''}`;
+  const active = conversations.find((item) => item.id === activeId);
+  const activeConversationKey = conversationKey(active);
+
+  const saveInterviews = (next) => {
+    setInterviews({ ...next });
+    localStorage.setItem('scheduled_interviews', JSON.stringify(next));
+    window.dispatchEvent(new Event('interviews_updated'));
+  };
+
+  useEffect(() => {
+    const handleUpdate = () => {
+      setInterviews(JSON.parse(localStorage.getItem('scheduled_interviews') || '{}'));
+    };
+    window.addEventListener('interviews_updated', handleUpdate);
+    return () => window.removeEventListener('interviews_updated', handleUpdate);
+  }, []);
+
+  const scheduledInterviewData = active ? interviews[activeConversationKey] : null;
+  const scheduledInterview = typeof scheduledInterviewData === 'object' ? scheduledInterviewData?.time : scheduledInterviewData;
+
+  const toggleMuteAllMessages = () => {
+    setMutePulse('all');
+    window.setTimeout(() => setMutePulse(null), 350);
+    setMuteAllMessages((prev) => {
+      const next = !prev;
+      localStorage.setItem('muted_messages_all', String(next));
+      return next;
+    });
+  };
+
+  const toggleMuteConversation = (conversation) => {
+    const key = conversationKey(conversation);
+    setMutePulse(key);
+    window.setTimeout(() => setMutePulse(null), 350);
+    setMutedConversations((prev) => {
+      const next = prev.includes(key) ? prev.filter((item) => item !== key) : [...prev, key];
+      localStorage.setItem('muted_message_conversations', JSON.stringify(next));
+      return next;
+    });
+  };
 
   useEffect(() => {
     companyDataService.getCompanyMessages().then(data => {
-      setConversations(data);
-      if (data.length > 0) {
-        setActiveId(data[0].id);
+      const params = new URLSearchParams(location.search);
+      const targetUser = params.get('user');
+      const targetJob = params.get('job');
+      const targetApplication = params.get('application');
+      const targetName = params.get('name');
+      let nextConversations = data;
+
+      if (targetUser && !nextConversations.some((item) => String(item.other_user_id) === String(targetUser) && String(item.job_id || '') === String(targetJob || ''))) {
+        nextConversations = [{
+          id: `draft-${targetUser}-${targetJob || 'general'}`,
+          other_user_id: Number(targetUser),
+          candidate: targetName || 'Selected candidate',
+          role: targetJob ? 'Job conversation' : 'General conversation',
+          job_id: targetJob ? Number(targetJob) : null,
+          application_id: targetApplication ? Number(targetApplication) : null,
+          last_message: '',
+          time: 'New',
+          unread: false,
+          status: 'Shortlisted',
+        }, ...nextConversations];
+      }
+
+      setConversations(nextConversations);
+      if (nextConversations.length > 0) {
+        const requested = targetUser ? nextConversations.find((item) => String(item.other_user_id) === String(targetUser) && String(item.job_id || '') === String(targetJob || '')) : null;
+        setActiveId((requested || nextConversations[0]).id);
       }
       setLoading(false);
     });
-  }, []);
+  }, [location.search]);
 
   useEffect(() => {
     if (activeId) {
@@ -1155,127 +1583,461 @@ export function CompanyMessages() {
     }
   };
 
-  const active = conversations.find((item) => item.id === activeId);
+  const handleScheduleInterview = async () => {
+    // Prevent schedule if input is empty, even if activeId exists
+    if (!activeId || !interviewTime) return;
+    const conv = conversations.find(c => c.id === activeId);
+    if (!conv) return;
+
+    // strip _passed if user is rescheduling
+    const cleanTime = interviewTime.replace('_passed', '');
+    const formatted = new Date(cleanTime).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' });
+    const text = `Interview scheduled for ${formatted}. Please confirm your availability.`;
+
+    try {
+      const sent = await companyDataService.sendCompanyMessage(conv.other_user_id, text, conv.job_id);
+      setMessages(prev => [...prev, { id: sent.id, from: 'You', text: sent.content, created_at: sent.created_at }]);
+      
+      const payload = {
+         time: cleanTime,
+         candidate: conv.candidate,
+         job_id: conv.job_id,
+         other_user_id: conv.other_user_id,
+      };
+      saveInterviews({ ...interviews, [conversationKey(conv)]: payload });
+      
+      const delay = new Date(cleanTime).getTime() - Date.now();
+      if (delay <= 0) {
+        // immediately mark as passed if scheduling in the past
+        saveInterviews({ ...interviews, [conversationKey(conv)]: { ...payload, time: cleanTime + '_passed' } });
+      }
+
+      setInterviewTime('');
+      setEditingInterview(false);
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const [undoTarget, setUndoTarget] = useState(null);
+
+  const handleDeleteConversation = async (convToDelete) => {
+    const conv = convToDelete || active;
+    if (!conv) return;
+
+    // Remove from UI immediately for snappy feel
+    const prevConversations = [...conversations];
+    const prevMessages = [...messages];
+    const prevActiveId = activeId;
+    
+    setConversations((prev) => prev.filter((item) => item.id !== conv.id));
+    if (activeId === conv.id) {
+      setMessages([]);
+      setActiveId(null);
+    }
+    
+    setContextMenu(null);
+
+    const target = {
+      conv,
+      isUndone: false,
+      restore: () => {
+        target.isUndone = true;
+        setConversations(prevConversations);
+        if (prevActiveId === conv.id) {
+          setMessages(prevMessages);
+          setActiveId(prevActiveId);
+        }
+        setUndoTarget(null);
+      }
+    };
+
+    setUndoTarget(target);
+
+    // Wait 5 seconds to see if user undid the action
+    setTimeout(async () => {
+      if (target.isUndone) return;
+
+      try {
+        await companyDataService.deleteCompanyConversation(conv.other_user_id, conv.job_id);
+        const key = conversationKey(conv);
+        const nextInterviews = { ...interviews };
+        delete nextInterviews[key];
+        saveInterviews(nextInterviews);
+      } catch (e) {
+        console.error(e);
+        // If delete fails, revert UI
+        setConversations(prevConversations);
+        if (prevActiveId === conv.id) {
+          setMessages(prevMessages);
+          setActiveId(prevActiveId);
+        }
+        addToast({ title: 'Error', message: 'Failed to delete chat.', type: 'error' });
+      }
+      setUndoTarget((current) => current === target ? null : current);
+    }, 5000);
+  };
 
   return (
     <>
-      <CompanyPageHeader eyebrow="Messages" title="Candidate conversations" description="Search and review recruiter conversations." />
-      <div className="grid grid-cols-1 xl:grid-cols-[360px_1fr] gap-gutter">
-        <Section title="Inbox">
-          <div className="divide-y divide-outline-variant">
+      <div className="h-[calc(100vh-116px)] overflow-hidden flex flex-col gap-3 -mb-10">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 shrink-0">
+          <div>
+            <p className="font-label-sm text-label-sm uppercase tracking-wider text-secondary mb-1">Messages</p>
+            <h1 className="font-h2 text-h2 text-primary">Candidate conversations</h1>
+          </div>
+          <button className={`inline-flex items-center justify-center gap-2 px-4 py-2 rounded-full font-semibold text-sm transition-all duration-200 hover:-translate-y-0.5 shadow-sm ${muteAllMessages ? 'bg-surface-container-high text-on-surface-variant border border-outline-variant' : 'bg-secondary text-on-secondary hover:opacity-90'} ${mutePulse === 'all' ? 'animate-scale-in' : ''}`} onClick={toggleMuteAllMessages}>
+            <span className="material-symbols-outlined text-[20px]">{muteAllMessages ? 'notifications_off' : 'notifications_active'}</span>
+            {muteAllMessages ? 'Unmute all messages' : 'Mute all messages'}
+          </button>
+        </div>
+      <div className="grid grid-cols-1 xl:grid-cols-[360px_1fr] gap-5 flex-1 min-h-0 overflow-hidden">
+        <section className="bg-surface-container-lowest rounded-xl border border-outline-variant shadow-ambient overflow-hidden flex flex-col min-h-0">
+          <div className="px-5 py-4 border-b border-outline-variant flex items-center justify-between">
+            <h2 className="font-h2 text-h2 text-primary">Inbox</h2>
+            <span className="text-sm text-on-surface-variant">{conversations.length} chats</span>
+          </div>
+          <div className="divide-y divide-outline-variant overflow-y-auto flex-1 p-2">
             {loading ? <FullPageSpinner /> : (
               conversations.length === 0 ? <CompanyEmptyState title="No messages" message="You have no messages yet." /> :
               conversations.map((item) => (
-                <button
-                  className={`w-full py-stack-md text-left transition-colors hover:bg-surface-container-low rounded-lg px-stack-sm ${active?.id === item.id ? 'bg-secondary-container/15' : ''}`}
+                <div
                   key={item.id}
+                  className={`w-full py-4 transition-colors hover:bg-surface-container-low rounded-lg px-4 cursor-pointer select-none ${active?.id === item.id ? 'bg-secondary-container/15' : ''}`}
                   onClick={() => setActiveId(item.id)}
-                  type="button"
+                  onContextMenu={(e) => handleContextMenu(e, item)}
                 >
-                  <div className="flex items-start justify-between gap-stack-sm">
-                    <div>
-                      <p className="font-h3 text-h3 text-primary">{item.candidate}</p>
-                      <p className="text-on-surface-variant">{item.role}</p>
+                  <div className="flex items-start gap-3">
+                    <div className="w-11 h-11 rounded-full bg-secondary/10 text-secondary flex items-center justify-center font-bold shrink-0">
+                      {item.candidate?.charAt(0)?.toUpperCase() || 'C'}
                     </div>
-                    {item.unread && <span className="h-2.5 w-2.5 rounded-full bg-secondary mt-2" />}
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-start justify-between gap-3">
+                    <Link className="font-h3 text-h3 text-primary hover:text-secondary truncate block" to={item.application_id ? `/company/applicants/${item.application_id}` : '#'}>{item.candidate}</Link>
+                        {item.unread && <span className="h-2.5 w-2.5 rounded-full bg-secondary mt-2 shrink-0" />}
+                      </div>
+                      <p className="text-on-surface-variant text-sm truncate">{item.role}</p>
+                      <p className="mt-2 text-body-sm text-on-surface-variant truncate">{item.last_message || 'No messages yet'}</p>
+                      <div className="mt-2 flex items-center justify-between gap-3">
+                        <span className="text-body-sm text-secondary font-medium">{item.status}</span>
+                        <span className="text-xs text-outline">{item.time}</span>
+                      </div>
+                    </div>
                   </div>
-                  <p className="mt-unit text-body-sm text-secondary">{item.status}</p>
-                  <p className="mt-unit text-body-sm text-on-surface-variant">{item.time}</p>
-                </button>
+                </div>
               ))
             )}
           </div>
-        </Section>
+        </section>
 
-        <Section title={active ? `${active.candidate} - ${active.role}` : "Select a conversation"}>
+        <section className="bg-surface-container-lowest rounded-xl border border-outline-variant shadow-ambient overflow-hidden flex flex-col min-h-0">
           {active ? (
-            <>
-              <div className="space-y-stack-md rounded-xl bg-surface-container-low p-stack-md flex-1 overflow-y-auto max-h-[500px]">
-                {messages.length === 0 ? <p className="text-on-surface-variant text-center">No messages yet.</p> :
+            <div className="flex flex-col h-full min-h-0">
+              <div className="flex items-center justify-between gap-4 bg-surface-container-lowest border-b border-outline-variant px-4 py-2 shrink-0">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-10 h-10 rounded-full bg-secondary/10 text-secondary flex items-center justify-center font-bold shrink-0">
+                    {active.candidate?.charAt(0)?.toUpperCase() || 'C'}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="font-h3 text-primary truncate">{active.candidate}</p>
+                    <p className="text-on-surface-variant text-sm truncate">{active.role}</p>
+                  </div>
+                </div>
+                <div className="flex flex-col sm:flex-row gap-2 shrink-0">
+                  <button className={`inline-flex items-center justify-center gap-2 rounded-full px-3 py-1.5 font-semibold text-sm transition-all duration-200 hover:-translate-y-0.5 ${mutedConversations.includes(conversationKey(active)) ? 'border border-outline-variant bg-surface-container-high text-on-surface-variant' : 'bg-secondary text-on-secondary'} ${mutePulse === conversationKey(active) ? 'animate-scale-in' : ''}`} onClick={() => toggleMuteConversation(active)}>
+                    <span className="material-symbols-outlined text-[18px]">{mutedConversations.includes(conversationKey(active)) ? 'notifications_off' : 'notifications_active'}</span>
+                    {mutedConversations.includes(conversationKey(active)) ? 'Unmute Chat' : 'Mute Chat'}
+                  </button>
+                </div>
+              </div>
+              <div className="border-b border-outline-variant bg-surface-container-lowest px-4 py-1.5 shrink-0">
+                {scheduledInterview ? (
+                  <div className={`flex flex-col lg:flex-row lg:items-center justify-between gap-2 rounded-lg border px-3 py-1.5 ${scheduledInterview.includes('_passed') ? 'border-outline-variant bg-surface-container-low text-on-surface-variant' : 'border-secondary/30 bg-secondary/10'}`}>
+                    <div className={`flex items-center gap-3 ${scheduledInterview.includes('_passed') ? 'text-on-surface-variant' : 'text-secondary'}`}>
+                      <span className="material-symbols-outlined">{scheduledInterview.includes('_passed') ? 'history' : 'event_available'}</span>
+                      <div>
+                        <p className="font-semibold text-sm">{scheduledInterview.includes('_passed') ? 'Interview passed' : 'Interview scheduled'}</p>
+                        <p className="text-sm">{new Date(scheduledInterview.replace('_passed', '')).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' })}</p>
+                      </div>
+                    </div>
+                    <button className={`${scheduledInterview.includes('_passed') ? 'text-primary' : 'text-secondary'} font-semibold underline`} onClick={() => { setInterviewTime(scheduledInterview.includes('_passed') ? '' : scheduledInterview); setEditingInterview(true); }}>{scheduledInterview.includes('_passed') ? 'Re-interview' : 'Edit interview time'}</button>
+                  </div>
+                ) : (
+                  <div className="rounded-lg border border-dashed border-outline-variant px-3 py-1.5 text-on-surface-variant text-sm flex items-center gap-2">
+                    <span className="material-symbols-outlined text-[18px]">event_busy</span>
+                    No interview scheduled yet.
+                  </div>
+                )}
+              </div>
+              <div className="flex items-center justify-end gap-2 bg-surface-container-lowest px-4 py-1.5 border-b border-outline-variant shrink-0 min-h-[52px]">
+                {(!scheduledInterview || editingInterview) && (
+                  <>
+                  {scheduledInterview && !editingInterview ? null : (
+                    <>
+                      <div className="flex items-center gap-2 rounded-full border border-outline-variant bg-surface-container-low px-3 py-1.5 shadow-sm">
+                        <span className="material-symbols-outlined text-[18px] text-secondary">event</span>
+                        <input
+                          className="bg-transparent text-sm outline-none text-primary min-w-[190px]"
+                          type="datetime-local"
+                          value={interviewTime}
+                          onChange={(event) => setInterviewTime(event.target.value)}
+                        />
+                      </div>
+                      <button className={`inline-flex items-center justify-center gap-2 rounded-full px-4 py-1.5 font-semibold text-sm transition-all duration-200 shadow-sm ${interviewTime ? 'bg-secondary text-on-secondary hover:-translate-y-0.5 hover:opacity-90' : 'bg-surface-container text-on-surface-variant cursor-not-allowed opacity-50'}`} disabled={!interviewTime} onClick={handleScheduleInterview}>
+                        <span className="material-symbols-outlined text-[18px]">calendar_add_on</span>
+                        {scheduledInterview ? 'Reschedule' : 'Schedule'}
+                      </button>
+                      <button className="inline-flex items-center justify-center gap-2 rounded-full px-4 py-1.5 font-semibold text-sm transition-all duration-200 hover:-translate-y-0.5 border border-outline-variant text-on-surface-variant hover:bg-surface-container-high" onClick={() => { setEditingInterview(false); setInterviewTime(''); }}>
+                        Cancel
+                      </button>
+                    </>
+                  )}
+                  </>
+                )}
+                </div>
+              <div className="space-y-4 bg-surface-container-low px-6 py-5 flex-1 overflow-y-auto min-h-0 min-h-[360px]">
+                {messages.length === 0 ? <p className="text-on-surface-variant text-center font-body-sm italic mt-10">No messages yet.</p> :
                   messages.map((message, index) => {
                     const mine = message.from === 'You';
                     return (
                       <div className={`flex ${mine ? 'justify-end' : 'justify-start'}`} key={`${active.id}-${message.id || index}`}>
-                        <div className={`max-w-[75%] rounded-xl px-stack-md py-stack-sm ${mine ? 'bg-secondary text-on-secondary' : 'bg-surface-container-lowest border border-outline-variant'}`}>
-                          <p className="font-label-sm text-label-sm mb-unit opacity-80">{message.from}</p>
-                          <p>{message.text}</p>
+                        <div className={`max-w-[75%] rounded-2xl px-5 py-3 shadow-sm ${mine ? 'bg-secondary text-on-secondary rounded-tr-none' : 'bg-surface-container-lowest border border-outline-variant rounded-tl-none'}`}>
+                          <p className={`font-label-sm text-xs mb-1 ${mine ? 'opacity-80' : 'text-on-surface-variant'}`}>{message.from}</p>
+                          <p className="font-body-md leading-relaxed">{message.text}</p>
                         </div>
                       </div>
                     );
                   })
                 }
               </div>
-              <div className="flex gap-stack-sm mt-stack-md">
+              <div className="flex gap-3 p-2.5 border-t border-outline-variant bg-surface-container-lowest shrink-0">
                 <input 
-                  className="flex-1 rounded-lg border border-outline-variant bg-surface-container-low px-stack-md py-stack-sm outline-none focus:border-secondary focus:ring-1 focus:ring-secondary/30" 
+                  className="flex-1 rounded-full border border-outline-variant bg-surface-container-low px-5 py-2.5 outline-none focus:border-secondary focus:ring-2 focus:ring-secondary/30 transition-all" 
                   placeholder="Type your message..." 
                   value={newMessage}
                   onChange={(e) => setNewMessage(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleSend()}
                 />
-                <button className={buttonPrimary} onClick={handleSend} disabled={!newMessage.trim()}>Send</button>
+                <button className={`${buttonPrimary} rounded-full px-5`} onClick={handleSend} disabled={!newMessage.trim()}>
+                  <span className="material-symbols-outlined text-[20px]">send</span>
+                  Send
+                </button>
               </div>
-            </>
+            </div>
           ) : (
-             <div className="flex flex-1 items-center justify-center p-stack-lg text-on-surface-variant">Select a conversation from the left to start messaging.</div>
+             <div className="flex flex-1 items-center justify-center p-12 text-on-surface-variant border-2 border-dashed border-outline-variant rounded-xl m-6">Select a conversation from the left to start messaging.</div>
           )}
-        </Section>
+        </section>
       </div>
+      </div>
+      {contextMenu && (
+        <div
+          className="fixed bg-surface-container-lowest border border-outline-variant shadow-lg rounded-xl overflow-hidden z-[9999]"
+          style={{ top: contextMenu.y, left: contextMenu.x }}
+        >
+          <button
+            className="w-full text-left px-4 py-3 flex items-center gap-2 text-error hover:bg-error-container transition-colors"
+            onClick={() => handleDeleteConversation(contextMenu.conversation)}
+          >
+            <span className="material-symbols-outlined text-[18px]">delete</span>
+            Delete Chat
+          </button>
+        </div>
+      )}
+
+      <UndoToast target={undoTarget} onClear={() => setUndoTarget(null)} />
     </>
   );
 }
 
 export function CompanySettings() {
   const { addToast } = useToast();
-  const [settings, setSettings] = useState(() => {
-    try {
-      return JSON.parse(localStorage.getItem('companySettings') || '{}');
-    } catch {
-      return {};
-    }
+  const { user, refreshUser } = useAuth();
+  
+  const [settings, setSettings] = useState({
+    name: user?.name || '',
+    email: user?.email || '',
+    newPassword: '',
+    confirmPassword: '',
   });
+  const [errors, setErrors] = useState({});
+  const [saving, setSaving] = useState(false);
+
+  const [unlockState, setUnlockState] = useState({ email: false, password: false });
+  const [verifyInput, setVerifyInput] = useState('');
+  const [verifyTarget, setVerifyTarget] = useState(null); // 'email' | 'password'
+  const [verifyError, setVerifyError] = useState('');
+  const [verifying, setVerifying] = useState(false);
+
+  useEffect(() => {
+    if (user) {
+      setSettings(prev => ({
+        ...prev,
+        name: user.name || '',
+        email: user.email || ''
+      }));
+    }
+  }, [user]);
 
   const update = (key, value) => setSettings((prev) => ({ ...prev, [key]: value }));
-  const save = () => {
-    localStorage.setItem('companySettings', JSON.stringify(settings));
-    addToast({ title: 'Settings saved', message: 'Company preferences were saved locally.', type: 'success' });
+
+  const startVerify = (target) => {
+    setVerifyTarget(target);
+    setVerifyInput('');
+    setVerifyError('');
   };
+
+  const cancelVerify = () => {
+    setVerifyTarget(null);
+    setVerifyInput('');
+    setVerifyError('');
+  };
+
+  const confirmVerify = async () => {
+    if (!verifyInput) return;
+    setVerifying(true);
+    setVerifyError('');
+    try {
+      await companyApi.verifyPassword(verifyInput);
+      setUnlockState(prev => ({ ...prev, [verifyTarget]: true }));
+      // Store the verified password to send with the final save request
+      setSettings(prev => ({ ...prev, currentPassword: verifyInput }));
+      setVerifyTarget(null);
+    } catch (e) {
+      setVerifyError('Incorrect password. Please try again.');
+    } finally {
+      setVerifying(false);
+    }
+  };
+
+  const validate = () => {
+    const next = {};
+    if (!settings.name.trim()) next.name = 'Name is required.';
+    if (unlockState.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(settings.email)) next.email = 'Enter a valid email.';
+    
+    if (unlockState.password) {
+      if (!settings.newPassword || settings.newPassword.length < 8) next.newPassword = 'Password must be at least 8 characters.';
+      if (settings.newPassword !== settings.confirmPassword) next.confirmPassword = 'Passwords must match.';
+    }
+    
+    setErrors(next);
+    return !Object.keys(next).length;
+  };
+
+  const save = async () => {
+    if (!validate()) return;
+    setSaving(true);
+    try {
+      await companyApi.updateSettings({
+        name: settings.name,
+        email: unlockState.email ? settings.email : undefined,
+        currentPassword: settings.currentPassword || undefined,
+        newPassword: unlockState.password ? settings.newPassword : undefined,
+      });
+      
+      addToast({ title: 'Settings saved', message: 'Account settings were updated successfully.', type: 'success' });
+      
+      refreshUser();
+      
+      setSettings(prev => ({ ...prev, currentPassword: '', newPassword: '', confirmPassword: '' }));
+      setUnlockState({ email: false, password: false });
+    } catch (e) {
+      addToast({ title: 'Update failed', message: e?.response?.data?.message || 'Could not update settings.', type: 'error' });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const renderVerifyBlock = (targetName) => (
+    <div className="bg-surface-container-low p-6 rounded-xl border border-outline-variant shadow-sm mt-2">
+      <p className="font-h3 text-primary mb-2 flex items-center gap-2">
+        <span className="material-symbols-outlined text-[20px] text-secondary">lock</span>
+        Security Check Required
+      </p>
+      <p className="font-body-sm text-on-surface-variant mb-4">Please enter your current password to unlock {targetName} changes.</p>
+      <div className="flex flex-col sm:flex-row gap-3">
+        <input 
+          type="password" 
+          className="flex-1 bg-surface border border-outline-variant rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-secondary/30 focus:border-secondary" 
+          placeholder="Current password"
+          value={verifyInput}
+          onChange={(e) => setVerifyInput(e.target.value)}
+          onKeyDown={(e) => e.key === 'Enter' && confirmVerify()}
+        />
+        <div className="flex gap-2">
+          <button className={buttonSecondary} onClick={cancelVerify} disabled={verifying}>Cancel</button>
+          <button className={buttonPrimary} onClick={confirmVerify} disabled={verifying || !verifyInput}>
+            {verifying ? 'Verifying...' : 'Unlock'}
+          </button>
+        </div>
+      </div>
+      {verifyError && <p className="font-body-sm text-error mt-2 flex items-center gap-1"><span className="material-symbols-outlined text-[16px]">error</span>{verifyError}</p>}
+    </div>
+  );
 
   return (
     <>
-      <CompanyPageHeader eyebrow="Settings" title="Company settings" description="Manage recruiter preferences, notifications, and account security." />
-      <div className="grid grid-cols-1 xl:grid-cols-[1fr_0.8fr] gap-gutter">
-        <Section title="Recruiter preferences">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-stack-md">
-            <Field label="Default applicant sort">
-              <SelectInput value={settings.sort || 'match'} onChange={(e) => update('sort', e.target.value)}>
-                <option value="match">Highest AI match</option>
-                <option value="newest">Newest first</option>
-                <option value="status">Application status</option>
-              </SelectInput>
+      <CompanyPageHeader
+        eyebrow="Settings"
+        title="Account Settings"
+        description="Manage your account profile, email, and password security."
+      />
+      <div className="flex flex-col gap-8">
+        <Section title="Account Details">
+          <div className="grid grid-cols-1 gap-6">
+            <Field error={errors.name} label="Account Name">
+              <TextInput onChange={(e) => update('name', e.target.value)} value={settings.name} disabled={saving} />
             </Field>
-            <Field label="Weekly digest">
-              <SelectInput value={settings.digest || 'enabled'} onChange={(e) => update('digest', e.target.value)}>
-                <option value="enabled">Enabled</option>
-                <option value="disabled">Disabled</option>
-              </SelectInput>
-            </Field>
+            
+            <div>
+              <span className="font-label-md text-label-md text-primary block mb-1">Email Address</span>
+              {!unlockState.email ? (
+                verifyTarget === 'email' ? renderVerifyBlock('email') : (
+                  <div className="flex items-center justify-between bg-surface-container-low border border-outline-variant rounded-lg px-4 py-2.5">
+                    <span className="text-on-surface-variant font-body-md truncate">{user?.email}</span>
+                    <button onClick={() => startVerify('email')} className="text-secondary font-semibold text-sm hover:underline flex items-center gap-1">
+                      <span className="material-symbols-outlined text-[16px]">edit</span> Change
+                    </button>
+                  </div>
+                )
+              ) : (
+                <Field error={errors.email}>
+                  <TextInput type="email" onChange={(e) => update('email', e.target.value)} value={settings.email} disabled={saving} />
+                </Field>
+              )}
+            </div>
+            
+            <div>
+              <span className="font-label-md text-label-md text-primary block mb-1">Password</span>
+              {!unlockState.password ? (
+                verifyTarget === 'password' ? renderVerifyBlock('password') : (
+                  <div className="flex items-center justify-between bg-surface-container-low border border-outline-variant rounded-lg px-4 py-2.5">
+                    <span className="text-on-surface-variant font-body-md tracking-[0.2em] mt-1">••••••••</span>
+                    <button onClick={() => startVerify('password')} className="text-secondary font-semibold text-sm hover:underline flex items-center gap-1">
+                      <span className="material-symbols-outlined text-[16px]">edit</span> Change
+                    </button>
+                  </div>
+                )
+              ) : (
+                <div className="space-y-4 bg-surface-container-low p-6 rounded-xl border border-outline-variant shadow-sm">
+                  <h4 className="font-h3 text-primary">New Password</h4>
+                  <Field error={errors.newPassword} label="Password">
+                    <TextInput type="password" onChange={(e) => update('newPassword', e.target.value)} value={settings.newPassword} disabled={saving} />
+                  </Field>
+                  <Field error={errors.confirmPassword} label="Confirm Password">
+                    <TextInput type="password" onChange={(e) => update('confirmPassword', e.target.value)} value={settings.confirmPassword} disabled={saving} />
+                  </Field>
+                </div>
+              )}
+            </div>
           </div>
-          <label className="flex items-start gap-stack-md rounded-lg border border-outline-variant p-stack-md">
-            <input checked={settings.autoArchive ?? false} className="mt-1 h-5 w-5 accent-secondary" onChange={(e) => update('autoArchive', e.target.checked)} type="checkbox" />
-            <span>
-              <span className="block font-h3 text-h3 text-primary">Auto-archive rejected applicants</span>
-              <span className="text-on-surface-variant">Keep the ATS focused on active candidates during demos.</span>
-            </span>
-          </label>
-          <div className="flex justify-end">
-            <button className={buttonPrimary} onClick={save}>Save Preferences</button>
+          
+          <div className="flex justify-end pt-6 border-t border-outline-variant mt-2">
+            <button className={buttonPrimary} onClick={save} disabled={saving}>
+              <span className="material-symbols-outlined text-[20px]">save</span>
+              {saving ? 'Saving...' : 'Save Settings'}
+            </button>
           </div>
-        </Section>
-
-        <Section title="Account safety">
-          <p className="text-on-surface-variant">Password changes and account deletion need dedicated backend endpoints. They are intentionally disabled for seeded demo users.</p>
-          <button className={buttonDanger} onClick={() => addToast({ title: 'Disabled in demo', message: 'Company account deletion is disabled for local demo users.', type: 'info' })}>Delete Company Account</button>
         </Section>
       </div>
     </>

@@ -14,7 +14,7 @@ class UpdateStatusRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'status' => 'required|in:under_review,shortlisted,rejected',
+            'status' => 'required|in:under_review,shortlisted,approved,rejected',
             'notes'  => 'nullable|string|max:1000',
         ];
     }

@@ -74,7 +74,21 @@ class MatchingService
      * Sort a collection of applications descending by ai_score.
      */
     public function rankApplications(Collection $applications): Collection {
-        return $applications->sortByDesc('ai_score')->values();
+        return $applications->map(function ($application) {
+            if ($application->ai_score === null && $application->relationLoaded('jobPost') && $application->relationLoaded('jobSeekerProfile')) {
+                $seekerSkillIds = $application->jobSeekerProfile?->skills?->pluck('id') ?? collect();
+                $requiredSkills = $application->jobPost?->jobRequiredSkills ?? collect();
+                $application->ai_score = $this->calculateLocalScore($seekerSkillIds, $requiredSkills);
+                $application->missing_skills_json = $requiredSkills
+                    ->whereNotIn('skill_id', $seekerSkillIds)
+                    ->pluck('skill.name')
+                    ->filter()
+                    ->values()
+                    ->all();
+            }
+
+            return $application;
+        })->sortByDesc('ai_score')->values();
     }
 
     /**

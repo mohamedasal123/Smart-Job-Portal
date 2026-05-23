@@ -20,6 +20,26 @@ class CompanyJobController extends Controller
         $jobs = $request->user()->companyProfile
             ->jobPosts()
             ->withCount('applications')
+            ->when($request->filled('search'), function ($query) use ($request) {
+                $search = trim($request->search);
+
+                $query->where(function ($inner) use ($search) {
+                    $inner->where('title', 'like', "%{$search}%")
+                        ->orWhere('category', 'like', "%{$search}%")
+                        ->orWhere('location', 'like', "%{$search}%")
+                        ->orWhere('work_mode', 'like', "%{$search}%")
+                        ->orWhere('experience_level', 'like', "%{$search}%")
+                        ->orWhere('education', 'like', "%{$search}%")
+                        ->orWhere('job_type', 'like', "%{$search}%")
+                        ->orWhere('status', 'like', "%{$search}%")
+                        ->orWhereHas('jobRequiredSkills.skill', function ($skillQuery) use ($search) {
+                            $skillQuery->where('name', 'like', "%{$search}%");
+                        });
+                });
+            })
+            ->when($request->filled('status') && $request->status !== 'all', function ($query) use ($request) {
+                $query->where('status', $request->status);
+            })
             ->latest()
             ->paginate(15);
 
@@ -30,14 +50,31 @@ class CompanyJobController extends Controller
     {
         $job = DB::transaction(function () use ($request) {
             $job = $request->user()->companyProfile->jobPosts()->create(
-                $request->only('title', 'description', 'responsibilities', 'location', 'job_type', 'salary_range')
+                $request->only(
+                    'title', 'category', 'description', 'responsibilities', 
+                    'location', 'work_mode', 'job_type', 'experience_level', 
+                    'education', 'salary_min', 'salary_max', 'status'
+                ) + ['is_active' => $request->input('status') !== 'draft']
             );
 
+            $insertedSkillIds = [];
             foreach ($request->skills as $skill) {
-                $job->jobRequiredSkills()->create([
-                    'skill_id'     => $skill['id'],
-                    'is_mandatory' => $skill['is_mandatory'],
-                ]);
+                // If it's a new string skill passed from frontend instead of just IDs
+                if (isset($skill['name'])) {
+                    // Case-insensitive lookup/create
+                    $skillModel = \App\Models\Skill::firstOrCreate(['name' => $skill['name']]);
+                    $skillId = $skillModel->id;
+                } else {
+                    $skillId = $skill['id'];
+                }
+
+                if (!in_array($skillId, $insertedSkillIds)) {
+                    $job->jobRequiredSkills()->create([
+                        'skill_id'     => $skillId,
+                        'is_mandatory' => $skill['is_mandatory'] ?? true,
+                    ]);
+                    $insertedSkillIds[] = $skillId;
+                }
             }
 
             return $job;
@@ -68,18 +105,34 @@ class CompanyJobController extends Controller
         }
 
         DB::transaction(function () use ($request, $job) {
-            $job->update($request->only(
-                'title', 'description', 'responsibilities',
-                'location', 'job_type', 'salary_range'
-            ));
+            $dataToUpdate = $request->only(
+                'title', 'category', 'description', 'responsibilities', 
+                'location', 'work_mode', 'job_type', 'experience_level', 
+                'education', 'salary_min', 'salary_max', 'status'
+            );
+            if ($request->has('status')) {
+                $dataToUpdate['is_active'] = $request->input('status') !== 'draft' && $request->input('status') !== 'paused' && $request->input('status') !== 'closed';
+            }
+            $job->update($dataToUpdate);
 
             if ($request->has('skills')) {
                 $job->jobRequiredSkills()->delete();
+                $insertedSkillIds = [];
                 foreach ($request->skills as $skill) {
-                    $job->jobRequiredSkills()->create([
-                        'skill_id'     => $skill['id'],
-                        'is_mandatory' => $skill['is_mandatory'],
-                    ]);
+                    if (isset($skill['name'])) {
+                        $skillModel = \App\Models\Skill::firstOrCreate(['name' => $skill['name']]);
+                        $skillId = $skillModel->id;
+                    } else {
+                        $skillId = $skill['id'];
+                    }
+
+                    if (!in_array($skillId, $insertedSkillIds)) {
+                        $job->jobRequiredSkills()->create([
+                            'skill_id'     => $skillId,
+                            'is_mandatory' => $skill['is_mandatory'] ?? true,
+                        ]);
+                        $insertedSkillIds[] = $skillId;
+                    }
                 }
             }
         });

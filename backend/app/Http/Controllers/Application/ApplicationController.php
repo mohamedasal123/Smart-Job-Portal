@@ -15,6 +15,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use App\Traits\ApiResponse;
 use App\Models\JobPost;
+use App\Models\Notification;
 
 class ApplicationController extends Controller
 {
@@ -60,7 +61,7 @@ class ApplicationController extends Controller
             return $this->error('Already applied to this job.', 409);
         }
 
-        $job = JobPost::with('jobRequiredSkills.skill')->findOrFail($jobId);
+        $job = JobPost::with(['jobRequiredSkills.skill', 'companyProfile.user'])->findOrFail($jobId);
 
         $seekerSkillIds = $profile->jobSeekerSkills()->pluck('skill_id');
         $requiredSkills = $job->jobRequiredSkills;
@@ -68,7 +69,7 @@ class ApplicationController extends Controller
         $score         = $this->matchingService->calculateScore($seekerSkillIds, $requiredSkills);
         $missingSkills = $this->matchingService->getMissingSkills($seekerSkillIds, $requiredSkills);
 
-        $application = DB::transaction(function () use ($jobId, $profile, $score, $missingSkills) {
+        $application = DB::transaction(function () use ($job, $jobId, $profile, $score, $missingSkills) {
             $app = Application::create([
                 'job_id'             => $jobId,
                 'job_seeker_id'      => $profile->id,
@@ -80,6 +81,20 @@ class ApplicationController extends Controller
             $app->applicationStatusHistory()->create([
                 'status'     => 'applied',
                 'changed_by' => $profile->user_id,
+                'created_at' => now(),
+            ]);
+
+            Notification::create([
+                'user_id' => $job->companyProfile->user_id,
+                'type' => 'application_submitted',
+                'data' => [
+                    'title' => 'New application received',
+                    'message' => ($profile->user->name ?? 'A candidate') . ' applied to ' . $job->title . '.',
+                    'application_id' => $app->id,
+                    'job_id' => $job->id,
+                    'job_title' => $job->title,
+                    'candidate_name' => $profile->user->name ?? null,
+                ],
                 'created_at' => now(),
             ]);
 
@@ -136,5 +151,22 @@ class ApplicationController extends Controller
             'missing_skills'  => $application->missing_skills_json ?? [],
             'status'          => $application->status,
         ], 'Feedback retrieved.');
+    }
+
+    public function destroy(Request $request, Application $application)
+    {
+        if ($request->user()->cannot('delete', $application)) {
+            return $this->error('Unauthorized', 403);
+        }
+
+        DB::transaction(function () use ($application) {
+            Notification::where('type', 'application_submitted')
+                ->where('data->application_id', $application->id)
+                ->delete();
+
+            $application->delete();
+        });
+
+        return $this->success(null, 'Application withdrawn successfully.');
     }
 }

@@ -1,7 +1,21 @@
 import { api } from './axios';
 
-/** Unwrap Laravel envelope: { success, data, message } → data */
-const unwrap = (response) => response.data.data ?? response.data;
+/** Unwrap Axios + Laravel + Resource envelopes until the actual payload. */
+const unwrap = (response) => {
+  let payload = response?.data ?? response;
+
+  while (
+    payload &&
+    typeof payload === 'object' &&
+    !Array.isArray(payload) &&
+    'data' in payload &&
+    Object.keys(payload).every((key) => ['success', 'data', 'message', 'errors', 'links', 'meta'].includes(key))
+  ) {
+    payload = payload.data;
+  }
+
+  return payload;
+};
 
 export const companyApi = {
   getCompanyProfile() {
@@ -64,5 +78,13 @@ export const companyApi = {
 
   getDashboard() {
     return api.get('/company/dashboard').then(unwrap);
+  },
+
+  verifyPassword(password) {
+    return api.post('/company/verify-password', { password }).then(unwrap);
+  },
+
+  updateSettings(payload) {
+    return api.put('/company/settings', payload).then(unwrap);
   },
 };

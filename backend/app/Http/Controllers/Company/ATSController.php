@@ -21,15 +21,47 @@ class ATSController extends Controller
     public function index(Request $request)
     {
         $companyProfile = $request->user()->companyProfile;
+        $search = trim((string) $request->get('query', ''));
+        $status = $request->get('status');
         
         $applications = Application::whereHas('jobPost', function ($query) use ($companyProfile) {
             $query->where('company_id', $companyProfile->id);
         })
-        ->with(['jobPost', 'jobSeekerProfile.user', 'jobSeekerProfile.skills'])
+        ->when($status && $status !== 'all', function ($query) use ($status) {
+            $query->where('status', $status);
+        })
+        ->when($search !== '', function ($query) use ($search) {
+            $query->where(function ($inner) use ($search) {
+                $inner->where('status', 'like', "%{$search}%")
+                    ->orWhereHas('jobPost', function ($jobQuery) use ($search) {
+                        $jobQuery->where('title', 'like', "%{$search}%")
+                            ->orWhere('location', 'like', "%{$search}%")
+                            ->orWhere('category', 'like', "%{$search}%");
+                    })
+                    ->orWhereHas('jobSeekerProfile.user', function ($userQuery) use ($search) {
+                        $userQuery->where('name', 'like', "%{$search}%")
+                            ->orWhere('email', 'like', "%{$search}%");
+                    })
+                    ->orWhereHas('jobSeekerProfile.skills', function ($skillQuery) use ($search) {
+                        $skillQuery->where('name', 'like', "%{$search}%");
+                    })
+                    ->orWhereHas('jobSeekerProfile', function ($profileQuery) use ($search) {
+                        $profileQuery->where('education_level', 'like', "%{$search}%")
+                            ->orWhere('address', 'like', "%{$search}%")
+                            ->orWhere('phone', 'like', "%{$search}%");
+                    });
+            });
+        })
+        ->with(['jobPost.jobRequiredSkills.skill', 'jobSeekerProfile.user', 'jobSeekerProfile.skills'])
         ->orderBy('created_at', 'desc')
         ->get();
 
         $ranked = $this->matchingService->rankApplications($applications);
+        if ($request->get('sort') === 'experience') {
+            $ranked = $ranked->sortByDesc(fn ($application) => (int) ($application->jobSeekerProfile?->years_of_experience ?? 0))->values();
+        } elseif ($request->get('sort') === 'newest') {
+            $ranked = $ranked->sortByDesc('created_at')->values();
+        }
 
         // Manual pagination for ranked collection
         $page      = $request->get('page', 1);
@@ -51,11 +83,39 @@ class ATSController extends Controller
             return $this->error('Unauthorized', 403);
         }
 
+        $search = trim((string) $request->get('query', ''));
+        $status = $request->get('status');
+
         $applications = $job->applications()
-            ->with(['jobSeekerProfile.user', 'jobSeekerProfile.skills'])
+            ->when($status && $status !== 'all', function ($query) use ($status) {
+                $query->where('status', $status);
+            })
+            ->when($search !== '', function ($query) use ($search) {
+                $query->where(function ($inner) use ($search) {
+                    $inner->where('status', 'like', "%{$search}%")
+                        ->orWhereHas('jobSeekerProfile.user', function ($userQuery) use ($search) {
+                            $userQuery->where('name', 'like', "%{$search}%")
+                                ->orWhere('email', 'like', "%{$search}%");
+                        })
+                        ->orWhereHas('jobSeekerProfile.skills', function ($skillQuery) use ($search) {
+                            $skillQuery->where('name', 'like', "%{$search}%");
+                        })
+                        ->orWhereHas('jobSeekerProfile', function ($profileQuery) use ($search) {
+                            $profileQuery->where('education_level', 'like', "%{$search}%")
+                                ->orWhere('address', 'like', "%{$search}%")
+                                ->orWhere('phone', 'like', "%{$search}%");
+                        });
+                });
+            })
+            ->with(['jobPost.jobRequiredSkills.skill', 'jobSeekerProfile.user', 'jobSeekerProfile.skills'])
             ->get();
 
         $ranked = $this->matchingService->rankApplications($applications);
+        if ($request->get('sort') === 'experience') {
+            $ranked = $ranked->sortByDesc(fn ($application) => (int) ($application->jobSeekerProfile?->years_of_experience ?? 0))->values();
+        } elseif ($request->get('sort') === 'newest') {
+            $ranked = $ranked->sortByDesc('created_at')->values();
+        }
 
         // Manual pagination for ranked collection
         $page      = $request->get('page', 1);
@@ -78,7 +138,7 @@ class ATSController extends Controller
         }
 
         return $this->success(
-            new ApplicationResource($application->load('jobSeekerProfile.cvParsedData'))
+            new ApplicationResource($application->load(['jobPost.jobRequiredSkills.skill', 'jobSeekerProfile.user', 'jobSeekerProfile.skills', 'jobSeekerProfile.cvParsedData']))
         );
     }
 

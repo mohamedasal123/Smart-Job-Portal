@@ -17,4 +17,9 @@ class ApplicationPolicy
         return $user->jobSeekerProfile?->id === $application->job_seeker_id
             || $user->companyProfile?->id === $application->jobPost->company_id;
     }
+
+    public function delete(User $user, Application $application): bool
+    {
+        return $user->jobSeekerProfile?->id === $application->job_seeker_id;
+    }
 }

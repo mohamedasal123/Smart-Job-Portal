@@ -5,6 +5,7 @@ import { ProtectedRoute } from './routes/ProtectedRoute';
 import { RoleRoute } from './routes/RoleRoute';
 
 import JobSeekerLayout from './layouts/JobSeekerLayout';
+import GlobalCompanyWatcher from './components/GlobalCompanyWatcher';
 
 function App() {
   const renderRoute = (route) => {
@@ -30,10 +31,13 @@ function App() {
   };
 
   return (
-    <Routes>
-      {appRoutes.map(renderRoute)}
-      <Route path="*" element={<Navigate to="/404" replace />} />
-    </Routes>
+    <>
+      <GlobalCompanyWatcher />
+      <Routes>
+        {appRoutes.map(renderRoute)}
+        <Route path="*" element={<Navigate to="/404" replace />} />
+      </Routes>
+    </>
   );
 }
 

@@ -8,12 +8,14 @@ import { useAuth } from '../../context/useAuth';
 import PublicFooter from '../../components/PublicFooter';
 
 export default function PublicCompanyProfilePage() {
-  const { id } = useParams();
+  const { companyId } = useParams();
+  const id = companyId;
   const [company, setCompany] = useState(null);
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
   const isAdmin = user?.role === 'admin';
+  const isOwner = user?.role === 'company' && String(user.profile?.id) === String(company?.id);
 
   useEffect(() => {
     const fetchCompanyAndJobs = async () => {
@@ -78,6 +80,23 @@ export default function PublicCompanyProfilePage() {
         </div>
       )}
 
+      {isOwner && (
+        <div className="bg-secondary-container text-on-secondary-container w-full py-2 px-4 flex items-center justify-between shadow-sm z-40">
+          <div className="flex items-center gap-2 font-bold font-body-sm">
+            <span className="material-symbols-outlined text-[18px]">visibility</span>
+            Public View Mode
+          </div>
+          <div className="flex gap-2">
+            <Link to={ROUTES.COMPANY_PROFILE + '/edit'} className="bg-surface text-primary px-3 py-1 rounded-md text-xs font-bold hover:bg-surface-container transition-colors border border-outline-variant">
+              Edit Profile
+            </Link>
+            <Link to={ROUTES.COMPANY_CREATE_JOB} className="bg-secondary text-on-secondary px-3 py-1 rounded-md text-xs font-bold hover:opacity-90 transition-opacity">
+              Post a Job
+            </Link>
+          </div>
+        </div>
+      )}
+
       <main className="max-w-container mx-auto px-gutter py-margin-desktop space-y-gutter flex-grow w-full">
         <nav className="flex items-center gap-2 text-on-surface-variant font-body-md mb-6">
           <Link className="hover:text-secondary transition-colors" to={ROUTES.COMPANIES}>Companies</Link>
@@ -120,6 +139,11 @@ export default function PublicCompanyProfilePage() {
               <section className="bg-surface-container-lowest rounded-xl p-stack-lg shadow-ambient border border-outline-variant">
                 <div className="flex items-center justify-between mb-stack-md">
                   <h2 className="font-h2 text-h2 text-primary">Open Positions ({jobs.length})</h2>
+                  {isOwner && (
+                    <Link to={ROUTES.COMPANY_JOBS} className="text-secondary text-sm font-semibold hover:underline">
+                      Manage Jobs
+                    </Link>
+                  )}
                 </div>
                 <div className="space-y-4">
                   {jobs.map(job => (

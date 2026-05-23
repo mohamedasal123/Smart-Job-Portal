@@ -182,7 +182,7 @@ class AdminController extends Controller
             }
             
             if ($changingPassword) {
-                $user->password = \Hash::make($validated['newPassword']);
+                $user->password = $validated['newPassword'];
             }
         }
         

@@ -87,12 +87,25 @@ export const getPublicCompanies = async (filters = {}) => {
 };
 
 export const getPublicCompanyById = async (id) => {
-  const data = await companyService.getPublicCompany(id);
-  if (data?.company) {
+  const response = await companyService.getPublicCompany(id);
+  // Safely extract the nested payload from Laravel's ApiResponse format
+  let payload = response;
+  
+  // Unwrap nested `data` properties safely until we hit the actual object with `company` or primitive fallback.
+  while (payload && typeof payload === 'object' && !Array.isArray(payload) && ('data' in payload)) {
+     if (payload.company !== undefined) {
+         break; // Found the target payload directly inside
+     }
+     payload = payload.data;
+  }
+
+  if (payload?.company) {
     return {
-      company: normalizePublicCompany(data.company),
-      activeJobs: (data.active_jobs || []).map(normalizePublicJob)
+      company: normalizePublicCompany(payload.company),
+      activeJobs: (payload.active_jobs || []).map(normalizePublicJob)
     };
   }
-  return { company: normalizePublicCompany(data), activeJobs: [] };
+  
+  // Fallback if company wrapper doesn't exist
+  return { company: normalizePublicCompany(payload), activeJobs: [] };
 };

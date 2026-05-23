@@ -1,9 +1,11 @@
 import { useState, useCallback } from 'react';
 import { ApiError } from '../api/httpClient';
+import { useToast } from '../components/useToast';
 
 export function useValidationErrors() {
   const [errors, setErrors] = useState({});
   const [serverError, setServerError] = useState('');
+  const { addToast } = useToast();
 
   const handleApiError = useCallback((error) => {
     if (error instanceof ApiError && error.status === 422) {
@@ -20,10 +22,22 @@ export function useValidationErrors() {
       
       setErrors(formattedErrors);
       setServerError(error.data?.message || 'Please fix the validation errors.');
+      
+      addToast({
+        title: 'Validation Error',
+        message: error.data?.message || 'Please fix the highlighted fields and try again.',
+        type: 'error'
+      });
     } else {
-      setServerError(error?.message || 'An unexpected error occurred. Please try again.');
+      const msg = error?.response?.data?.message || error?.message || 'An unexpected error occurred.';
+      setServerError(msg);
+      addToast({
+        title: 'Error',
+        message: msg,
+        type: 'error'
+      });
     }
-  }, []);
+  }, [addToast]);
 
   const clearErrors = useCallback(() => {
     setErrors({});
