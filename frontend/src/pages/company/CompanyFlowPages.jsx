@@ -70,7 +70,7 @@ function SelectInput(props) {
 
 function Section({ title, children }) {
   return (
-    <section className="bg-surface-container-lowest rounded-xl border border-outline-variant shadow-ambient p-8 space-y-6">
+    <section className="bg-surface-container-lowest rounded-xl border border-outline-variant shadow-ambient p-4 sm:p-6 lg:p-8 space-y-6">
       <h2 className="font-h2 text-h2 text-primary">{title}</h2>
       {children}
     </section>
@@ -79,7 +79,7 @@ function Section({ title, children }) {
 
 function PaginationControls({ page, setPage, itemsCount }) {
   return (
-    <div className="flex justify-between items-center mt-stack-md bg-surface-container-lowest p-stack-sm rounded-lg border border-outline-variant">
+    <div className="flex flex-col sm:flex-row justify-between items-center gap-3 mt-stack-md bg-surface-container-lowest p-stack-sm rounded-lg border border-outline-variant">
       <button className={buttonSecondary} disabled={page <= 1} onClick={() => setPage(p => p - 1)}>Previous</button>
       <span className="text-on-surface-variant font-label-md">Page {page}</span>
       <button className={buttonSecondary} disabled={itemsCount < 15} onClick={() => setPage(p => p + 1)}>Next</button>

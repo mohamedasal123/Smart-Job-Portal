@@ -6,7 +6,7 @@ export default function AdminPageHeader({ eyebrow, title, description, actions }
         <h1 className="font-h1 text-h1 text-primary break-words">{title}</h1>
         {description && <p className="font-body-lg text-body-lg text-on-surface-variant mt-3 max-w-3xl break-words">{description}</p>}
       </div>
-      {actions && <div className="flex flex-wrap items-center gap-3 shrink-0">{actions}</div>}
+      {actions && <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:flex-wrap sm:items-center shrink-0">{actions}</div>}
     </div>
   );
 }

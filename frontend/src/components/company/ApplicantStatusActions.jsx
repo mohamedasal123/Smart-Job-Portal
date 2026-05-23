@@ -18,13 +18,13 @@ export default function ApplicantStatusActions({ applicant, onShortlist, onRejec
       <Link className={buttonClass} to={`/company/applicants/${applicant.id}/cv`}>
         <span className="material-symbols-outlined text-[18px]">download</span>{!compact && 'CV'}
       </Link>
-      <button className={`${buttonClass} ${isShortlisted ? 'text-[#F59E0B]' : 'text-[#15803D]'}`} onClick={() => onShortlist({ ...applicant, nextStatus: isShortlisted ? 'under_review' : 'shortlisted' })}>
+      <button className={`${buttonClass} ${isShortlisted ? 'text-[#F59E0B]' : 'text-[#15803D]'}`} onClick={() => onShortlist({ ...applicant, nextStatus: isShortlisted ? 'under_review' : 'shortlisted' })} type="button">
         <span className="material-symbols-outlined text-[18px]">{isShortlisted ? 'undo' : 'check_circle'}</span>{!compact && (isShortlisted ? 'Unshortlist' : 'Shortlist')}
       </button>
-      <button className={`${buttonClass} text-[#0284C7]`} onClick={() => onApprove?.(applicant)}>
+      <button className={`${buttonClass} text-[#0284C7]`} onClick={() => onApprove?.(applicant)} type="button">
         <span className="material-symbols-outlined text-[18px]">verified</span>{!compact && 'Approve'}
       </button>
-      <button className={`${buttonClass} text-error`} onClick={() => onReject(applicant)}>
+      <button className={`${buttonClass} text-error`} onClick={() => onReject(applicant)} type="button">
         <span className="material-symbols-outlined text-[18px]">cancel</span>{!compact && 'Reject'}
       </button>
     </div>

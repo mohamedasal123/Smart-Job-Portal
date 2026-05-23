@@ -70,6 +70,7 @@ export default function CompanyLayout() {
   
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isNotifOpen, setIsNotifOpen] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const profileRef = useRef(null);
   const notifRef = useRef(null);
@@ -180,54 +181,76 @@ export default function CompanyLayout() {
   const displayEmail = user?.email || '';
   const initials = displayName.split(' ').map((part) => part[0]).join('').slice(0, 2).toUpperCase();
   const unreadCount = recentNotifications.filter(n => !n.read_at && !n.read).length;
+  const sidebarContent = (onNavigate) => (
+    <>
+      <Link to={ROUTES.COMPANY_DASHBOARD} className="mb-stack-lg flex items-center gap-stack-sm px-stack-sm shrink-0 hover:opacity-80 transition-opacity" onClick={onNavigate}>
+        <div className="w-10 h-10 flex items-center justify-center shrink-0">
+          <img src={icon} alt="Smart Job Portal" className="w-full h-full object-contain" />
+        </div>
+        <div>
+          <h1 className="font-h3 text-h3 font-bold text-primary">Smart Job Portal</h1>
+          <p className="font-label-sm text-label-sm text-on-surface-variant">Recruiter Workspace</p>
+        </div>
+      </Link>
+
+      <nav className="flex-1 min-h-0 flex flex-col gap-unit overflow-y-auto pr-unit">
+        {navItems.map((item) => {
+          const isActive = isCompanyNavActive(item, routePath);
+          return (
+            <NavLink
+              className={() => navClass(isActive)}
+              key={item.to}
+              onClick={onNavigate}
+              to={item.to}
+            >
+              <span className="material-symbols-outlined">{item.icon}</span>
+              <span>{item.label}</span>
+            </NavLink>
+          );
+        })}
+      </nav>
+
+      <div className="mt-auto pt-stack-md border-t border-outline-variant flex flex-col gap-unit shrink-0 bg-surface-container-low">
+        <NavLink className="flex items-center gap-stack-md text-on-surface-variant hover:bg-surface-container-highest rounded-lg px-stack-md py-stack-sm transition-colors" onClick={onNavigate} to={ROUTES.CONTACT}>
+          <span className="material-symbols-outlined">help</span>
+          <span>Help</span>
+        </NavLink>
+        <button className="flex items-center gap-stack-md text-on-surface-variant hover:bg-surface-container-highest rounded-lg px-stack-md py-stack-sm transition-colors text-left" onClick={handleLogout} type="button">
+          <span className="material-symbols-outlined">logout</span>
+          <span>Logout</span>
+        </button>
+      </div>
+    </>
+  );
 
   return (
     <div className="stitch-page bg-surface text-on-surface font-body-md text-body-md flex h-screen overflow-hidden">
       {/* Sidebar */}
       {isSidebarOpen && (
         <aside className="hidden md:flex flex-col h-screen p-stack-md border-r border-outline-variant bg-surface-container-low w-sidebar-width shrink-0 overflow-hidden transition-all duration-300">
-          <Link to={ROUTES.COMPANY_DASHBOARD} className="mb-stack-lg flex items-center gap-stack-sm px-stack-sm shrink-0 hover:opacity-80 transition-opacity">
-            <div className="w-10 h-10 flex items-center justify-center shrink-0">
-              <img src={icon} alt="Smart Job Portal" className="w-full h-full object-contain" />
-            </div>
-            <div>
-              <h1 className="font-h3 text-h3 font-bold text-primary">Smart Job Portal</h1>
-              <p className="font-label-sm text-label-sm text-on-surface-variant">Recruiter Workspace</p>
-            </div>
-          </Link>
-
-          <nav className="flex-1 min-h-0 flex flex-col gap-unit overflow-y-auto pr-unit">
-            {navItems.map((item) => {
-              const isActive = isCompanyNavActive(item, routePath);
-              return (
-                <NavLink
-                  className={() => navClass(isActive)}
-                  key={item.to}
-                  to={item.to}
-                >
-                  <span className="material-symbols-outlined">{item.icon}</span>
-                  <span>{item.label}</span>
-                </NavLink>
-              );
-            })}
-          </nav>
-
-          <div className="mt-auto pt-stack-md border-t border-outline-variant flex flex-col gap-unit shrink-0 bg-surface-container-low">
-            <NavLink className="flex items-center gap-stack-md text-on-surface-variant hover:bg-surface-container-highest rounded-lg px-stack-md py-stack-sm transition-colors" to={ROUTES.CONTACT}>
-              <span className="material-symbols-outlined">help</span>
-              <span>Help</span>
-            </NavLink>
-            <button className="flex items-center gap-stack-md text-on-surface-variant hover:bg-surface-container-highest rounded-lg px-stack-md py-stack-sm transition-colors text-left" onClick={handleLogout}>
-              <span className="material-symbols-outlined">logout</span>
-              <span>Logout</span>
-            </button>
-          </div>
+          {sidebarContent()}
         </aside>
+      )}
+
+      {isMobileMenuOpen && (
+        <div className="fixed inset-0 z-[60] bg-black/40 md:hidden" onClick={() => setIsMobileMenuOpen(false)}>
+          <aside className="flex h-full w-[min(280px,85vw)] flex-col p-stack-md border-r border-outline-variant bg-surface-container-low overflow-hidden" onClick={(event) => event.stopPropagation()}>
+            {sidebarContent(() => setIsMobileMenuOpen(false))}
+          </aside>
+        </div>
       )}
 
       <main className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden bg-background">
         <header className="min-h-16 h-16 bg-surface-container-lowest border-b border-outline-variant flex items-center justify-between px-gutter lg:px-margin-desktop shrink-0 z-50 shadow-ambient">
           <div className="flex items-center gap-4">
+            <button
+              onClick={() => setIsMobileMenuOpen(true)}
+              className="md:hidden w-10 h-10 rounded-lg flex items-center justify-center text-on-surface-variant hover:bg-surface-container-highest transition-colors"
+              title="Open menu"
+              type="button"
+            >
+              <span className="material-symbols-outlined">menu</span>
+            </button>
             <button 
               onClick={() => setIsSidebarOpen(!isSidebarOpen)}
               className="hidden md:flex w-10 h-10 rounded-lg items-center justify-center text-on-surface-variant hover:bg-surface-container-highest transition-colors"
@@ -255,7 +278,7 @@ export default function CompanyLayout() {
               </button>
               
               {isNotifOpen && (
-                <div className="absolute right-0 mt-2 w-80 bg-surface-container-lowest border border-outline-variant rounded-xl shadow-md overflow-hidden z-50">
+                <div className="absolute right-0 mt-2 w-[calc(100vw-2rem)] sm:w-80 bg-surface-container-lowest border border-outline-variant rounded-xl shadow-md overflow-hidden z-50">
                   <div className="px-4 py-3 border-b border-outline-variant bg-surface-container-low flex justify-between items-center gap-3">
                     <h3 className="font-h3 text-primary">Notifications</h3>
                     <div className="flex items-center gap-2">
@@ -355,7 +378,7 @@ export default function CompanyLayout() {
           </div>
         </header>
 
-        <div className="flex-1 overflow-y-auto p-8 lg:p-12 pb-12">
+        <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 sm:p-6 lg:p-12 pb-12">
           <PageTransition className="flex flex-col gap-8">
             <Outlet />
           </PageTransition>
