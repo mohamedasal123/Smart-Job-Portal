@@ -35,7 +35,7 @@ export default function CompanyApplicantTable({ applicants, onShortlist, onRejec
           </div>
           <div className="lg:col-span-2"><ApplicantMatchScore score={applicant.matchScore} /></div>
           <div className="lg:col-span-2 flex lg:justify-center"><CompanyStatusBadge status={applicant.status} /></div>
-          <div className="lg:col-span-1 text-on-surface-variant text-sm lg:text-center">Experience: {applicant.yearsExperience || 0} yrs</div>
+          <div className="lg:col-span-1 text-on-surface-variant text-sm lg:text-center"><span className="lg:hidden">Experience: </span>{applicant.yearsExperience || 0} yrs</div>
           <div className="lg:col-span-3 flex justify-start lg:justify-end overflow-x-auto pb-1">
             <ApplicantStatusActions applicant={applicant} compact onApprove={onApprove} onReject={onReject} onShortlist={onShortlist} />
           </div>

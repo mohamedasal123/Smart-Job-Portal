@@ -20,6 +20,22 @@ If the database step fails because MySQL was not running, start MySQL and run:
 migrate.cmd
 ```
 
+## Import A SQL Dump
+
+If you have `smart_job.sql`, put it in the project root and run:
+
+```bat
+import-db.cmd
+```
+
+For custom credentials:
+
+```bat
+import-db.cmd -Username root -Password your_password
+```
+
+Use this only when you want the exact exported database snapshot. Otherwise prefer `migrate.cmd`, which uses migrations and seeders.
+
 ## Start The Project
 
 From the project root, run:
@@ -52,6 +68,7 @@ scripts\setup-all.ps1
 scripts\start-all.ps1
 scripts\check-all.ps1
 scripts\db-migrate-seed.ps1
+scripts\import-db.ps1
 ```
 
 ## Notes

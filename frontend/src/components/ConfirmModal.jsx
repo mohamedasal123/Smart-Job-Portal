@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useId, useRef, useState } from 'react';
+import { useFocusTrap } from '../hooks/useFocusTrap';
 
 /**
  * Reusable ConfirmModal component.
@@ -28,6 +29,8 @@ export default function ConfirmModal({
 }) {
   const [internalLoading, setInternalLoading] = useState(false);
   const backdropRef = useRef(null);
+  const panelRef = useRef(null);
+  const titleId = useId();
   const loading = externalLoading ?? internalLoading;
 
   const handleConfirm = useCallback(async () => {
@@ -40,15 +43,11 @@ export default function ConfirmModal({
     }
   }, [loading, onConfirm]);
 
-  // Close on escape
-  useEffect(() => {
-    if (!open) return;
-    const handler = (e) => {
-      if (e.key === 'Escape') onCancel?.();
-    };
-    window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
-  }, [open, onCancel]);
+  const handleClose = useCallback(() => {
+    if (!loading) onCancel?.();
+  }, [loading, onCancel]);
+
+  useFocusTrap(open, panelRef, null, handleClose);
 
   if (!open) return null;
 
@@ -62,12 +61,19 @@ export default function ConfirmModal({
       ref={backdropRef}
       className="fixed inset-0 z-[9990] flex items-center justify-center bg-black/40 animate-fade-in"
       onClick={(e) => {
-        if (e.target === backdropRef.current) onCancel?.();
+        if (e.target === backdropRef.current) handleClose();
       }}
     >
-      <div className="bg-surface-container-lowest rounded-xl shadow-[0px_10px_30px_rgba(15,23,42,0.15)] border border-outline-variant p-stack-lg w-full max-w-md mx-4 animate-scale-in">
+      <div
+        aria-labelledby={titleId}
+        aria-modal="true"
+        className="bg-surface-container-lowest rounded-xl shadow-[0px_10px_30px_rgba(15,23,42,0.15)] border border-outline-variant p-stack-lg w-full max-w-md mx-4 animate-scale-in focus:outline-none"
+        ref={panelRef}
+        role="dialog"
+        tabIndex={-1}
+      >
         {/* Title */}
-        <h3 className="font-h2 text-h2 text-primary mb-stack-sm">{title}</h3>
+        <h3 className="font-h2 text-h2 text-primary mb-stack-sm" id={titleId}>{title}</h3>
 
         {/* Message */}
         {message && (

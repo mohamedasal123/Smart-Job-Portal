@@ -30,22 +30,7 @@ class MatchingService
             return (float) ($matchData['ai_score'] ?? 0);
         } catch (\Exception $e) {
             Log::error('MatchingService calculateScore fallback', ['error' => $e->getMessage()]);
-            // Fallback logic
-            $mandatory = $requiredSkills->where('is_mandatory', true);
-            $optional  = $requiredSkills->where('is_mandatory', false);
-
-            $matchedMandatory = $mandatory->whereIn('skill_id', $seekerSkillIds)->count();
-            $matchedOptional  = $optional->whereIn('skill_id', $seekerSkillIds)->count();
-
-            $mandatoryScore = $mandatory->count() > 0
-                ? ($matchedMandatory / $mandatory->count()) * config('matching.mandatory_weight', 70) 
-                : config('matching.mandatory_weight', 70);
-
-            $optionalScore = $optional->count() > 0
-                ? ($matchedOptional / $optional->count()) * config('matching.optional_weight', 30) 
-                : config('matching.optional_weight', 30);
-
-            return round($mandatoryScore + $optionalScore, 2);
+            return $this->calculateLocalScore($seekerSkillIds, $requiredSkills);
         }
     }
 
@@ -63,11 +48,27 @@ class MatchingService
             $matchData = $this->aiService->matchSkills($candidateSkills, $jobSkillsStr);
             return $matchData['missing_skills'] ?? [];
         } catch (\Exception $e) {
-            return $requiredSkills
-                ->whereNotIn('skill_id', $seekerSkillIds)
-                ->pluck('skill.name')
-                ->toArray();
+            return $this->getLocalMissingSkills($seekerSkillIds, $requiredSkills);
         }
+    }
+
+    /**
+     * Fast, in-process missing-skills calculation. Mirrors {@see calculateLocalScore()}
+     * — use this when an AI round-trip is not warranted (apply flow, bulk ranking).
+     *
+     * @param  Collection<int>             $seekerSkillIds
+     * @param  Collection<JobRequiredSkill> $requiredSkills
+     */
+    public function getLocalMissingSkills(
+        Collection $seekerSkillIds,
+        Collection $requiredSkills
+    ): array {
+        return $requiredSkills
+            ->whereNotIn('skill_id', $seekerSkillIds)
+            ->pluck('skill.name')
+            ->filter()
+            ->values()
+            ->toArray();
     }
 
     /**

@@ -83,6 +83,34 @@ function Ensure-EnvFile {
     Write-Host "Created: $envFile"
 }
 
+function Ensure-DotEnvValue {
+    param(
+        [string] $Path,
+        [string] $Key,
+        [scriptblock] $ValueFactory
+    )
+
+    if (-not (Test-Path -LiteralPath $Path)) {
+        throw "Missing env file: $Path"
+    }
+
+    $content = Get-Content -LiteralPath $Path -Raw
+    if ($content -match "(?m)^$([regex]::Escape($Key))=(.+)$" -and -not [string]::IsNullOrWhiteSpace($matches[1])) {
+        Write-Host "$Key already exists."
+        return
+    }
+
+    $value = & $ValueFactory
+    if ($content -match "(?m)^$([regex]::Escape($Key))=.*$") {
+        $content = $content -replace "(?m)^$([regex]::Escape($Key))=.*$", "$Key=$value"
+    } else {
+        $content = $content.TrimEnd() + "`r`n$Key=$value`r`n"
+    }
+
+    Set-Content -LiteralPath $Path -Value $content -NoNewline
+    Write-Host "Generated: $Key"
+}
+
 function Get-VenvPython {
     $windowsPython = Join-Path $Ai '.venv\Scripts\python.exe'
     if (Test-Path -LiteralPath $windowsPython) {
@@ -108,6 +136,10 @@ foreach ($command in @('php', 'npm', 'python')) {
 Write-Section 'Creating local env files'
 Ensure-EnvFile $Backend
 Ensure-EnvFile $Frontend
+
+Ensure-DotEnvValue (Join-Path $Backend '.env') 'AI_ENGINE_KEY' {
+    -join ((1..64) | ForEach-Object { '{0:x}' -f (Get-Random -Minimum 0 -Maximum 16) })
+}
 
 if (-not $SkipInstall) {
     Write-Section 'Installing backend dependencies'

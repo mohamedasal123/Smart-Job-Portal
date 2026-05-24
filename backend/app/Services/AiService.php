@@ -15,7 +15,12 @@ class AiService
     public function __construct()
     {
         $this->engineUrl = rtrim(config('ai.engine_url', 'http://127.0.0.1:8000'), '/');
-        $this->engineKey = config('ai.engine_key', 'smart_job_secret_key_123');
+
+        $key = config('ai.engine_key');
+        if (!is_string($key) || $key === '') {
+            throw new Exception('AI_ENGINE_KEY is not configured. Set it in your environment before calling the AI service.');
+        }
+        $this->engineKey = $key;
     }
 
     /**

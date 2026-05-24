@@ -9,6 +9,7 @@ use App\Http\Resources\ApplicationResource;
 use App\Models\Application;
 use App\Services\MatchingService;
 use App\Services\GapAnalyzerService;
+use App\Jobs\RefineApplicationScoreJob;
 use App\Jobs\SendRejectionEmailJob;
 use App\Events\ApplicationStatusChanged;
 use Illuminate\Http\Request;
@@ -66,8 +67,11 @@ class ApplicationController extends Controller
         $seekerSkillIds = $profile->jobSeekerSkills()->pluck('skill_id');
         $requiredSkills = $job->jobRequiredSkills;
 
-        $score         = $this->matchingService->calculateScore($seekerSkillIds, $requiredSkills);
-        $missingSkills = $this->matchingService->getMissingSkills($seekerSkillIds, $requiredSkills);
+        // Compute a local score synchronously so the apply response is fast and
+        // resilient to AI outages. RefineApplicationScoreJob upgrades these
+        // values asynchronously when the AI service is reachable.
+        $score = $this->matchingService->calculateLocalScore($seekerSkillIds, $requiredSkills);
+        $missingSkills = $this->matchingService->getLocalMissingSkills($seekerSkillIds, $requiredSkills);
 
         $application = DB::transaction(function () use ($job, $jobId, $profile, $score, $missingSkills) {
             $app = Application::create([
@@ -100,6 +104,8 @@ class ApplicationController extends Controller
 
             return $app;
         });
+
+        RefineApplicationScoreJob::dispatch($application->id);
 
         return $this->success(new ApplicationResource($application), 'Applied successfully', 201);
     }

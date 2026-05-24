@@ -1,8 +1,9 @@
 import { NavLink, Outlet, useLocation, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/useAuth';
+import { useFocusTrap } from '../hooks/useFocusTrap';
 import { companyDataService } from '../services/companyDataService';
 import { ROUTES } from '../utils/constants';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import PageTransition from '../motion/PageTransition';
 import ThemeToggle from '../components/ThemeToggle';
 import icon from '../assets/icon.png';
@@ -74,6 +75,8 @@ export default function CompanyLayout() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const profileRef = useRef(null);
   const notifRef = useRef(null);
+  const mobileMenuButtonRef = useRef(null);
+  const mobileDrawerRef = useRef(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -122,6 +125,9 @@ export default function CompanyLayout() {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  const closeMobileMenu = useCallback(() => setIsMobileMenuOpen(false), []);
+  useFocusTrap(isMobileMenuOpen, mobileDrawerRef, mobileMenuButtonRef, closeMobileMenu);
 
   const dismissNotification = (index, e) => {
     e.stopPropagation();
@@ -234,7 +240,15 @@ export default function CompanyLayout() {
 
       {isMobileMenuOpen && (
         <div className="fixed inset-0 z-[60] bg-black/40 md:hidden" onClick={() => setIsMobileMenuOpen(false)}>
-          <aside className="flex h-full w-[min(280px,85vw)] flex-col p-stack-md border-r border-outline-variant bg-surface-container-low overflow-hidden" onClick={(event) => event.stopPropagation()}>
+          <aside
+            aria-label="Company navigation"
+            aria-modal="true"
+            className="flex h-full w-[min(280px,85vw)] flex-col p-stack-md border-r border-outline-variant bg-surface-container-low overflow-hidden focus:outline-none"
+            onClick={(event) => event.stopPropagation()}
+            ref={mobileDrawerRef}
+            role="dialog"
+            tabIndex={-1}
+          >
             {sidebarContent(() => setIsMobileMenuOpen(false))}
           </aside>
         </div>
@@ -244,8 +258,11 @@ export default function CompanyLayout() {
         <header className="min-h-16 h-16 bg-surface-container-lowest border-b border-outline-variant flex items-center justify-between px-gutter lg:px-margin-desktop shrink-0 z-50 shadow-ambient">
           <div className="flex items-center gap-4">
             <button
+              aria-expanded={isMobileMenuOpen}
+              aria-label="Open navigation menu"
               onClick={() => setIsMobileMenuOpen(true)}
               className="md:hidden w-10 h-10 rounded-lg flex items-center justify-center text-on-surface-variant hover:bg-surface-container-highest transition-colors"
+              ref={mobileMenuButtonRef}
               title="Open menu"
               type="button"
             >

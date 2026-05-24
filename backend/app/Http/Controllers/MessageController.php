@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Application;
+use App\Models\JobSeekerProfile;
 use App\Models\Message;
 use App\Models\Notification;
 use App\Models\User;
@@ -19,65 +21,122 @@ class MessageController extends Controller
     {
         $userId = $request->user()->id;
 
-        // Get the latest message for each conversation
-        // This is a complex SQL query, so we'll use a simpler approach for Laravel
         $messages = Message::where('sender_id', $userId)
             ->orWhere('receiver_id', $userId)
-            ->with(['sender', 'receiver', 'jobPost'])
+            ->with([
+                'sender.companyProfile',
+                'sender.jobSeekerProfile',
+                'receiver.companyProfile',
+                'receiver.jobSeekerProfile',
+                'jobPost.companyProfile',
+            ])
             ->orderBy('created_at', 'desc')
             ->get();
 
-        $conversations = [];
+        // Pass 1: dedup conversations and collect application lookup keys.
+        $rows = [];
         $seenPairs = [];
+        $jobIds = [];
+        $seekerIds = [];
 
         foreach ($messages as $message) {
             $otherUserId = $message->sender_id === $userId ? $message->receiver_id : $message->sender_id;
-            
-            // Create a unique key for the pair
             $pairKey = min($userId, $otherUserId) . '_' . max($userId, $otherUserId);
-            
-            // If we want to separate by job_id as well
             if ($message->job_id) {
                 $pairKey .= '_' . $message->job_id;
             }
 
-            if (!isset($seenPairs[$pairKey])) {
-                $seenPairs[$pairKey] = true;
-                
-                $otherUser = $message->sender_id === $userId ? $message->receiver : $message->sender;
-                $otherName = $otherUser->name;
-                $role = 'User';
-                $contact = '';
-
-                if ($otherUser->role === 'company' && $otherUser->companyProfile) {
-                    $otherName = $otherUser->companyProfile->company_name;
-                    $role = 'Company';
-                } elseif ($otherUser->role === 'job_seeker' && $otherUser->jobSeekerProfile) {
-                    $role = 'Candidate';
-                    $contactData = json_decode($otherUser->jobSeekerProfile->contact_information, true);
-                    $contact = $contactData['title'] ?? '';
-                    $otherName = $contactData['firstName'] ?? $otherUser->name;
-                    if (isset($contactData['lastName'])) $otherName .= ' ' . $contactData['lastName'];
-                }
-
-                $conversations[] = [
-                    'id' => 'conv-' . $pairKey,
-                    'other_user_id' => $otherUserId,
-                    'application_id' => $message->job_id && $otherUser->jobSeekerProfile ? \App\Models\Application::where('job_id', $message->job_id)->where('job_seeker_id', $otherUser->jobSeekerProfile->id)->value('id') : null,
-                    'company' => $otherUser->role === 'company' ? $otherName : ($message->jobPost->companyProfile->company_name ?? 'Company'),
-                    'candidate' => $otherUser->role === 'job_seeker' ? $otherName : $request->user()->name,
-                    'contact' => $otherName,
-                    'role' => $message->jobPost ? $message->jobPost->title : $contact,
-                    'job_id' => $message->job_id,
-                    'last_message' => $message->content,
-                    'time' => $message->created_at->diffForHumans(),
-                    'unread' => $message->receiver_id === $userId && !$message->read_at,
-                    'status' => 'Active', // Mock status
-                ];
+            if (isset($seenPairs[$pairKey])) {
+                continue;
             }
+            $seenPairs[$pairKey] = true;
+
+            $otherUser = $message->sender_id === $userId ? $message->receiver : $message->sender;
+            $seekerProfileId = $otherUser?->role === 'job_seeker' ? $otherUser->jobSeekerProfile?->id : null;
+
+            if ($message->job_id && $seekerProfileId) {
+                $jobIds[] = $message->job_id;
+                $seekerIds[] = $seekerProfileId;
+            }
+
+            $rows[] = [
+                'message' => $message,
+                'otherUserId' => $otherUserId,
+                'otherUser' => $otherUser,
+                'seekerProfileId' => $seekerProfileId,
+                'pairKey' => $pairKey,
+            ];
+        }
+
+        // Single batch query for application IDs across all conversations.
+        $applicationByKey = [];
+        if (!empty($jobIds)) {
+            $applicationByKey = Application::whereIn('job_id', array_unique($jobIds))
+                ->whereIn('job_seeker_id', array_unique($seekerIds))
+                ->get(['id', 'job_id', 'job_seeker_id'])
+                ->mapWithKeys(fn ($a) => [$a->job_id . '_' . $a->job_seeker_id => $a->id])
+                ->all();
+        }
+
+        // Pass 2: shape the response.
+        $conversations = [];
+        foreach ($rows as $row) {
+            $message = $row['message'];
+            $otherUser = $row['otherUser'];
+            $otherName = $otherUser->name ?? '';
+            $contact = '';
+
+            if ($otherUser?->role === 'company' && $otherUser->companyProfile) {
+                $otherName = $otherUser->companyProfile->company_name;
+            } elseif ($otherUser?->role === 'job_seeker' && $otherUser->jobSeekerProfile) {
+                $candidate = $this->candidateDisplayData($otherUser->jobSeekerProfile);
+                $contact = $candidate['title'];
+                $otherName = $candidate['name'] !== '' ? $candidate['name'] : ($otherUser->name ?? '');
+            }
+
+            $applicationId = null;
+            if ($message->job_id && $row['seekerProfileId']) {
+                $applicationId = $applicationByKey[$message->job_id . '_' . $row['seekerProfileId']] ?? null;
+            }
+
+            $conversations[] = [
+                'id' => 'conv-' . $row['pairKey'],
+                'other_user_id' => $row['otherUserId'],
+                'application_id' => $applicationId,
+                'company' => $otherUser?->role === 'company' ? $otherName : ($message->jobPost->companyProfile->company_name ?? 'Company'),
+                'candidate' => $otherUser?->role === 'job_seeker' ? $otherName : $request->user()->name,
+                'contact' => $otherName,
+                'role' => $message->jobPost ? $message->jobPost->title : $contact,
+                'job_id' => $message->job_id,
+                'last_message' => $message->content,
+                'time' => $message->created_at->diffForHumans(),
+                'unread' => $message->receiver_id === $userId && !$message->read_at,
+                'status' => 'Active', // Mock status
+            ];
         }
 
         return $this->success($conversations);
+    }
+
+    /**
+     * Whitelist only the candidate display fields needed for the conversation list.
+     * Avoids leaking the full contact_information JSON (email, phone, etc.).
+     */
+    private function candidateDisplayData(JobSeekerProfile $profile): array
+    {
+        $raw = is_array($profile->contact_information)
+            ? $profile->contact_information
+            : json_decode((string) $profile->contact_information, true);
+        $raw = is_array($raw) ? $raw : [];
+
+        $title = is_string($raw['title'] ?? null) ? $raw['title'] : '';
+        $first = is_string($raw['firstName'] ?? null) ? $raw['firstName'] : '';
+        $last = is_string($raw['lastName'] ?? null) ? $raw['lastName'] : '';
+
+        return [
+            'title' => $title,
+            'name' => trim($first . ' ' . $last),
+        ];
     }
 
     public function show(Request $request, $otherUserId)

@@ -9,3 +9,4 @@ venv/
 .claude/
 frontend/*results*.txt
 frontend/*results*.json
+*.sql

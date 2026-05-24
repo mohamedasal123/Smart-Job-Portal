@@ -35,6 +35,6 @@ class AuthTest extends TestCase
             'password' => 'Password123!',
         ]);
 
-        $response->assertStatus(401);
+        $response->assertStatus(403);
     }
 }

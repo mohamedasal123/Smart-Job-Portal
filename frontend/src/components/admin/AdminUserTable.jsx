@@ -27,7 +27,7 @@ export default function AdminUserTable({ users, onStatusAction }) {
           <div className="lg:col-span-2"><AdminRoleBadge role={user.role} /></div>
           <div className="lg:col-span-2 flex lg:justify-center"><AdminStatusBadge status={user.verificationStatus} /></div>
           <div className="lg:col-span-2 flex lg:justify-center"><AdminStatusBadge status={user.accountStatus} /></div>
-          <div className="lg:col-span-1 lg:text-center text-on-surface-variant text-sm truncate" title={user.createdAt}>Created: {user.createdAt}</div>
+          <div className="lg:col-span-1 lg:text-center text-on-surface-variant text-sm truncate" title={user.createdAt}><span className="lg:hidden">Created: </span>{user.createdAt}</div>
           <div className="lg:col-span-2 flex justify-start lg:justify-center gap-2">
             <Link className="p-2 rounded-lg hover:bg-surface-container-high text-on-surface-variant transition-colors" title="View details" to={`/admin/users/${user.id}`}>
               <span className="material-symbols-outlined text-[20px]">visibility</span>
