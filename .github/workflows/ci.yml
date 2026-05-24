@@ -61,6 +61,10 @@ jobs:
           DB_DATABASE: smart_job_test
           DB_USERNAME: root
           DB_PASSWORD: root
+          # AiService now throws when AI_ENGINE_KEY is unset; provide a stub so
+          # the container can resolve the service during tests. No real AI
+          # round-trips happen in CI — sync queue + mocked HTTP cover that path.
+          AI_ENGINE_KEY: test_key
 
   frontend:
     name: Frontend (React/Vite)

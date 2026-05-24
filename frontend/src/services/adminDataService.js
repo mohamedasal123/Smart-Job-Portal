@@ -28,7 +28,8 @@ const normalizeUser = (user) => {
 const splitTextList = (value) => {
   if (Array.isArray(value)) return value;
   if (!value) return [];
-  return String(value).split(/\r?\n||-/).map((item) => item.trim()).filter(Boolean);
+  // eslint-disable-next-line no-control-regex
+  return String(value).split(/\r?\n|\x07|-/).map((item) => item.trim()).filter(Boolean);
 };
 
 const normalizeJob = (job) => {

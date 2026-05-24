@@ -10,8 +10,6 @@ import PublicFooter from '../../components/PublicFooter';
 import { EASE, SPRING_PRESS } from '../../motion/variants';
 import { getPublicJobs, getPublicCompanies } from '../../services/publicDataService';
 
-const FALLBACK_POPULAR_SEARCHES = ['React Developer', 'UI/UX Designer', 'Data Scientist', 'Product Manager'];
-
 const HOW_IT_WORKS = [
   { step: '01', icon: 'upload_file', title: 'Upload Your CV', description: 'Our AI instantly parses your resume, extracting your skills, experience, and qualifications into a smart profile.' },
   { step: '02', icon: 'auto_awesome', title: 'Get AI Matches', description: 'Our matching algorithm analyzes hundreds of factors to surface the jobs that best fit your unique profile and goals.' },
@@ -72,7 +70,7 @@ export default function HomePage() {
         ? sortedTitles.slice(0, 4)
         : []
     };
-  }, [jobs, loading]);
+  }, [jobs]);
 
   const dynamicStats = useMemo(() => {
     return [

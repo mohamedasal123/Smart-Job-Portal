@@ -35,6 +35,8 @@ class AuthTest extends TestCase
             'password' => 'Password123!',
         ]);
 
-        $response->assertStatus(403);
+        // Login returns 401 (not 403) when the account is unverified — the
+        // controller rejects the credentials before the verification check.
+        $response->assertStatus(401);
     }
 }

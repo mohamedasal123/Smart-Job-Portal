@@ -1,5 +1,3 @@
-import { Link } from 'react-router-dom';
-import { ROUTES } from '../../utils/constants';
 import PublicNavBar from '../../components/PublicNavBar';
 import PublicFooter from '../../components/PublicFooter';
 

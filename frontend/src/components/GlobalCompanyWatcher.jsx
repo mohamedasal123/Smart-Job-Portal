@@ -16,8 +16,6 @@ export default function GlobalCompanyWatcher() {
       timers = [];
       const interviews = JSON.parse(localStorage.getItem('scheduled_interviews') || '{}');
       const notified = JSON.parse(localStorage.getItem('notified_interviews') || '{}');
-      const muteAllMessages = localStorage.getItem('muted_messages_all') === 'true';
-      const mutedConversations = JSON.parse(localStorage.getItem('muted_message_conversations') || '[]');
       let hasChanges = false;
 
       Object.entries(interviews).forEach(([key, data]) => {
